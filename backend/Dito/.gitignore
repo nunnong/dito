@@ -37,6 +37,7 @@ out/
 .vscode/
 
 ### Apple ###
+.DS_Store
 **/.DS_Store
 
 volume
