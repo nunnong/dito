@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:${DB_PORT}/${DB_NAME}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:${DB_PORT:5432}/${DB_NAME:dito}
+    username: ${DB_USERNAME:server}
+    password: ${DB_PASSWORD:dito2025}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -22,7 +22,7 @@ externals:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:seoulSeek2025}
+    password: ${REDIS_PASSWORD:dito2025}
 
 logging:
   level:
