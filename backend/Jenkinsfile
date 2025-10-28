@@ -1,261 +1,183 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        // Docker 이미지 정보
-        DOCKER_IMAGE = "dito-backend"
-        DOCKER_TAG = "${env.BUILD_NUMBER}"
-        DOCKER_REGISTRY = "localhost:5000" // 필요시 Docker Registry 주소로 변경
+  // ▶ 웹훅으로 전달받을 브랜치
+  parameters {
+    string(name: 'BRANCH', defaultValue: 'infra', description: '빌드할 Git 브랜치')
+  }
 
-        // 프로젝트 경로
-        BACKEND_DIR = "backend"
+  environment {
+    // ====== 빌드/배포 공통 ======
+    GIT_URL          = 'https://lab.ssafy.com/s13-final/S13P31A708.git' // 레포 URL (HTTPS 권장)
+    GIT_CREDENTIALS  = 'gitlab-https-pat'  // Jenkins 크리덴셜 ID(Username+Password=PAT)
 
-        // Docker Compose 파일 경로
-        COMPOSE_FILE = "${BACKEND_DIR}/docker-compose.yml"
+    BACKEND_DIR      = 'backend'
+    COMPOSE_FILE     = "${env.BACKEND_DIR}/docker-compose.yml"
 
-        // GitLab Webhook Secret (Jenkins에 Secret text로 등록: gitlab-webhook-secret)
-        GITLAB_WEBHOOK_SECRET = credentials('gitlab-webhook-secret')
+    DOCKER_IMAGE     = 'dito-backend'
+    DOCKER_REGISTRY  = 'localhost:5000'    // 필요 시 사설/공식 레지스트리로 교체
+    DOCKER_TAG       = "${env.BUILD_NUMBER}"
+  }
 
-        // NOTE: Do NOT use `environment { ENV_FILE = credentials('...') }` for secret file injection.
-        // Secret files should be injected at runtime with withCredentials(file(...)).
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    timeout(time: 30, unit: 'MINUTES')
+    disableConcurrentBuilds()
+    timestamps()
+  }
+
+  // NOTE: 트리거는 Jenkins UI의 "Trigger builds remotely" + GitLab Webhook(/buildWithParameters)만 사용.
+  // Jenkinsfile의 triggers{} 블록은 사용하지 않음(충돌 방지).
+
+  stages {
+
+    stage('📋 Prepare') {
+      steps {
+        script {
+          echo '========================================='
+          echo "🚀 Starting CI/CD Pipeline"
+          echo "Build #${env.BUILD_NUMBER}"
+          echo "Branch param: ${params.BRANCH}"
+          echo '========================================='
+        }
+        // 깨끗한 워크스페이스에서 시작(선택)
+        deleteDir()
+      }
     }
 
-    options {
-        // 빌드 보관 정책
-        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
-
-        // 타임아웃 설정
-        timeout(time: 30, unit: 'MINUTES')
-
-        // 동시 빌드 방지
-        disableConcurrentBuilds()
-
-        // 타임스탬프 출력
-        timestamps()
+    stage('🔍 Checkout') {
+      steps {
+        echo "📦 Checking out source from ${params.BRANCH}..."
+        git branch: params.BRANCH, url: env.GIT_URL, credentialsId: env.GIT_CREDENTIALS
+        sh '''
+          echo "Current directory: $(pwd)"
+          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)"
+          echo "Git commit: $(git rev-parse --short HEAD)"
+        '''
+      }
     }
 
-    triggers {
-        // GitLab Webhook 트리거 (backend 브랜치)
-        gitlab(
-            triggerOnPush: true,
-            triggerOnMergeRequest: true,
-            branchFilterType: 'NameBasedFilter',
-            includeBranchesSpec: 'backend',
-            secretToken: env.GITLAB_WEBHOOK_SECRET
-        )
+    stage('🔐 Environment Setup') {
+      steps {
+        echo '🔐 Injecting secret env file...'
+        script {
+          // Jenkins Credentials: Secret file (ID: dito-backend-env)
+          withCredentials([file(credentialsId: 'dito-backend-env', variable: 'ENV_FILE')]) {
+            sh """
+              cp "$ENV_FILE" "${BACKEND_DIR}/.env"
+              chmod 600 "${BACKEND_DIR}/.env"
+            """
+          }
+        }
+      }
     }
 
-    stages {
-        stage('📋 Prepare') {
-            steps {
-                script {
-                    echo "========================================="
-                    echo "🚀 Starting CI/CD Pipeline"
-                    echo "========================================="
-                    echo "Build Number: ${env.BUILD_NUMBER}"
-                    echo "Branch: ${env.GIT_BRANCH}"
-                    echo "Commit: ${env.GIT_COMMIT}"
-                    echo "========================================="
-                }
-
-                // 작업 디렉토리 정리
-                sh "echo '🧹 Cleaning workspace...'"
-            }
+    stage('🏗️ Build Docker Image') {
+      steps {
+        echo "🏗️ Building Docker image ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
+        dir("${BACKEND_DIR}") {
+          sh """
+            docker build \
+              -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} \
+              -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest \
+              --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+              -f Dockerfile .
+            docker images | grep ${DOCKER_IMAGE} || true
+          """
         }
-
-        stage('🔍 Checkout') {
-            steps {
-                echo "📦 Checking out source code..."
-                checkout scm
-
-                script {
-                    // Git 정보 확인
-                    sh """
-                        echo "Current directory: \$(pwd)"
-                        echo "Git branch: \$(git rev-parse --abbrev-ref HEAD)"
-                        echo "Git commit: \$(git rev-parse --short HEAD)"
-                    """
-                }
-            }
-        }
-
-        stage('🔐 Environment Setup') {
-            steps {
-                echo "🔐 Setting up environment variables..."
-                script {
-                    // Jenkins Secret file (credentials kind: Secret file, id: dito-backend-env)
-                    // 안전하게 파일을 워크스페이스에 복사합니다.
-                    withCredentials([file(credentialsId: 'dito-backend-env', variable: 'ENV_FILE')]) {
-                        sh "cp $ENV_FILE ${BACKEND_DIR}/.env && chmod 600 ${BACKEND_DIR}/.env"
-                        echo "✅ Environment file copied successfully"
-                        echo "Environment variables loaded (secrets hidden)"
-                    }
-                }
-            }
-        }
-
-        stage('🏗️ Build Docker Image') {
-            steps {
-                echo "🏗️ Building Docker image (Multi-stage build for optimization)..."
-                script {
-                    dir("${BACKEND_DIR}") {
-                        sh """
-                            echo "Building image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
-
-                            # Docker 이미지 빌드 (경량화된 멀티스테이지 빌드)
-                            docker build \
-                                --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} \
-                                --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest \
-                                --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-                                --build-arg VCS_REF=\$(git rev-parse --short HEAD) \
-                                --no-cache \
-                                -f Dockerfile \
-                                .
-
-                            echo "✅ Docker image built successfully"
-                            docker images | grep ${DOCKER_IMAGE}
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('🧪 Image Verification') {
-            steps {
-                echo "🧪 Verifying Docker image..."
-                script {
-                    sh """
-                        echo "Image size and details:"
-                        docker images ${DOCKER_IMAGE}:${DOCKER_TAG}
-
-                        echo "Image layers:"
-                        docker history ${DOCKER_IMAGE}:${DOCKER_TAG} --no-trunc
-                    """
-                }
-            }
-        }
-
-        stage('🔄 Stop Old Containers') {
-            steps {
-                echo "🔄 Stopping and removing old containers..."
-                script {
-                    dir("${BACKEND_DIR}") {
-                        sh """
-                            # 기존 컨테이너 중지 및 제거 (에러 무시)
-                            docker-compose -f docker-compose.yml down || true
-
-                            echo "✅ Old containers stopped"
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('🚀 Deploy') {
-            steps {
-                echo "🚀 Deploying application with Docker Compose..."
-                script {
-                    dir("${BACKEND_DIR}") {
-                        sh """
-                            # Docker Compose로 애플리케이션 시작
-                            docker-compose -f docker-compose.yml up -d
-
-                            echo "⏳ Waiting for services to be healthy..."
-                            sleep 10
-
-                            # 컨테이너 상태 확인
-                            docker-compose -f docker-compose.yml ps
-
-                            echo "✅ Deployment completed"
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('🏥 Health Check') {
-            steps {
-                echo "🏥 Performing health check..."
-                script {
-                    retry(5) {
-                        sleep 10
-                        sh """
-                            # 헬스체크 엔드포인트 확인
-                            curl -f http://localhost:8080/actuator/health || exit 1
-                            echo "✅ Application is healthy"
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('🧹 Cleanup') {
-            steps {
-                echo "🧹 Cleaning up old Docker images..."
-                script {
-                    sh """
-                        # 오래된 이미지 정리 (최근 3개 제외)
-                        docker images ${DOCKER_IMAGE} --format "{{.ID}} {{.Tag}}" | \
-                        grep -v latest | \
-                        tail -n +4 | \
-                        awk '{print \$1}' | \
-                        xargs -r docker rmi -f || true
-
-                        # dangling 이미지 제거
-                        docker image prune -f
-
-                        echo "✅ Cleanup completed"
-                    """
-                }
-            }
-        }
+      }
     }
 
-    post {
-        success {
-            echo "========================================="
-            echo "✅ CI/CD Pipeline completed successfully!"
-            echo "========================================="
-            script {
-                // GitLab에 성공 상태 전송
-                updateGitlabCommitStatus name: 'build', state: 'success'
-
-                // 배포 정보 출력
-                sh """
-                    echo "🎉 Deployment Information:"
-                    echo "  - Image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                    echo "  - Build: #${env.BUILD_NUMBER}"
-                    echo "  - Time: \$(date)"
-                    docker-compose -f ${COMPOSE_FILE} ps
-                """
-            }
-        }
-
-        failure {
-            echo "========================================="
-            echo "❌ CI/CD Pipeline failed!"
-            echo "========================================="
-            script {
-                // GitLab에 실패 상태 전송
-                updateGitlabCommitStatus name: 'build', state: 'failed'
-
-                // 로그 수집
-                sh """
-                    echo "📋 Container logs:"
-                    docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true
-                """
-            }
-        }
-
-        always {
-            echo "🔍 Pipeline execution completed"
-            script {
-                // 환경 파일 삭제 (보안)
-                sh """
-                    rm -f ${BACKEND_DIR}/.env || true
-                    echo "🔐 Sensitive files cleaned up"
-                """
-            }
-        }
+    stage('🧪 Image Verification') {
+      steps {
+        sh """
+          echo "Image details:"
+          docker images ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
+          echo "Layers:"
+          docker history ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} --no-trunc || true
+        """
+      }
     }
+
+    stage('🔄 Stop Old Containers') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          sh 'docker-compose -f docker-compose.yml down || true'
+        }
+      }
+    }
+
+    stage('🚀 Deploy') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          sh """
+            # 필요 시 레지스트리 로그인(사설/보안 레지스트리일 때만)
+            # echo "$DOCKER_PASSWORD" | docker login ${DOCKER_REGISTRY} -u "$DOCKER_USERNAME" --password-stdin
+
+            docker-compose -f docker-compose.yml up -d
+            echo "⏳ Waiting for services..."
+            sleep 10
+            docker-compose -f docker-compose.yml ps
+          """
+        }
+      }
+    }
+
+    stage('🏥 Health Check') {
+      steps {
+        script {
+          retry(5) {
+            sleep 10
+            sh 'curl -fsS http://localhost:8080/actuator/health && echo "✅ Healthy"'
+          }
+        }
+      }
+    }
+
+    stage('🧹 Cleanup') {
+      steps {
+        sh """
+          # 최근 3개 태그만 남기고 로컬 이미지 정리 (latest 제외)
+          docker images ${DOCKER_REGISTRY}/${DOCKER_IMAGE} --format '{{.ID}} {{.Tag}}' | \
+          grep -v latest | awk '{print $1" "$2}' | sort -k2 -rn | awk 'NR>3{print $1}' | \
+          xargs -r docker rmi -f || true
+
+          docker image prune -f || true
+        """
+      }
+    }
+  }
+
+  post {
+    success {
+      echo '========================================='
+      echo "✅ CI/CD Pipeline completed successfully!"
+      echo '========================================='
+      script {
+        // GitLab 상태 리포트(플러그인 있을 때만; 없어도 무시되게 try)
+        try { updateGitlabCommitStatus name: 'build', state: 'success' } catch (e) { echo "gitlab status skip: ${e}" }
+        sh """
+          echo "🎉 Deployment Info"
+          echo "  Image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
+          echo "  Build: #${BUILD_NUMBER}"
+          echo "  Time : $(date)"
+          docker-compose -f ${COMPOSE_FILE} ps || true
+        """
+      }
+    }
+    failure {
+      echo '========================================='
+      echo "❌ CI/CD Pipeline failed!"
+      echo '========================================='
+      script {
+        try { updateGitlabCommitStatus name: 'build', state: 'failed' } catch (e) { echo "gitlab status skip: ${e}" }
+        sh 'docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true'
+      }
+    }
+    always {
+      echo '🔍 Finalizing...'
+      sh 'rm -f ${BACKEND_DIR}/.env || true'
+    }
+  }
 }
