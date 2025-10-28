@@ -26,15 +26,16 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: dito-redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    # ports:                      # ⛔️ 제거 (CI/서버)
+    #   - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
       - dito-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis}", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
