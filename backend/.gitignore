@@ -1,0 +1,31 @@
+
+# Java / Gradle
+/build/
+.gradle/
+gradle-app.setting
+gradle-wrapper.jar
+/*.class
+/*.jar
+/*.war
+
+# IDE
+/.idea/
+/*.iml
+*.ipr
+*.iws
+
+# Env / Secrets
+.env
+.env.local
+*.jks
+*.keystore
+
+# Docker / postgres data (remove from repo)
+/Dito/data/
+/Dito/base/
+/Dito/global/
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db

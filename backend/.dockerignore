@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# Gradle
+.gradle
+**/build/
+!**/build/libs/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# 환경 변수 및 로컬 설정
+.env
+.env.local
+.env.*.local
+*.properties.local
+
+# 로그
+*.log
+logs/
+
+# 임시 파일
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 문서
+README.md
+docs/
+*.md
+
+# 테스트
+**/test/
+**/tests/
