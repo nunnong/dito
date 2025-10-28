@@ -4,7 +4,6 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: dito-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-dito}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -27,7 +26,6 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: dito-redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -47,7 +45,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dito-backend
     environment:
       # Database Configuration
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dito}
