@@ -100,10 +100,10 @@ pipeline {
             chmod 644 ./app.jar
 
             echo "🚀 Docker Compose build & up..."
-            docker-compose -f docker-compose.yml up -d --build
+            docker compose -f docker-compose.yml up -d --build
 
             echo "✅ Current services:"
-            docker-compose -f docker-compose.yml ps
+            docker compose -f docker-compose.yml ps
           '''
         }
       }
@@ -148,7 +148,7 @@ pipeline {
       echo '========================================='
       echo "❌ CI/CD Pipeline failed!"
       echo '========================================='
-      sh "docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true"
+      sh "docker compose -f ${COMPOSE_FILE} logs --tail=100 || true"
     }
     always {
       echo '🔍 Finalizing...'
