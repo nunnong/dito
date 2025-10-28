@@ -63,10 +63,10 @@ pipeline {
         script {
           // Jenkins Credentials: Secret file (ID: dito-backend-env)
           withCredentials([file(credentialsId: 'dito-backend-env', variable: 'ENV_FILE')]) {
-            sh """
-              cp "$ENV_FILE" "${BACKEND_DIR}/.env"
-              chmod 600 "${BACKEND_DIR}/.env"
-            """
+            sh '''#!/bin/bash -e
+              cp "$ENV_FILE" "$BACKEND_DIR/.env"
+              chmod 600 "$BACKEND_DIR/.env"
+            '''
           }
         }
       }
@@ -161,13 +161,13 @@ pipeline {
       script {
         // GitLab 상태 리포트(플러그인 있을 때만; 없어도 무시되게 try)
         try { updateGitlabCommitStatus name: 'build', state: 'success' } catch (e) { echo "gitlab status skip: ${e}" }
-        sh """
+        sh '''#!/bin/bash -e
           echo "🎉 Deployment Info"
           echo "  Image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
           echo "  Build: #${BUILD_NUMBER}"
           echo "  Time : $(date)"
           docker-compose -f ${COMPOSE_FILE} ps || true
-        """
+        '''
       }
     }
     failure {
@@ -176,12 +176,12 @@ pipeline {
       echo '========================================='
       script {
         try { updateGitlabCommitStatus name: 'build', state: 'failed' } catch (e) { echo "gitlab status skip: ${e}" }
-        sh 'docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true'
+        sh "docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true"
       }
     }
     always {
       echo '🔍 Finalizing...'
-      sh 'rm -f ${BACKEND_DIR}/.env || true'
+      sh "rm -f ${BACKEND_DIR}/.env || true"
     }
   }
 }
