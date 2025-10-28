@@ -7,27 +7,21 @@ pipeline {
   }
 
   environment {
-    // ====== 빌드/배포 공통 ======
-    GIT_URL          = 'https://lab.ssafy.com/s13-final/S13P31A708.git' // 레포 URL (HTTPS 권장)
-    GIT_CREDENTIALS  = 'gitlab-https-pat'  // Jenkins 크리덴셜 ID(Username+Password=PAT)
+    // ====== 기본 설정 ======
+    GIT_URL         = 'https://lab.ssafy.com/s13-final/S13P31A708.git' // GitLab Repo
+    GIT_CREDENTIALS = 'gitlab-https-pat'                               // Jenkins Credential ID
 
-    BACKEND_DIR      = 'backend'
-    COMPOSE_FILE     = "${env.BACKEND_DIR}/docker-compose.yml"
-
-    DOCKER_IMAGE     = 'dito-backend'
-    DOCKER_REGISTRY  = 'localhost:5000'    // 필요 시 사설/공식 레지스트리로 교체
-    DOCKER_TAG       = "${env.BUILD_NUMBER}"
+    BACKEND_DIR     = 'backend'
+    COMPOSE_FILE    = "${env.BACKEND_DIR}/docker-compose.yml"
+    DOCKER_IMAGE    = 'dito-backend:latest'                            // 고정 태그 (이미지 재사용)
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    buildDiscarder(logRotator(numToKeepStr: '10'))
     timeout(time: 30, unit: 'MINUTES')
     disableConcurrentBuilds()
     timestamps()
   }
-
-  // NOTE: 트리거는 Jenkins UI의 "Trigger builds remotely" + GitLab Webhook(/buildWithParameters)만 사용.
-  // Jenkinsfile의 triggers{} 블록은 사용하지 않음(충돌 방지).
 
   stages {
 
@@ -40,7 +34,6 @@ pipeline {
           echo "Branch param: ${params.BRANCH}"
           echo '========================================='
         }
-        // 깨끗한 워크스페이스에서 시작(선택)
         deleteDir()
       }
     }
@@ -61,9 +54,8 @@ pipeline {
       steps {
         echo '🔐 Injecting secret env file...'
         script {
-          // Jenkins Credentials: Secret file (ID: dito-backend-env)
           withCredentials([file(credentialsId: 'dito-backend-env', variable: 'ENV_FILE')]) {
-            sh '''#!/bin/bash -e
+            sh '''
               cp "$ENV_FILE" "$BACKEND_DIR/.env"
               chmod 600 "$BACKEND_DIR/.env"
             '''
@@ -72,55 +64,33 @@ pipeline {
       }
     }
 
-    stage('🏗️ Build Docker Image') {
+    stage('🏗️ Build JAR') {
       steps {
-        echo "🏗️ Building Docker image $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG"
         dir("${BACKEND_DIR}") {
-          sh '''#!/bin/bash -e
-            docker build \
-              -t $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG \
-              -t $DOCKER_REGISTRY/$DOCKER_IMAGE:latest \
-              --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-              --build-arg VCS_REF=$(git rev-parse --short HEAD) \
-              -f Dockerfile .
-            docker images | grep "$DOCKER_IMAGE" || true
+          sh '''
+            echo "🧱 Building jar file..."
+            ./gradlew clean build -x test
           '''
         }
       }
     }
 
-
-    stage('🧪 Image Verification') {
-      steps {
-        sh """
-          echo "Image details:"
-          docker images ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} || true
-          echo "Layers:"
-          docker history ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} --no-trunc || true
-        """
-      }
-    }
-
-    stage('🔄 Stop Old Containers') {
+    stage('🚀 Deploy (Local Docker)') {
       steps {
         dir("${BACKEND_DIR}") {
-          sh 'docker-compose -f docker-compose.yml down || true'
-        }
-      }
-    }
+          sh '''
+            echo "🧹 Stopping existing containers..."
+            docker-compose -f docker-compose.yml down || true
 
-    stage('🚀 Deploy') {
-      steps {
-        dir("${BACKEND_DIR}") {
-          sh """
-            # 필요 시 레지스트리 로그인(사설/보안 레지스트리일 때만)
-            # echo "$DOCKER_PASSWORD" | docker login ${DOCKER_REGISTRY} -u "$DOCKER_USERNAME" --password-stdin
+            echo "📦 Updating jar file..."
+            cp build/libs/*.jar app.jar
 
-            docker-compose -f docker-compose.yml up -d
-            echo "⏳ Waiting for services..."
-            sleep 10
-            docker-compose -f docker-compose.yml ps
-          """
+            echo "🚀 Starting updated container..."
+            docker-compose -f docker-compose.yml up -d --build
+
+            echo "✅ Deployment complete!"
+            docker-compose ps
+          '''
         }
       }
     }
@@ -130,7 +100,7 @@ pipeline {
         script {
           retry(5) {
             sleep 10
-            sh 'curl -fsS http://localhost:8080/actuator/health && echo "✅ Healthy"'
+            sh 'curl -fsS http://localhost:8080/actuator/health && echo "✅ Application is healthy"'
           }
         }
       }
@@ -138,15 +108,8 @@ pipeline {
 
     stage('🧹 Cleanup') {
       steps {
-        sh '''#!/bin/bash -e
-          # 최근 3개(태그 기준)만 남기고 삭제, latest 제외
-          docker images $DOCKER_REGISTRY/$DOCKER_IMAGE --format '{{.ID}} {{.Tag}}' | \
-            grep -v latest | \
-            awk '{print $1" "$2}' | \
-            sort -k2 -rn | \
-            awk 'NR>3{print $1}' | \
-            xargs -r docker rmi -f || true
-
+        sh '''
+          echo "🧹 Cleaning up unused images..."
           docker image prune -f || true
         '''
       }
@@ -158,26 +121,18 @@ pipeline {
       echo '========================================='
       echo "✅ CI/CD Pipeline completed successfully!"
       echo '========================================='
-      script {
-        // GitLab 상태 리포트(플러그인 있을 때만; 없어도 무시되게 try)
-        try { updateGitlabCommitStatus name: 'build', state: 'success' } catch (e) { echo "gitlab status skip: ${e}" }
-        sh '''#!/bin/bash -e
-          echo "🎉 Deployment Info"
-          echo "  Image: ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
-          echo "  Build: #${BUILD_NUMBER}"
-          echo "  Time : $(date)"
-          docker-compose -f ${COMPOSE_FILE} ps || true
-        '''
-      }
+      sh '''
+        echo "🎉 Deployment Info"
+        echo "  Image: ${DOCKER_IMAGE}"
+        echo "  Build: #${BUILD_NUMBER}"
+        echo "  Time : $(date)"
+      '''
     }
     failure {
       echo '========================================='
       echo "❌ CI/CD Pipeline failed!"
       echo '========================================='
-      script {
-        try { updateGitlabCommitStatus name: 'build', state: 'failed' } catch (e) { echo "gitlab status skip: ${e}" }
-        sh "docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true"
-      }
+      sh "docker-compose -f ${COMPOSE_FILE} logs --tail=100 || true"
     }
     always {
       echo '🔍 Finalizing...'
