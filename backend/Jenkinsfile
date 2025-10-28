@@ -66,9 +66,10 @@ pipeline {
 
     stage('🏗️ Build JAR') {
       steps {
-        dir("${BACKEND_DIR}") {
+        dir("${BACKEND_DIR}/Dito") {  // gradlew가 있는 경로로 이동
           sh '''
             echo "🧱 Building jar file..."
+            chmod +x gradlew
             ./gradlew clean build -x test
           '''
         }
@@ -83,7 +84,7 @@ pipeline {
             docker-compose -f docker-compose.yml down || true
 
             echo "📦 Updating jar file..."
-            cp build/libs/*.jar app.jar
+            cp Dito/build/libs/*.jar app.jar
 
             echo "🚀 Starting updated container..."
             docker-compose -f docker-compose.yml up -d --build
