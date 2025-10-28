@@ -79,22 +79,36 @@ pipeline {
     stage('🚀 Deploy (Local Docker)') {
       steps {
         dir("${BACKEND_DIR}") {
-          sh '''
+          sh '''#!/bin/bash -e
             echo "🧹 Stopping existing containers..."
             docker-compose -f docker-compose.yml down || true
 
-            echo "📦 Updating jar file..."
-            cp Dito/build/libs/*.jar app.jar
+            echo "🔎 Built artifacts:"
+            ls -al Dito/build/libs || true
 
-            echo "🚀 Starting updated container..."
+            echo "📦 Picking Spring Boot fat jar (exclude *-plain.jar)..."
+            JAR_PATH=$(ls Dito/build/libs/*-SNAPSHOT.jar | grep -v '\-plain\.jar' | head -n1)
+            if [ -z "$JAR_PATH" ] || [ ! -f "$JAR_PATH" ]; then
+              echo "❌ Boot JAR not found in Dito/build/libs"
+              exit 1
+            fi
+
+            echo "➡️  Copying $JAR_PATH -> app.jar"
+            cp "$JAR_PATH" ./app.jar
+
+            # (선택) 안전하게 권한 정리
+            chmod 644 ./app.jar
+
+            echo "🚀 Docker Compose build & up..."
             docker-compose -f docker-compose.yml up -d --build
 
-            echo "✅ Deployment complete!"
-            docker-compose ps
+            echo "✅ Current services:"
+            docker-compose -f docker-compose.yml ps
           '''
         }
       }
     }
+
 
     stage('🏥 Health Check') {
       steps {
