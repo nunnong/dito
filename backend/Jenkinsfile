@@ -87,16 +87,16 @@ pipeline {
             ls -al Dito/build/libs || true
 
             echo "📦 Picking Spring Boot fat jar (exclude *-plain.jar)..."
-            JAR_PATH=$(ls Dito/build/libs/*-SNAPSHOT.jar | grep -v '\-plain\.jar' | head -n1)
+            # -plain.jar 제외하고 첫 번째 항목만 선택 (백슬래시 이스케이프 없이 리터럴 매칭)
+            JAR_PATH=$(ls Dito/build/libs/*-SNAPSHOT.jar | grep -v -- "-plain.jar" | head -n1)
+
             if [ -z "$JAR_PATH" ] || [ ! -f "$JAR_PATH" ]; then
-              echo "❌ Boot JAR not found in Dito/build/libs"
+              echo "❌ Boot JAR not found in Dito/build/libs (fat jar)"
               exit 1
             fi
 
             echo "➡️  Copying $JAR_PATH -> app.jar"
             cp "$JAR_PATH" ./app.jar
-
-            # (선택) 안전하게 권한 정리
             chmod 644 ./app.jar
 
             echo "🚀 Docker Compose build & up..."
@@ -108,6 +108,7 @@ pipeline {
         }
       }
     }
+
 
 
     stage('🏥 Health Check') {
