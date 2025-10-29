@@ -1,0 +1,168 @@
+pipeline {
+  agent any
+
+  environment {
+    // ====== 기본 설정 ======
+    BACKEND_DIR     = 'backend'
+    COMPOSE_FILE    = "${env.BACKEND_DIR}/docker-compose.yml"
+    DOCKER_IMAGE    = 'dito-backend:latest'                            // 고정 태그 (이미지 재사용)
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    timeout(time: 30, unit: 'MINUTES')
+    disableConcurrentBuilds()
+    timestamps()
+  }
+
+  stages {
+
+    stage('Prepare') {
+      steps {
+        script {
+          echo '========================================='
+          echo "Starting CI/CD Pipeline"
+          echo "Build #${env.BUILD_NUMBER}"
+          echo "Branch: ${env.GIT_BRANCH ?: 'N/A'}"
+          echo '========================================='
+        }
+        deleteDir()
+      }
+    }
+
+    stage('Checkout') {
+      steps {
+        echo "Checking out source from SCM..."
+        checkout scm
+        sh '''
+          echo "Current directory: $(pwd)"
+          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)"
+          echo "Git commit: $(git rev-parse --short HEAD)"
+        '''
+      }
+    }
+
+    stage('Environment Setup') {
+      steps {
+        echo 'Injecting secret env file...'
+        script {
+          withCredentials([file(credentialsId: 'dito-backend-env', variable: 'ENV_FILE')]) {
+            sh '''
+              cp "$ENV_FILE" "$BACKEND_DIR/.env"
+              chmod 600 "$BACKEND_DIR/.env"
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Build JAR') {
+      steps {
+        dir("${BACKEND_DIR}/Dito") {  // gradlew가 있는 경로로 이동
+          sh '''
+            echo "Building jar file..."
+            chmod +x gradlew
+            ./gradlew clean build -x test
+          '''
+        }
+      }
+    }
+
+    stage('Deploy (Local Docker)') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          sh '''#!/bin/bash -e
+            echo "Stopping existing containers..."
+            docker-compose -f docker-compose.yml down || true
+
+            echo "Built artifacts:"
+            ls -al Dito/build/libs || true
+
+            echo "Picking Spring Boot fat jar (exclude *-plain.jar)..."
+            # -plain.jar 제외하고 첫 번째 항목만 선택 (백슬래시 이스케이프 없이 리터럴 매칭)
+            JAR_PATH=$(ls Dito/build/libs/*-SNAPSHOT.jar | grep -v -- "-plain.jar" | head -n1)
+
+            if [ -z "$JAR_PATH" ] || [ ! -f "$JAR_PATH" ]; then
+              echo "Boot JAR not found in Dito/build/libs (fat jar)"
+              exit 1
+            fi
+
+            echo "Copying $JAR_PATH -> app.jar"
+            cp "$JAR_PATH" ./app.jar
+            chmod 644 ./app.jar
+
+            echo "Docker Compose build & up..."
+            docker compose -f docker-compose.yml up -d --build
+
+            echo "Current services:"
+            docker compose -f docker-compose.yml ps
+          '''
+        }
+      }
+    }
+
+
+
+    stage('Health Check') {
+      steps {
+        script {
+          // 최대 10번, 10초 간격으로 재시도
+          retry(10) {
+            sh '''
+              set -e
+
+              APP_PORT="${APP_PORT:-8080}"
+              URL="http://localhost:${APP_PORT}/actuator/health"
+
+              # 상태코드만 추출 (에러여도 종료하지 않도록 || true)
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+
+              if [ "$CODE" = "200" ] || [ "$CODE" = "403" ]; then
+                echo "Health check passed with HTTP $CODE"
+                exit 0
+              else
+                echo "Health not ready yet (HTTP $CODE). Retrying..."
+                sleep 10
+                exit 1
+              fi
+            '''
+          }
+        }
+      }
+    }
+
+
+    stage('Cleanup') {
+      steps {
+        sh '''
+          echo "Cleaning up unused images..."
+          docker image prune -f || true
+        '''
+      }
+    }
+  }
+
+  post {
+    success {
+      echo '========================================='
+      echo "CI/CD Pipeline completed successfully!"
+      echo '========================================='
+      sh '''
+        echo "Deployment Info"
+        echo "  Image: ${DOCKER_IMAGE}"
+        echo "  Build: #${BUILD_NUMBER}"
+        echo "  Time : $(date)"
+      '''
+    }
+    failure {
+      echo '========================================='
+      echo "CI/CD Pipeline failed!"
+      echo '========================================='
+      sh "docker compose -f ${COMPOSE_FILE} logs --tail=100 || true"
+    }
+    always {
+      echo 'Finalizing...'
+      sh "rm -f ${BACKEND_DIR}/.env || true"
+    }
+  }
+}
