@@ -1,16 +1,8 @@
 pipeline {
   agent any
 
-  // ▶ 웹훅으로 전달받을 브랜치
-  parameters {
-    string(name: 'BRANCH', defaultValue: 'infra', description: '빌드할 Git 브랜치')
-  }
-
   environment {
     // ====== 기본 설정 ======
-    GIT_URL         = 'https://lab.ssafy.com/s13-final/S13P31A708.git' // GitLab Repo
-    GIT_CREDENTIALS = 'gitlab-https-pat'                               // Jenkins Credential ID
-
     BACKEND_DIR     = 'backend'
     COMPOSE_FILE    = "${env.BACKEND_DIR}/docker-compose.yml"
     DOCKER_IMAGE    = 'dito-backend:latest'                            // 고정 태그 (이미지 재사용)
@@ -31,7 +23,7 @@ pipeline {
           echo '========================================='
           echo "🚀 Starting CI/CD Pipeline"
           echo "Build #${env.BUILD_NUMBER}"
-          echo "Branch param: ${params.BRANCH}"
+          echo "Branch: ${env.GIT_BRANCH ?: 'N/A'}"
           echo '========================================='
         }
         deleteDir()
@@ -40,8 +32,8 @@ pipeline {
 
     stage('🔍 Checkout') {
       steps {
-        echo "📦 Checking out source from ${params.BRANCH}..."
-        git branch: params.BRANCH, url: env.GIT_URL, credentialsId: env.GIT_CREDENTIALS
+        echo "📦 Checking out source from SCM..."
+        checkout scm
         sh '''
           echo "Current directory: $(pwd)"
           echo "Git branch: $(git rev-parse --abbrev-ref HEAD)"
@@ -73,7 +65,6 @@ pipeline {
             ./gradlew clean build -x test
           '''
         }
-      }
     }
 
     stage('🚀 Deploy (Local Docker)') {
