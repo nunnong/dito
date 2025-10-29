@@ -4,6 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
+    container_name: dito-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-dito}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -41,19 +42,23 @@ services:
 
   # Spring Boot Application
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-dito-backend:latest-stable}
+    container_name: dito-app
     environment:
       # Database Configuration
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dito}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
 
-      # Redis Configuration
+      # Redis Configuration (Spring Boot standard)
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+
+      # Redis Configuration (Custom ExternalsProperties)
+      EXTERNALS_REDIS_HOST: redis
+      EXTERNALS_REDIS_PORT: 6379
+      EXTERNALS_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
 
       # JPA Configuration
       SPRING_JPA_HIBERNATE_DDL_AUTO: ${DDL_AUTO:-validate}
