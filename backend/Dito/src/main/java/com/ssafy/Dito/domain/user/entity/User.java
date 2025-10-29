@@ -1,4 +1,4 @@
-package com.ssafy.Dito.domain.users.entity;
+package com.ssafy.Dito.domain.user.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,9 +25,9 @@ public class User {
     @Comment("유저 식별자")
     private Long id;
 
-    @Column(name="email", length = 255, nullable = false)
-    @Comment("이메일")
-    private String email;
+    @Column(name="personal_id", length = 255, nullable = false)
+    @Comment("개인 아이디")
+    private String personalId;
 
     @Column(name="password", length = 50, nullable = false)
     @Comment("비밀번호")
@@ -46,15 +46,20 @@ public class User {
     @Comment("성별")
     private Gender gender;
 
-    @Column(name = "job", length = 255, nullable = false)
-    @ColumnDefault("기타")
+    @Column(name = "job", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @ColumnDefault("'ETC'")
     @Comment("직업")
-    private String job;
+    private Job job;
 
     @Column(name = "coin_balance", nullable = false)
-    @ColumnDefault("0")
     @Comment("코인 잔액")
     private int coinBalance;
+
+    @Column(name = "frequency", nullable = false)
+    @ColumnDefault("'NORMAL'")
+    @Comment("빈도")
+    private Frequency frequency;
 
     @Column(name = "last_login_at", nullable = true)
     @Comment("마지막 로그인")
@@ -68,9 +73,9 @@ public class User {
     @Comment("FCM 토큰")
     private String fcmToken;
 
-    private User(String email, String password, String nickname, Date birth, Gender gender,
-        String job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
-        this.email = email;
+    private User(String personalId, String password, String nickname, Date birth, Gender gender,
+        Job job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
+        this.personalId = personalId;
         this.password = password;
         this.nickname = nickname;
         this.birth = birth;
@@ -82,8 +87,8 @@ public class User {
         this.fcmToken = fcmToken;
     }
 
-    public static User of(String email, String password, String nickname, Date birth, Gender gender,
-        String job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
-        return new User(email, password, nickname, birth, gender, job, coinBalance, lastLoginAt, createdAt, fcmToken);
+    public static User of(String personalId, String password, String nickname, Date birth, Gender gender,
+        Job job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
+        return new User(personalId, password, nickname, birth, gender, job, coinBalance, lastLoginAt, createdAt, fcmToken);
     }
 }
