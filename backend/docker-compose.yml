@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   # PostgreSQL Database
@@ -10,8 +10,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "-E UTF8"
       TZ: Asia/Seoul
-    ports:
-      - "${DB_PORT:-5432}:5432"
+#    ports:
+#      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -28,8 +28,6 @@ services:
     image: redis:7-alpine
     container_name: dito-redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis}
-    # ports:                      # ⛔️ 제거 (CI/서버)
-    #   - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -71,13 +69,10 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-prod}
       SERVER_PORT: 8080
 
-      # Security Configuration (예시)
+      # Security Configuration
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
 
-      # OAuth2 Configuration (필요시)
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
 
       # Logging
       LOGGING_LEVEL_ROOT: ${LOG_LEVEL:-INFO}
