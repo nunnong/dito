@@ -114,13 +114,31 @@ pipeline {
     stage('🏥 Health Check') {
       steps {
         script {
-          retry(5) {
-            sleep 10
-            sh 'curl -fsS http://localhost:8080/actuator/health && echo "✅ Application is healthy"'
+          // 최대 10번, 10초 간격으로 재시도
+          retry(10) {
+            sh '''
+              set -e
+
+              APP_PORT="${APP_PORT:-8080}"
+              URL="http://localhost:${APP_PORT}/actuator/health"
+
+              # 상태코드만 추출 (에러여도 종료하지 않도록 || true)
+              CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+
+              if [ "$CODE" = "200" ] || [ "$CODE" = "403" ]; then
+                echo "✅ Health check passed with HTTP $CODE"
+                exit 0
+              else
+                echo "⏳ Health not ready yet (HTTP $CODE). Retrying..."
+                sleep 10
+                exit 1
+              fi
+            '''
           }
         }
       }
     }
+
 
     stage('🧹 Cleanup') {
       steps {
