@@ -65,6 +65,7 @@ pipeline {
             ./gradlew clean build -x test
           '''
         }
+      }
     }
 // 테스트 adsga
     stage('🚀 Deploy (Local Docker)') {
