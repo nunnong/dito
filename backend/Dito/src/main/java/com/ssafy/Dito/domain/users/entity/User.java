@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.util.Date;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,16 +37,17 @@ public class User {
     @Comment("닉네임")
     private String nickname;
 
-    @Column(name = "age", nullable = false)
+    @Column(name = "birth", nullable = false)
     @Comment("나이")
-    private int age;
+    private Date birth;
 
     @Column(name = "gender", nullable = false)
     @Enumerated(EnumType.STRING)
     @Comment("성별")
     private Gender gender;
 
-    @Column(name = "job", length = 255, nullable = true)
+    @Column(name = "job", length = 255, nullable = false)
+    @ColumnDefault("기타")
     @Comment("직업")
     private String job;
 
@@ -66,12 +68,12 @@ public class User {
     @Comment("FCM 토큰")
     private String fcmToken;
 
-    private User(String email, String password, String nickname, int age, Gender gender,
+    private User(String email, String password, String nickname, Date birth, Gender gender,
         String job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.age = age;
+        this.birth = birth;
         this.gender = gender;
         this.job = job;
         this.coinBalance = coinBalance;
@@ -80,8 +82,8 @@ public class User {
         this.fcmToken = fcmToken;
     }
 
-    public static User of(String email, String password, String nickname, int age, Gender gender,
+    public static User of(String email, String password, String nickname, Date birth, Gender gender,
         String job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
-        return new User(email, password, nickname, age, gender, job, coinBalance, lastLoginAt, createdAt, fcmToken);
+        return new User(email, password, nickname, birth, gender, job, coinBalance, lastLoginAt, createdAt, fcmToken);
     }
 }

@@ -1,4 +1,4 @@
-package com.ssafy.Dito.global.environment;
+package com.ssafy.Dito.global.redis.environment;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

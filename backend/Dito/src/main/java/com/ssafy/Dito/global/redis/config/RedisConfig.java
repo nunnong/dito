@@ -1,6 +1,6 @@
-package com.ssafy.Dito.global.config;
+package com.ssafy.Dito.global.redis.config;
 
-import com.ssafy.Dito.global.environment.ExternalsProperties;
+import com.ssafy.Dito.global.redis.environment.ExternalsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
