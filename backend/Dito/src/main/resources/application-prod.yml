@@ -77,3 +77,10 @@ server:
       max: 200
       min-spare: 10
     accept-count: 100
+
+# External Services Configuration
+externals:
+  redis:
+    host: ${EXTERNALS_REDIS_HOST:${SPRING_DATA_REDIS_HOST}}
+    port: ${EXTERNALS_REDIS_PORT:${SPRING_DATA_REDIS_PORT}}
+    password: ${EXTERNALS_REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD}}
