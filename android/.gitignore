@@ -1,0 +1,78 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/build
+/captures
+.cxx
+local.properties
+
+# 추가 내용 (아래 전체 추가)
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle files
+.gradle/
+build/
+
+# Log Files
+*.log
+
+# Android Studio Navigation editor temp files
+.navigation/
+
+# Android Studio captures folder
+captures/
+
+# IntelliJ
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries/
+.idea/jarRepositories.xml
+.idea/caches/
+.idea/modules.xml
+.idea/.name
+.idea/compiler.xml
+.idea/misc.xml
+.idea/vcs.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build folder
+.externalNativeBuild
+.cxx/
+
+# Google Services
+google-services.json
+
+# Android Profiling
+*.hprof
+
+# OS specific
+.DS_Store
+Thumbs.db
