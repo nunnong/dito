@@ -7,12 +7,12 @@ services:
     container_name: dito-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-dito}
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_USER: ${DB_USER:-dito}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dito2025}
       POSTGRES_INITDB_ARGS: "-E UTF8"
       TZ: Asia/Seoul
-#    ports:
-#      - "${DB_PORT:-5432}:5432"
+    ports:
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
