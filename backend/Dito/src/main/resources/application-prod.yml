@@ -78,6 +78,15 @@ server:
       min-spare: 10
     accept-count: 100
 
+# Swagger (SpringDoc OpenAPI)
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
 # External Services Configuration
 externals:
   redis:
