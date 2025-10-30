@@ -105,10 +105,13 @@ services:
 
 networks:
   dito-network:
+    name: dito-network  # 고정된 네트워크 이름 (프로젝트명에 영향받지 않음)
     driver: bridge
 
 volumes:
   postgres_data:
+    name: dito-postgres-data  # 고정된 볼륨 이름
     driver: local
   redis_data:
+    name: dito-redis-data  # 고정된 볼륨 이름
     driver: local
