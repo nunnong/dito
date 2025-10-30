@@ -15,6 +15,12 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())  // CSRF 비활성화 (개발 환경)
             .authorizeHttpRequests(auth -> auth
+                // Swagger 관련 경로 허용
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-resources/**"
+                ).permitAll()
                 .anyRequest().permitAll()  // 모든 요청 허용 (TODO: JWT 인증 구현 후 수정)
             );
 
