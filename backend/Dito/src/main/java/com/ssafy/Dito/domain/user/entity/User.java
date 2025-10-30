@@ -16,6 +16,7 @@ import org.hibernate.annotations.Comment;
 import java.time.Instant;
 
 @Entity
+@Table(name = "\"user\"")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
@@ -26,7 +27,7 @@ public class User {
     private Long id;
 
     @Column(name="personal_id", length = 255, nullable = false)
-    @Comment("개인 아이디")
+    @Comment("개인 ID")
     private String personalId;
 
     @Column(name="password", length = 50, nullable = false)
@@ -38,7 +39,7 @@ public class User {
     private String nickname;
 
     @Column(name = "birth", nullable = false)
-    @Comment("나이")
+    @Comment("생년월일")
     private Date birth;
 
     @Column(name = "gender", nullable = false)
@@ -81,6 +82,7 @@ public class User {
         this.birth = birth;
         this.gender = gender;
         this.job = job;
+        this.frequency = frequency;
         this.coinBalance = coinBalance;
         this.lastLoginAt = lastLoginAt;
         this.createdAt = createdAt;
