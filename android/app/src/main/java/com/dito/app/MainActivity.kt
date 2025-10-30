@@ -1,6 +1,8 @@
 package com.dito.app
 
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -28,6 +30,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun openAccessibilitySettings() {
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        startActivity(intent)
     }
 }
 
@@ -69,8 +76,30 @@ fun MainScreen() {
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
-            Text("📊 앱 사용량 확인")
+            Text("앱 사용량 확인")
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                context.startActivity(intent)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text("AccessibilityService 권한 허용")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "실시간 앱 전환 감지를 위해 필요합니다",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
