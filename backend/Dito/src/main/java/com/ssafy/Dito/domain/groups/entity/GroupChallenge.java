@@ -15,7 +15,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
 @Entity
-@Table(name = "groups")
+@Table(name = "\"group\"")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GroupChallenge {
