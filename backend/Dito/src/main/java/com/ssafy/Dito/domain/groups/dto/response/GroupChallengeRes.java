@@ -5,7 +5,7 @@ import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
 import java.time.Instant;
 import java.time.LocalDate;
 
-public record GroupChallengeResponse(
+public record GroupChallengeRes(
     Long id,
 
     @JsonProperty("group_name")
@@ -41,8 +41,8 @@ public record GroupChallengeResponse(
 
     CreatorInfo creator
 ) {
-    public static GroupChallengeResponse from(GroupChallenge groupChallenge, Long creatorUserId) {
-        return new GroupChallengeResponse(
+    public static GroupChallengeRes from(GroupChallenge groupChallenge, Long creatorUserId) {
+        return new GroupChallengeRes(
             groupChallenge.getId(),
             groupChallenge.getGroupName(),
             groupChallenge.getInviteCode(),

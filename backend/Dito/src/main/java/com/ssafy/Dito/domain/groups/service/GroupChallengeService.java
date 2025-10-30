@@ -1,7 +1,7 @@
 package com.ssafy.Dito.domain.groups.service;
 
-import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeRequest;
-import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeResponse;
+import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
+import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.util.InviteCodeGenerator;
@@ -17,7 +17,7 @@ public class GroupChallengeService {
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
 
     @Transactional
-    public GroupChallengeResponse createGroupChallenge(CreateGroupChallengeRequest request, Long creatorUserId) {
+    public GroupChallengeRes createGroupChallenge(CreateGroupChallengeReq request, Long creatorUserId) {
         String inviteCode = generateUniqueInviteCode();
 
         GroupChallenge groupChallenge = GroupChallenge.of(
@@ -31,7 +31,7 @@ public class GroupChallengeService {
 
         GroupChallenge savedChallenge = groupChallengeRepository.save(groupChallenge);
 
-        return GroupChallengeResponse.from(savedChallenge, creatorUserId);
+        return GroupChallengeRes.from(savedChallenge, creatorUserId);
     }
 
     private String generateUniqueInviteCode() {
