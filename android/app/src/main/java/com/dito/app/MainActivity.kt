@@ -3,15 +3,15 @@ package com.dito.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.dito.app.core.service.UsageStatsHelper
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -40,14 +40,37 @@ fun DitoTheme(content: @Composable () -> Unit) {
 
 @Composable
 fun MainScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = "Dito 앱",
             style = MaterialTheme.typography.headlineLarge
         )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+
+        Button(
+            onClick = {
+                if (!UsageStatsHelper.hasUsagePermission(context)) {
+                    UsageStatsHelper.openUsagePermissionSettings(context)
+                } else {
+                    UsageStatsHelper.logDailyUsage(context)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Text("📊 앱 사용량 확인")
+        }
     }
 }
 
