@@ -10,19 +10,11 @@ import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * UsageStats
- *
- * 기능:
- * - 앱 사용 시간 조회
- * - 권한 확인/요청
- * - 통계 출력
- */
+// 앱 사용 시간 조회
 object UsageStatsHelper {
 
     private const val TAG = "UsageStats"
 
-    // 권한 확인
     fun hasUsagePermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = appOps.checkOpNoThrow(

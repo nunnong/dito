@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Dito</string>
     <string name="accessibility_service_description">앱 사용 시간을 기록하기 위해 필요합니다.</string>
+    <string name="youtube_accessibility_service_description">YouTube 영상 감지 서비스</string>
 </resources>

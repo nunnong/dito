@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
+    id("io.realm.kotlin") version "3.0.0"
 }
 
 android {
@@ -85,10 +86,8 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // Room (로컬 DB)
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    // Realm (로컬 DB)
+    implementation("io.realm.kotlin:library-base:3.0.0")
 
     // WorkManager (백그라운드)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
