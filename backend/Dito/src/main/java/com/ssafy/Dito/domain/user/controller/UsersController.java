@@ -1,4 +1,4 @@
-package com.ssafy.Dito.domain.users.controller;
+package com.ssafy.Dito.domain.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;

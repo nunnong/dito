@@ -1,7 +1,7 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:${DB_PORT:5432}/${DB_NAME:dito}
-    username: ${DB_USERNAME:dito}
+    username: ${DB_USERNAME:server}
     password: ${DB_PASSWORD:dito2025}
     driver-class-name: org.postgresql.Driver
 
@@ -17,6 +17,15 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+
+security:
+  jwt:
+    access:
+      secret: ${JWT_ACCESS_SECRET:local_access_secret_local_access}
+      expiration: 3600000
+    refresh:
+      secret: ${JWT_REFRESH_SECRET:local_refresh_secret_local_refre}
+      expiration-default: 7200000
 
 externals:
   redis:
