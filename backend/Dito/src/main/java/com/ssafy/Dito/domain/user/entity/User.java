@@ -1,13 +1,12 @@
 package com.ssafy.Dito.domain.user.entity;
 
+import com.ssafy.Dito.domain._common.IdentifiableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import java.util.Date;
+import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,18 +15,13 @@ import org.hibernate.annotations.Comment;
 import java.time.Instant;
 
 @Entity
-@Table(name = "\"user\"")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Comment("유저 식별자")
-    private Long id;
+@Table(name = "\"user\"")
+public class User extends IdentifiableEntity {
 
     @Column(name="personal_id", length = 255, nullable = false)
-    @Comment("개인 ID")
+    @Comment("개인 아이디")
     private String personalId;
 
     @Column(name="password", length = 50, nullable = false)
@@ -39,8 +33,8 @@ public class User {
     private String nickname;
 
     @Column(name = "birth", nullable = false)
-    @Comment("생년월일")
-    private Date birth;
+    @Comment("나이")
+    private LocalDate birth;
 
     @Column(name = "gender", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -60,6 +54,7 @@ public class User {
     @Column(name = "frequency", nullable = false)
     @ColumnDefault("'NORMAL'")
     @Comment("빈도")
+    @Enumerated(EnumType.STRING)
     private Frequency frequency;
 
     @Column(name = "last_login_at", nullable = true)
@@ -70,27 +65,27 @@ public class User {
     @Comment("가입일")
     private Instant createdAt;
 
-    @Column(name = "FCM_token", length = 255, nullable = false)
+    @Column(name = "FCM_token", length = 255, nullable = true)
     @Comment("FCM 토큰")
     private String fcmToken;
 
-    private User(String personalId, String password, String nickname, Date birth, Gender gender,
-        Job job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
+    private User(String personalId, String password, String nickname, LocalDate birth, Gender gender,
+            Job job, int coinBalance, Frequency frequency, Instant lastLoginAt, Instant createdAt, String fcmToken) {
         this.personalId = personalId;
         this.password = password;
         this.nickname = nickname;
         this.birth = birth;
         this.gender = gender;
-        this.job = job;
-        this.frequency = frequency;
-        this.coinBalance = coinBalance;
+        this.job = job == null ? Job.ETC : job;
+        this.coinBalance = Math.max(0, coinBalance);
+        this.frequency = frequency == null ? Frequency.NORMAL : frequency;
         this.lastLoginAt = lastLoginAt;
-        this.createdAt = createdAt;
+        this.createdAt = createdAt == null ? Instant.now() : createdAt;
         this.fcmToken = fcmToken;
     }
 
-    public static User of(String personalId, String password, String nickname, Date birth, Gender gender,
-        Job job, int coinBalance, Instant lastLoginAt, Instant createdAt, String fcmToken) {
-        return new User(personalId, password, nickname, birth, gender, job, coinBalance, lastLoginAt, createdAt, fcmToken);
+    public static User of(String personalId, String password, String nickname, LocalDate birth, Gender gender,
+            Job job, int coinBalance, Frequency frequency, Instant lastLoginAt, Instant createdAt, String fcmToken) {
+        return new User(personalId, password, nickname, birth, gender, job, coinBalance, frequency, lastLoginAt, createdAt, fcmToken);
     }
 }
