@@ -1,3 +1,5 @@
+package com.dito.ui.theme
+
 import androidx.compose.ui.graphics.Color
 
 val Primary = Color(0xFFFFDC5A)
