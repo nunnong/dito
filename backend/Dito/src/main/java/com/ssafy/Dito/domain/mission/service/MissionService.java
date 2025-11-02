@@ -1,0 +1,33 @@
+package com.ssafy.Dito.domain.mission.service;
+
+import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
+import com.ssafy.Dito.domain.mission.dto.response.MissionRes;
+import com.ssafy.Dito.domain.mission.entity.Mission;
+import com.ssafy.Dito.domain.mission.repository.MissionQueryRepository;
+import com.ssafy.Dito.domain.mission.repository.MissionRepository;
+import com.ssafy.Dito.domain.user.entity.User;
+import com.ssafy.Dito.domain.user.repository.UserRepository;
+import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class MissionService {
+    private final MissionQueryRepository missionQueryRepository;
+    private final MissionRepository missionRepository;
+    private final UserRepository userRepository;
+
+    public Page<MissionRes> getMissions(long page_number) {
+        return missionQueryRepository.getMissionPage(page_number);
+    }
+
+    public void createMission(MissionReq req) {
+        Long userId = JwtAuthentication.getUserId();
+        User user = userRepository.getById(userId);
+
+        Mission mission = Mission.of(req, user);
+        missionRepository.save(mission);
+    }
+}
