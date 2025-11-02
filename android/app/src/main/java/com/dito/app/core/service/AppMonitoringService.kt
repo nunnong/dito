@@ -1,6 +1,8 @@
 package com.dito.app.core.service
 
 import android.accessibilityservice.AccessibilityService
+import com.dito.app.core.data.AppUsageEvent
+import com.dito.app.core.data.RealmConfig
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import java.text.SimpleDateFormat
@@ -75,8 +77,53 @@ class AppMonitoringService : AccessibilityService() {
 
         Log.i(TAG, "💾 저장: $packageName | ${formatDuration(duration)} | ${formatTime(startTime)}")
 
-        // TODO: Realm DB 저장
-        // realmDb.insert(AppUsageLog(packageName, startTime, endTime, duration))
+        try {
+            val realm = RealmConfig.getInstance()
+
+            realm.writeBlocking {
+                // OPEN 이벤트
+                copyToRealm(AppUsageEvent().apply {
+                    this.eventType = "APP_OPEN"
+                    this.packageName = packageName
+                    this.appName = getAppName(packageName)
+                    this.timestamp = startTime
+                    this.duration = 0L
+                    this.date = formatDate(startTime)
+                    this.synced = false
+                })
+
+                // CLOSE 이벤트
+                copyToRealm(AppUsageEvent().apply {
+                    this.eventType = "APP_CLOSE"
+                    this.packageName = packageName
+                    this.appName = getAppName(packageName)
+                    this.timestamp = endTime
+                    this.duration = duration
+                    this.date = formatDate(endTime)
+                    this.synced = false
+                })
+            }
+
+            Log.d(TAG, "✅ Realm 저장 완료")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Realm 저장 실패", e)
+        }
+    }
+
+    private fun getAppName(packageName: String): String {
+        return try {
+            val pm = packageManager
+            val appInfo = pm.getApplicationInfo(packageName, 0)
+            pm.getApplicationLabel(appInfo).toString()
+        } catch (e: Exception) {
+            packageName
+        }
+    }
+
+    private fun formatDate(timestamp: Long): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(Date(timestamp))
     }
 
     private fun formatTime(timestamp: Long): String {

@@ -1,6 +1,8 @@
 package com.dito.app.core.service
 
 import android.media.MediaMetadata
+import com.dito.app.core.data.MediaSessionEvent
+import com.dito.app.core.data.RealmConfig
 import android.util.Log
 import io.realm.kotlin.internal.platform.currentTime
 import java.text.SimpleDateFormat
@@ -159,7 +161,30 @@ class SessionStateManager {
         Log.d(TAG, "   날짜: ${formatDate(session.startTime)}")
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
-        // TODO: Realm DB에 저장
+        try {
+            val realm = RealmConfig.getInstance()
+
+            realm.writeBlocking {
+                copyToRealm(MediaSessionEvent().apply {
+                    this.eventType = "VIDEO_END"
+                    this.title = session.title
+                    this.channel = session.channel
+                    this.appPackage = session.appPackage
+                    this.timestamp = endTime
+                    this.videoDuration = session.duration
+                    this.watchTime = watchTime
+                    this.pauseTime = session.totalPauseTime
+                    this.date = formatDate(session.startTime)
+                    this.detectionMethod = "media-session"
+                    this.synced = false
+                })
+            }
+
+            Log.d(TAG, "✅ Realm 저장 완료")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Realm 저장 실패", e)
+        }
     }
 
 

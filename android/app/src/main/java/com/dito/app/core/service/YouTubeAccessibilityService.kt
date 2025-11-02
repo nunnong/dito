@@ -3,6 +3,10 @@ package com.dito.app.core.service
 import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import com.dito.app.core.data.MediaSessionEvent
+import com.dito.app.core.data.RealmConfig
+import java.text.SimpleDateFormat
+import java.util.*
 import android.widget.TextView
 import android.util.Log
 import kotlinx.coroutines.*
@@ -89,13 +93,21 @@ class YouTubeAccessibilityService : AccessibilityService() {
 
                 if (result != null && result != lastDetectedVideo) {
                     lastDetectedVideo = result
+
+                    val title = result.first
+                    val channel = result.second
+                    val detectionMethod = result.third
+
                     Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                     Log.i(TAG, "🎬 영상 감지!")
                     Log.i(TAG, "   제목: ${result.first}")
                     Log.i(TAG, "   채널: ${result.second}")
                     Log.i(TAG, "   방법: ${result.third}")
                     Log.i(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
+                    saveYouTubeVideoStart(title, channel, detectionMethod)
                 }
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing event", e)
             }
@@ -179,6 +191,43 @@ class YouTubeAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {
         Log.w(TAG, "⚠️ Service Interrupted")
     }
+
+
+    // youtube 영상 시작 저장
+    // 영상 제목/채널 감지 시 호출 ->VIDEO_START 이벤트로 기록
+    private fun saveYouTubeVideoStart(title: String, channel: String, detectionMethod: String) {
+        try {
+            val realm = RealmConfig.getInstance()
+            val currentTime = System.currentTimeMillis()
+
+            realm.writeBlocking {
+                copyToRealm(MediaSessionEvent().apply {
+                    this.eventType = "VIDEO_START"
+                    this.title = title
+                    this.channel = channel
+                    this.appPackage = "com.google.android.youtube"
+                    this.timestamp = currentTime
+                    this.videoDuration = 0L
+                    this.watchTime = 0L
+                    this.pauseTime = 0L
+                    this.date = formatDate(currentTime)
+                    this.detectionMethod = detectionMethod   // resource-id, hybrid, text-scan
+                    this.synced = false
+                })
+            }
+
+            Log.d(TAG, "✅ Realm 저장 완료 (YouTube 시작)")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Realm 저장 실패", e)
+        }
+    }
+
+    private fun formatDate(timestamp: Long): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(Date(timestamp))
+    }
+
 
     override fun onDestroy() {
         super.onDestroy()
