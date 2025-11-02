@@ -33,6 +33,7 @@
             </intent-filter>
         </activity>
 
+
         <service
             android:name=".core.service.AppMonitoringService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
