@@ -45,7 +45,8 @@ services:
     image: ${APP_IMAGE:-dito-backend:latest-stable}
     container_name: dito-app
     env_file:
-      - /var/lib/docker/volumes/dito_jenkins_home/_data/workspace/dito-backend-cicd/backend/.env
+      - ./backend/.env
+
 
     environment:
       # Database Configuration
