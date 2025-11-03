@@ -25,9 +25,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.dito.app.core.service.UsageStatsHelper
-import com.dito.app.core.ui.BottomTab
-import com.dito.app.core.ui.DitoBottomAppBar
+import com.dito.app.core.ui.component.BottomTab
+import com.dito.app.core.ui.component.DitoBottomAppBar
+import com.dito.app.feature.group.component.ChallengeModal
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -57,71 +57,26 @@ fun DitoTheme(content: @Composable () -> Unit) {
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
+    var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
     // Android 13 이상 알림 권한 요청
     NotificationPermissionRequest()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Text(
-            text = "Dito 권한 설정",
-            style = MaterialTheme.typography.headlineLarge
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        PermissionCard(
-            title = "📊 앱 사용량 권한",
-            description = "일일 앱 사용 통계를 확인합니다",
-            buttonText = "사용량 권한 설정",
-            onClick = {
-                if (!UsageStatsHelper.hasUsagePermission(context)) {
-                    UsageStatsHelper.openUsagePermissionSettings(context)
-                } else {
-                    UsageStatsHelper.logDailyUsage(context)
-                }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PermissionCard(
-            title = "📱 앱 전환 추적",
-            description = "실시간 앱 전환 및 사용 시간을 추적합니다",
-            buttonText = "접근성 권한 설정",
-            onClick = {
-                requestPermission(context, PermissionType.ACCESSIBILITY)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PermissionCard(
-            title = "🎵 미디어 추적",
-            description = "YouTube 시청 및 음악 재생을 추적합니다",
-            buttonText = "알림 접근 권한 설정",
-            onClick = {
-                requestPermission(context, PermissionType.NOTIFICATION)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 테스트 알림 보내기 버튼
-        PermissionCard(
-            title = "🔔 테스트 알림",
-            description = "앱에서 알림이 정상 작동하는지 확인합니다",
-            buttonText = "테스트 알림 보내기",
-            onClick = {
-                sendTestNotification(context)
-            }
-        )
+    Scaffold(
+        bottomBar = {
+            DitoBottomAppBar(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            ChallengeModal()
+        }
     }
 }
 

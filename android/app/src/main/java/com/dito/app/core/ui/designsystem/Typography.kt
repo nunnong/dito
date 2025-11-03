@@ -1,4 +1,4 @@
-package com.dito.ui.theme
+package com.dito.app.core.ui.designsystem
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

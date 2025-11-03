@@ -1,4 +1,4 @@
-package com.dito.app.core.ui
+package com.dito.app.core.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,9 +19,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.ui.theme.Background
-import com.dito.ui.theme.OnSurface
-import com.dito.ui.theme.OnSurfaceVariant
+import com.dito.app.core.ui.designsystem.Background
+import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.OnSurfaceVariant
 
 enum class BottomTab(val iconRes: Int, val label: String) {
     HOME(R.drawable.home, "홈"),
