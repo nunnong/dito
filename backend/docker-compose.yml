@@ -77,7 +77,7 @@ services:
       SERVER_PORT: 8080
 
       # Security Configuration
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-asekgjwlk125lkjsgp}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
       JWT_ACCESS_EXPIRATION: 3600000
       JWT_REFRESH_EXPIRATION: 604800000
