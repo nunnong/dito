@@ -132,7 +132,7 @@ pipeline {
 
               # 새 컨테이너 시작 (--force-recreate로 완전히 새로 생성)
               echo "Starting new container with image: ${DOCKER_IMAGE}..."
-              docker compose --env-file ./backend/.env -f docker-compose.yml up -d --force-recreate --no-deps app
+              docker compose --env-file .env -f docker-compose.yml up -d --force-recreate --no-deps app
 
 
               echo "New container started. Waiting for health check..."
