@@ -25,7 +25,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MissionResult extends IdentifiableEntity {
 
-    @Column(name = "resul", length = 20, nullable = false)
+    @Column(name = "result", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     @Comment("미션 수행 결과")
     private Result result;
