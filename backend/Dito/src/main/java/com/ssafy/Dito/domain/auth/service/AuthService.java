@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.auth.service;
 import com.ssafy.Dito.domain.auth.dto.request.SignInReq;
 import com.ssafy.Dito.domain.auth.dto.response.LogoutRes;
 import com.ssafy.Dito.domain.auth.dto.response.SignInRes;
+import com.ssafy.Dito.domain.auth.exception.DuplicatedPersonalIdException;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
 import com.ssafy.Dito.domain.auth.mapper.AuthMapper;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
@@ -33,6 +34,9 @@ public class AuthService {
 
     @Transactional
     public void signUp(SignUpReq req) {
+        if(userRepository.existsByPersonalId(req.personalId())){
+            throw new DuplicatedPersonalIdException();
+        }
         User user = authMapper.toEntity(req);
         userRepository.save(user);
     }
