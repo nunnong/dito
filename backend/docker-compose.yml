@@ -46,7 +46,7 @@ services:
     container_name: dito-app
     environment:
       # Database Configuration
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-dito}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://dito-postgres:5432/${DB_NAME:-dito}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
 
