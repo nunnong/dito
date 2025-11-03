@@ -26,7 +26,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
-        return method.equalsIgnoreCase("OPTIONS") || path.startsWith("/auth");
+        // JWT 필터를 적용하지 않을 경로
+        return method.equalsIgnoreCase("OPTIONS")
+            || path.startsWith("/auth")
+            || path.startsWith("/swagger-ui")
+            || path.startsWith("/v3/api-docs")
+            || path.startsWith("/swagger-resources");
     }
 
 
