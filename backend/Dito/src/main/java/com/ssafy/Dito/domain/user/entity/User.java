@@ -88,4 +88,11 @@ public class User extends IdentifiableEntity {
             Job job, int coinBalance, Frequency frequency, Instant lastLoginAt, Instant createdAt, String fcmToken) {
         return new User(personalId, password, nickname, birth, gender, job, coinBalance, frequency, lastLoginAt, createdAt, fcmToken);
     }
+
+    public void deductCoins(int amount) {
+        if (this.coinBalance < amount) {
+            throw new IllegalArgumentException("코인이 부족합니다");
+        }
+        this.coinBalance -= amount;
+    }
 }
