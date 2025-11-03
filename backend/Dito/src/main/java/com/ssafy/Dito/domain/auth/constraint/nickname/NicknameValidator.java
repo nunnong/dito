@@ -10,7 +10,7 @@ public class NicknameValidator implements ConstraintValidator<ValidNickname, Str
     @Override
     public boolean isValid(String nickname, ConstraintValidatorContext context) {
         if (nickname == null) {
-            return false; // null 자체가 허용되면 @NotNull을 따로 붙여야 함
+            return false;
         }
         return nickname.matches(REGEX);
     }
