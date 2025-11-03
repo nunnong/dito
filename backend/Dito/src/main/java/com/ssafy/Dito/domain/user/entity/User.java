@@ -24,7 +24,7 @@ public class User extends IdentifiableEntity {
     @Comment("개인 아이디")
     private String personalId;
 
-    @Column(name="password", length = 50, nullable = false)
+    @Column(name="password", length = 255, nullable = false)
     @Comment("비밀번호")
     private String password;
 

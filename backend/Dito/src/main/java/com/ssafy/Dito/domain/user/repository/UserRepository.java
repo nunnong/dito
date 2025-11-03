@@ -14,4 +14,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     }
 
     boolean existsByPersonalId(String personalId);
+
+
+    Optional<User> findById(long id);
+
+    default User getById(long id) {
+        return findById(id).orElseThrow(NotFoundUserException::new);
+    }
 }
