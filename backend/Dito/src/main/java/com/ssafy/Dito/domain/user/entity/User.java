@@ -1,6 +1,8 @@
 package com.ssafy.Dito.domain.user.entity;
 
 import com.ssafy.Dito.domain._common.IdentifiableEntity;
+import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
+import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -20,7 +22,7 @@ import java.time.Instant;
 @Table(name = "\"user\"")
 public class User extends IdentifiableEntity {
 
-    @Column(name="personal_id", length = 255, nullable = false)
+    @Column(name="personal_id", length = 255, nullable = false, unique = true)
     @Comment("개인 아이디")
     private String personalId;
 
@@ -33,7 +35,7 @@ public class User extends IdentifiableEntity {
     private String nickname;
 
     @Column(name = "birth", nullable = false)
-    @Comment("나이")
+    @Comment("생년월일")
     private LocalDate birth;
 
     @Column(name = "gender", nullable = false)
@@ -48,6 +50,7 @@ public class User extends IdentifiableEntity {
     private Job job;
 
     @Column(name = "coin_balance", nullable = false)
+    @ColumnDefault("0")
     @Comment("코인 잔액")
     private int coinBalance;
 
@@ -90,9 +93,42 @@ public class User extends IdentifiableEntity {
     }
 
     public void deductCoins(int amount) {
+        if (amount < 0) throw new IllegalArgumentException("음수 금액은 지원하지 않습니다");
         if (this.coinBalance < amount) {
             throw new IllegalArgumentException("코인이 부족합니다");
         }
         this.coinBalance -= amount;
+    }
+
+    // 엔티티 레벨에서 닉네임 변경 로직 추가
+    public void updateNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            throw new IllegalArgumentException("닉네임은 비어있을 수 없습니다");
+        }
+        this.nickname = nickname;
+    }
+
+    // FCM 토큰 갱신
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
+    // 코인 충전
+    public void increaseCoins(int amount) {
+        if (amount < 0) throw new IllegalArgumentException("음수 금액은 지원하지 않습니다");
+        this.coinBalance += amount;
+    }
+
+    // 마지막 로그인 시간 갱신
+    public void updateLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt == null ? Instant.now() : lastLoginAt;
+    }
+
+    public void updateNickname(NicknameReq req) {
+        this.nickname = req.nickname();
+    }
+
+    public void updateFrequency(FrequencyReq req) {
+        this.frequency = req.frequency();
     }
 }
