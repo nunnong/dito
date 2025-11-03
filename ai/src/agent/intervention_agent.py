@@ -1,78 +1,89 @@
-"""
-실시간 개입 에이전트 (Intervention Agent)
+"""실시간 개입 에이전트 (Intervention Agent)
 - 행동 패턴 분석
 - 개입 필요성 판단
 - 넛지 메시지 생성 및 발송
 """
 
 from typing import Literal
-from agent.dito_agent import *
+
+from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command
+
+from agent.prompts import (
+    SYSTEM_MSG_BEHAVIOR_ANALYZER,
+    SYSTEM_MSG_INTERVENTION_DECIDER,
+    SYSTEM_MSG_NUDGE_GENERATOR,
+    get_behavior_analysis_prompt,
+    get_intervention_decision_prompt,
+    get_nudge_generation_prompt,
+)
+from agent.schemas import InterventionState
+from agent.utils import (
+    behavior_analyzer,
+    get_current_timestamp,
+    get_time_slot_from_timestamp,
+    intervention_decider,
+    nudge_generator,
+    save_intervention_to_db,
+    schedule_evaluation,
+    simulate_behavior_log,
+)
 
 # =============================================================================
 # Intervention Agent Nodes
 # =============================================================================
 
 def analyze_behavior(state: InterventionState) -> dict:
-    """
-    1단계: 행동 패턴 분석
+    """1단계: 행동 패턴 분석
     사용자의 앱 사용 로그를 분석하여 패턴 파악
     """
-    print(f"\n[1/4] 행동 패턴 분석 중...")
-    
+    print("\n[1/4] 행동 패턴 분석 중...")
+
+    # Validate behavior_log is present
+    if "behavior_log" not in state or state.get("behavior_log") is None:
+        raise ValueError("behavior_log is required for analyze_behavior")
+
     behavior_log = state["behavior_log"]
-    
+
+    # usage_timestamp에서 time_slot 계산
+    time_slot = get_time_slot_from_timestamp(behavior_log['usage_timestamp'])
+
     # LLM을 사용한 행동 패턴 분석
-    analysis_prompt = f"""
-사용자의 앱 사용 데이터를 분석하여 패턴을 파악하세요.
+    analysis_prompt = get_behavior_analysis_prompt(behavior_log, time_slot)
 
-사용 데이터:
-- 앱: {behavior_log['app_name']}
-- 사용 시간: {behavior_log['duration_seconds']}초
-- 시간대: {behavior_log['time_slot']}
-- 최근 앱 전환 횟수: {behavior_log['recent_app_switches']}회
-
-중재 이론 가이드라인:
-{INTERVENTION_GUIDELINES}
-
-패턴 유형을 판단하고, 트리거 이벤트를 명확히 식별하세요.
-"""
-    
     analysis = behavior_analyzer.invoke([
-        SystemMessage(content="당신은 디지털 웰빙 전문가입니다."),
+        SystemMessage(content=SYSTEM_MSG_BEHAVIOR_ANALYZER),
         HumanMessage(content=analysis_prompt)
     ])
-    
+
     print(f"     패턴 유형: {analysis.pattern_type}")
     print(f"     트리거 이벤트: {analysis.trigger_event}")
-    
+    print(f"     심각도: {analysis.severity_score}")
+
     return {
         "behavior_pattern": analysis.summary,
+        "pattern_type": analysis.pattern_type,
         "trigger_event": analysis.trigger_event,
+        "severity_score": analysis.severity_score,
+        "key_indicators": analysis.key_indicators,
         "timestamp": get_current_timestamp()
     }
 
 
 def decide_intervention(state: InterventionState) -> Command[Literal["generate_nudge", "__end__"]]:
-    """
-    2단계: 개입 필요성 판단
+    """2단계: 개입 필요성 판단
     분석된 패턴을 바탕으로 개입 여부와 유형 결정
     """
-    print(f"\n[2/4] 개입 필요성 판단 중...")
-    
-    decision_prompt = f"""
-사용자의 행동 패턴을 분석한 결과입니다:
+    print("\n[2/4] 개입 필요성 판단 중...")
 
-행동 패턴: {state['behavior_pattern']}
-트리거 이벤트: {state['trigger_event']}
+    decision_prompt = get_intervention_decision_prompt(
+        state['behavior_pattern'],
+        state['trigger_event']
+    )
 
-중재 이론 가이드라인:
-{INTERVENTION_GUIDELINES}
-
-개입이 필요한지 판단하고, 필요하다면 적절한 개입 유형과 긴급도를 결정하세요.
-"""
-    
     decision = intervention_decider.invoke([
-        SystemMessage(content="당신은 디지털 웰빙 개입 전문가입니다."),
+        SystemMessage(content=SYSTEM_MSG_INTERVENTION_DECIDER),
         HumanMessage(content=decision_prompt)
     ])
     
@@ -98,31 +109,19 @@ def decide_intervention(state: InterventionState) -> Command[Literal["generate_n
 
 
 def generate_nudge(state: InterventionState) -> dict:
-    """
-    3단계: 넛지 메시지 생성
+    """3단계: 넛지 메시지 생성
     개입 유형에 맞는 맞춤형 넛지 메시지 생성
     """
-    print(f"\n[3/4] 넛지 메시지 생성 중...")
-    
-    nudge_prompt = f"""
-사용자에게 전달할 넛지 메시지를 생성하세요.
+    print("\n[3/4] 넛지 메시지 생성 중...")
 
-상황:
-- 행동 패턴: {state['behavior_pattern']}
-- 개입 유형: {state['intervention_type']}
-- 긴급도: {state['urgency_level']}
+    nudge_prompt = get_nudge_generation_prompt(
+        state['behavior_pattern'],
+        state['intervention_type'],
+        state['urgency_level']
+    )
 
-메시지 프레임: "[인식] → [제안] → [보상]"
-
-요구사항:
-1. 친근하고 공감적인 톤
-2. 구체적인 행동 제안
-3. 긍정적 보상 (코인 등) 제시
-4. 1-2문장으로 간결하게
-"""
-    
     nudge = nudge_generator.invoke([
-        SystemMessage(content="당신은 디지털 웰빙 코치입니다."),
+        SystemMessage(content=SYSTEM_MSG_NUDGE_GENERATOR),
         HumanMessage(content=nudge_prompt)
     ])
     
@@ -135,11 +134,10 @@ def generate_nudge(state: InterventionState) -> dict:
 
 
 def send_intervention(state: InterventionState) -> dict:
-    """
-    4단계: 개입 실행 및 평가 스케줄링
+    """4단계: 개입 실행 및 평가 스케줄링
     넛지를 전송하고, N분 후 평가를 스케줄링
     """
-    print(f"\n[4/4] 개입 실행 및 평가 스케줄링 중...")
+    print("\n[4/4] 개입 실행 및 평가 스케줄링 중...")
     
     # 현재 시간
     intervention_time = get_current_timestamp()
@@ -184,7 +182,6 @@ def send_intervention(state: InterventionState) -> dict:
 
 def build_intervention_agent() -> StateGraph:
     """실시간 개입 에이전트 그래프 구성"""
-    
     workflow = StateGraph(InterventionState)
     
     # 노드 추가
@@ -223,7 +220,6 @@ def test_intervention_agent(user_id: int = 1):
     # 초기 상태
     initial_state = {
         "user_id": user_id,
-        "session_id": f"session_{user_id}_{datetime.now().timestamp()}",
         "behavior_log": simulate_behavior_log(user_id),
     }
     
