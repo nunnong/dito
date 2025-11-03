@@ -25,7 +25,7 @@ public class MediaSessionEventService {
         long userId = JwtAuthentication.getUserId();
         User user = userRepository.getById(userId);
 
-        List<MediaSessionEvent> entities = req.mediaSessionEvents().stream()
+        List<MediaSessionEvent> entities = req.mediaSessionEvent().stream()
             .map(e -> MediaSessionEvent.of(e, user))
             .collect(Collectors.toList());
 

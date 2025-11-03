@@ -27,7 +27,7 @@ public class AppUsageEventService {
         long userId = JwtAuthentication.getUserId();
         User user = userRepository.getById(userId);
 
-        List<AppUsageEvent> entities = req.appUsageEvents().stream()
+        List<AppUsageEvent> entities = req.appUsageEvent().stream()
             .map(e -> AppUsageEvent.of(e, user))
             .collect(Collectors.toList());
 
