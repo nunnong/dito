@@ -11,31 +11,32 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.lang.Exception
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
-//WorkManager - 30분마다 배치 전송
 @HiltWorker
 class EventSyncWorker @AssistedInject constructor(
-    @Assisted context: Context, // WorkManager가 제공
-    @Assisted params: WorkerParameters,// WorkManager가 제공
-    private val apiService: ApiService //Hilt
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val apiService: ApiService
 ) : CoroutineWorker(context, params) {
 
-    companion object{
+    companion object {
         private const val TAG = "EventSyncWorker"
         private const val WORK_NAME = "event_batch_sync"
 
-        fun setupPeriodicSync(context: Context){
+        fun setupPeriodicSync(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .setRequiresBatteryNotLow(true)
                 .build()
 
             val workRequest = PeriodicWorkRequestBuilder<EventSyncWorker>(
-                30, TimeUnit.MINUTES                            // 30분마다
+                30, TimeUnit.MINUTES
             )
                 .setConstraints(constraints)
-                .setBackoffCriteria(                            // 재시도 정책
+                .setBackoffCriteria(
                     BackoffPolicy.EXPONENTIAL,
                     15, TimeUnit.MINUTES
                 )
@@ -51,61 +52,51 @@ class EventSyncWorker @AssistedInject constructor(
         }
     }
 
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO){
-        try{
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        try {
             Log.d(TAG, "배치 전송 시작")
 
-            //1. realm 미전송 데이터 조회
             val appEvents = RealmRepository.getUnsyncedAppEvents()
             val mediaEvents = RealmRepository.getUnsyncedMediaEvents()
 
             Log.d(TAG, "전송 대상: 앱 사용=${appEvents.size}, 미디어=${mediaEvents.size}")
 
-            if(appEvents.isEmpty() && mediaEvents.isEmpty()){
+            if (appEvents.isEmpty() && mediaEvents.isEmpty()) {
                 return@withContext Result.success()
             }
 
-            //2. dto로 변환
-            val appEventDtos = appEvents.map{it.toDto()}
-            val mediaEventDtos = mediaEvents.map{it.toDto()}
+            val appSuccess = uploadAppUsageEvents(appEvents.map { it.toDto() })
+            val mediaSuccess = uploadMediaSessionEvents(mediaEvents.map { it.toDto() })
 
-            // 3. API 호출
-            val appSuccess = uploadAppUsageEvents(appEventDtos)
-            val mediaSuccess = uploadMediaSessionEvents(mediaEventDtos)
-
-            // 5. 결과 처리
             when {
                 appSuccess && mediaSuccess -> {
                     val allIds = appEvents.map { it._id.toHexString() } +
                             mediaEvents.map { it._id.toHexString() }
                     RealmRepository.markAsSynced(allIds)
-
-                    Log.d(TAG, "전송 완료 (${allIds.size}건)")
-                    Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+                    Log.d(TAG, "✅ 전체 전송 성공 (${allIds.size}건)")
                     Result.success()
                 }
+
                 appSuccess && !mediaSuccess -> {
-                    val appIds = appEvents.map { it._id.toHexString() }
-                    RealmRepository.markAsSynced(appIds)
-
-                    Log.w(TAG, "미디어 이벤트 전송 실패 (재시도 예정)")
+                    RealmRepository.markAsSynced(appEvents.map { it._id.toHexString() })
+                    Log.w(TAG, "⚠️ 미디어 이벤트 실패 → 재시도 예정")
                     Result.retry()
                 }
+
                 !appSuccess && mediaSuccess -> {
-                    val mediaIds = mediaEvents.map { it._id.toHexString() }
-                    RealmRepository.markAsSynced(mediaIds)
-
-                    Log.w(TAG, "앱 사용 이벤트 전송 실패 (재시도 예정)")
+                    RealmRepository.markAsSynced(mediaEvents.map { it._id.toHexString() })
+                    Log.w(TAG, "⚠️ 앱 사용 이벤트 실패 → 재시도 예정")
                     Result.retry()
                 }
+
                 else -> {
-                    Log.e(TAG, "❌ 전체 전송 실패 (재시도 예정)")
+                    Log.e(TAG, "❌ 전체 전송 실패 → 재시도 예정")
                     Result.retry()
                 }
             }
 
-        }catch (e: Exception){
-            Log.e(TAG, "배치 전송 에러", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "배치 전송 중 예외 발생", e)
             Result.retry()
         }
     }
@@ -113,56 +104,86 @@ class EventSyncWorker @AssistedInject constructor(
     private suspend fun uploadAppUsageEvents(events: List<AppUsageEventDto>): Boolean {
         if (events.isEmpty()) return true
 
+        val safeEvents = events.map { event ->
+            val safeDuration = event.duration ?: 0L
+            val safeDate = try {
+                LocalDate.parse(event.event_date, DateTimeFormatter.ISO_DATE).toString()
+            } catch (e: Exception) {
+                LocalDate.now().toString()
+            }
+            event.copy(duration = safeDuration, event_date = safeDate)
+        }
+
         return try {
-            val request = AppUsageBatchRequest(
-                user_id = getUserId(),
-                events = events
+            val request = AppUsageBatchRequest(events)
+            val jwt = getJwtToken()
+
+            val response = apiService.uploadAppUsageEvents(
+                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIxNzIzMDIsImV4cCI6MTc2MjE3NTkwMn0.z0mu47p2nDGYkliU3Zrzn42dfLzzzSrqrPFSt3418Oo",
+                request = request
             )
-            val response = apiService.uploadAppUsageEvents(request)
 
             if (response.isSuccessful && response.body()?.success == true) {
-                Log.d(TAG, "앱 사용 이벤트 전송 성공 (${events.size}건)")
+                Log.d(TAG, "✅ 앱 사용 이벤트 전송 성공 (${events.size}건)")
                 true
             } else {
-                Log.e(TAG, "앱 사용 이벤트 전송 실패: ${response.code()}")
+                Log.e(TAG, "❌ 앱 사용 이벤트 전송 실패: ${response.code()}")
                 false
             }
-
         } catch (e: Exception) {
-            Log.e(TAG, "앱 사용 이벤트 전송 에러", e)
+            Log.e(TAG, "❌ 앱 사용 이벤트 전송 예외", e)
             false
         }
     }
 
-
     private suspend fun uploadMediaSessionEvents(events: List<MediaSessionEventDto>): Boolean {
         if (events.isEmpty()) return true
 
-        return try {
-            val request = MediaSessionBatchRequest(
-                user_id = getUserId(),
-                events = events
+        val safeEvents = events.map { event ->
+            val safeVideoDuration = event.video_duration ?: 0L
+            val safeWatchTime = event.watch_time ?: 0L
+            val safePauseTime = event.pause_time ?: 0L
+            val safeDate = try {
+                LocalDate.parse(event.event_date, DateTimeFormatter.ISO_DATE).toString()
+            } catch (e: Exception) {
+                LocalDate.now().toString()
+            }
+            event.copy(
+                video_duration = safeVideoDuration,
+                watch_time = safeWatchTime,
+                pause_time = safePauseTime,
+                event_date = safeDate
             )
-            val response = apiService.uploadMediaSessionEvents(request)
+        }
+
+        return try {
+            val request = MediaSessionBatchRequest(events)
+            val jwt = getJwtToken()
+
+            val response = apiService.uploadMediaSessionEvents(
+                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIxNzIzMDIsImV4cCI6MTc2MjE3NTkwMn0.z0mu47p2nDGYkliU3Zrzn42dfLzzzSrqrPFSt3418Oo",
+                request = request
+            )
 
             if (response.isSuccessful && response.body()?.success == true) {
-                Log.d(TAG, "미디어 세션 이벤트 전송 성공 (${events.size}건)")
+                Log.d(TAG, "✅ 미디어 이벤트 전송 성공 (${events.size}건)")
                 true
             } else {
-                Log.e(TAG, "미디어 세션 이벤트 전송 실패: ${response.code()}")
+                Log.e(TAG, "❌ 미디어 이벤트 전송 실패: ${response.code()}")
                 false
             }
-
         } catch (e: Exception) {
-            Log.e(TAG, "미디어 세션 이벤트 전송 에러", e)
+            Log.e(TAG, "❌ 미디어 이벤트 전송 예외", e)
             false
         }
     }
 
     private fun getUserId(): Int {
-        val prefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        return prefs.getInt("user_id", -1)
+        return 7
     }
 
-
+    private fun getJwtToken(): String {
+        val prefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("access_token", "") ?: ""
+    }
 }

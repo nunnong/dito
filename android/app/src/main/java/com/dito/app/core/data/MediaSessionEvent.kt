@@ -3,6 +3,10 @@ package com.dito.app.core.data
 import io.realm.kotlin.types.RealmObject
 import io.realm.kotlin.types.annotations.PrimaryKey
 import org.mongodb.kbson.ObjectId
+import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 미디어 세션 이벤트 (유튜브 영상 시청 기록)
@@ -40,18 +44,28 @@ class MediaSessionEvent : RealmObject {
     var createdAt: Long = System.currentTimeMillis()
 }
 
+
 fun MediaSessionEvent.toDto(): MediaSessionEventDto {
     return MediaSessionEventDto(
-        event_id = this._id.toHexString(),
-        event_type = this.eventType,
-        package_name = this.appPackage,
+        event_id = try {
+            this._id.toHexString()
+        } catch (e: Exception) {
+            UUID.randomUUID().toString()
+        },
+        event_type = this.eventType.ifBlank { "UNKNOWN" },
+        package_name = this.appPackage.ifBlank { "unknown.package" },
         app_name = null,
         title = this.title.takeIf { it.isNotBlank() },
         channel = this.channel.takeIf { it.isNotBlank() },
-        timestamp = this.timestamp,
+        event_timestamp = this.timestamp,
         video_duration = if (this.videoDuration > 0) this.videoDuration else null,
         watch_time = if (this.watchTime > 0) this.watchTime else null,
         pause_time = if (this.pauseTime > 0) this.pauseTime else null,
-        date = this.date
+        event_date = this.date.ifBlank { getTodayDateString() }
     )
+}
+
+private fun getTodayDateString(): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return sdf.format(Date())
 }

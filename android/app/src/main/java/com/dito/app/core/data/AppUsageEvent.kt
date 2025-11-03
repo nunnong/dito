@@ -3,6 +3,10 @@ package com.dito.app.core.data
 import io.realm.kotlin.types.RealmObject
 import io.realm.kotlin.types.annotations.PrimaryKey
 import org.mongodb.kbson.ObjectId
+import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * 앱 사용 이벤트 (Track 2 배치 전송용)
@@ -36,12 +40,22 @@ class AppUsageEvent : RealmObject {
 
 fun AppUsageEvent.toDto(): AppUsageEventDto {
     return AppUsageEventDto(
-        event_id = this._id.toHexString(),
-        event_type = this.eventType,
-        package_name = this.packageName,
+        event_id = try {
+            this._id.toHexString()
+        } catch (e: Exception) {
+            // detach 또는 null 방지용
+            UUID.randomUUID().toString()
+        },
+        event_type = this.eventType.ifBlank { "UNKNOWN" },
+        package_name = this.packageName.ifBlank { "unknown.package" },
         app_name = this.appName.takeIf { it.isNotBlank() },
         event_timestamp = this.timestamp,
         duration = if (this.duration > 0) this.duration else null,
-        event_date = this.date
+        event_date = this.date.ifBlank { getTodayDateString() }
     )
+}
+
+private fun getTodayDateString(): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    return sdf.format(Date())
 }

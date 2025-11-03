@@ -5,20 +5,23 @@ import com.dito.app.core.data.BatchUploadResponse
 import com.dito.app.core.data.MediaSessionBatchRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 
 //Retrofit API 서비스
 interface ApiService {
 
-    @POST("/api/events/app-usage")
+    @POST("/event/app-usage")
     suspend fun uploadAppUsageEvents(
-        @Body request: AppUsageBatchRequest
+        @Body request: AppUsageBatchRequest,
+        @Header("Authorization") token: String
     ): Response<BatchUploadResponse>
 
 
-    @POST("/api/events/media-session")
+    @POST("/event/media-session")
     suspend fun uploadMediaSessionEvents(
-        @Body request: MediaSessionBatchRequest
+        @Body request: MediaSessionBatchRequest,
+        @Header("Authorization") token: String
     ): Response<BatchUploadResponse>
 
 }

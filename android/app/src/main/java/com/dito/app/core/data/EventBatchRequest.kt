@@ -3,14 +3,12 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AppUsageBatchRequest(
-    val user_id: Int,
-    val events: List<AppUsageEventDto>
+    val appUsageEvent: List<AppUsageEventDto>
 )
 
 @Serializable
 data class MediaSessionBatchRequest(
-    val user_id: Int,
-    val events: List<MediaSessionEventDto>
+    val mediaSessionEvent: List<MediaSessionEventDto>
 )
 
 @Serializable

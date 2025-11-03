@@ -10,9 +10,9 @@ data class MediaSessionEventDto(
     val app_name: String?,
     val title: String?,
     val channel: String?,
-    val timestamp: Long,
+    val event_timestamp: Long,
     val video_duration: Long?,
     val watch_time: Long?,
     val pause_time: Long?,
-    val date: String
+    val event_date: String
 )

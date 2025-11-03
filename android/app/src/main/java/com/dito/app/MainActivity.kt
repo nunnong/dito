@@ -29,6 +29,10 @@ import androidx.core.content.ContextCompat
 import com.dito.app.core.data.RealmRepository
 import com.dito.app.core.service.UsageStatsHelper
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.ExistingWorkPolicy
+import com.dito.app.core.background.EventSyncWorker
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -50,7 +54,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
 
     fun testRealmData() {
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -107,13 +110,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     fun clearRealmData() {
         try {
             RealmRepository.clearAll()
             Log.d(TAG, "🗑️ Realm 전체 데이터 삭제 완료")
         } catch (e: Exception) {
             Log.e(TAG, "❌ Realm 삭제 실패", e)
+        }
+    }
+
+    fun triggerWorkManagerManually() {
+        try {
+            Log.d(TAG, "🚀 WorkManager 수동 실행 요청")
+
+            val workRequest = OneTimeWorkRequestBuilder<EventSyncWorker>()
+                .build()
+
+            WorkManager.getInstance(this)
+                .enqueueUniqueWork(
+                    "manual_sync",
+                    ExistingWorkPolicy.REPLACE,
+                    workRequest
+                )
+
+            Log.d(TAG, "✅ WorkManager 실행 요청 완료")
+            Log.d(TAG, "📊 Logcat에서 'EventSyncWorker' 필터로 결과 확인")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ WorkManager 실행 실패", e)
         }
     }
 }
@@ -130,7 +154,6 @@ fun DitoTheme(content: @Composable () -> Unit) {
 fun MainScreen(activity: MainActivity) {
     val context = LocalContext.current
 
-    // Android 13 이상 알림 권한 요청
     NotificationPermissionRequest()
 
     Column(
@@ -185,7 +208,6 @@ fun MainScreen(activity: MainActivity) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-
         Button(
             onClick = { activity.testRealmData() },
             modifier = Modifier.fillMaxWidth()
@@ -205,6 +227,18 @@ fun MainScreen(activity: MainActivity) {
             Text("🗑️ Realm 데이터 삭제")
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = { activity.triggerWorkManagerManually() },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary
+            )
+        ) {
+            Text("🚀 배치 전송 즉시 실행 (API 테스트)")
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         PermissionCard(
@@ -217,8 +251,6 @@ fun MainScreen(activity: MainActivity) {
         )
     }
 }
-
-// util 함수
 
 @Composable
 fun PermissionCard(
