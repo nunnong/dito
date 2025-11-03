@@ -33,3 +33,15 @@ class AppUsageEvent : RealmObject {
     // 메타데이터
     var createdAt: Long = System.currentTimeMillis()
 }
+
+fun AppUsageEvent.toDto(): AppUsageEventDto {
+    return AppUsageEventDto(
+        event_id = this._id.toHexString(),
+        event_type = this.eventType,
+        package_name = this.packageName,
+        app_name = this.appName.takeIf { it.isNotBlank() },
+        timestamp = this.timestamp,
+        duration = if (this.duration > 0) this.duration else null,
+        date = this.date
+    )
+}

@@ -39,3 +39,19 @@ class MediaSessionEvent : RealmObject {
     // 메타데이터
     var createdAt: Long = System.currentTimeMillis()
 }
+
+fun MediaSessionEvent.toDto(): MediaSessionEventDto {
+    return MediaSessionEventDto(
+        event_id = this._id.toHexString(),
+        event_type = this.eventType,
+        package_name = this.appPackage,
+        app_name = null,
+        title = this.title.takeIf { it.isNotBlank() },
+        channel = this.channel.takeIf { it.isNotBlank() },
+        timestamp = this.timestamp,
+        video_duration = if (this.videoDuration > 0) this.videoDuration else null,
+        watch_time = if (this.watchTime > 0) this.watchTime else null,
+        pause_time = if (this.pauseTime > 0) this.pauseTime else null,
+        date = this.date
+    )
+}
