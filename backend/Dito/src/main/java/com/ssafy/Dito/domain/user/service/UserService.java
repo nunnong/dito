@@ -22,7 +22,6 @@ public class UserService {
     public ProfileRes getProfile() {
         long userId = JwtAuthentication.getUserId();
         return userQueryRepository.getProfile(userId);
-
     }
 
     @Transactional
@@ -47,11 +46,5 @@ public class UserService {
         user.updateFrequency(req);
 
         userRepository.save(user);
-    }
-
-    @Transactional
-    public void deleteUser() {
-        long userid = JwtAuthentication.getUserId();
-        userRepository.deleteById(userid);
     }
 }

@@ -1,6 +1,5 @@
 package com.ssafy.Dito.domain.auth.controller;
 
-import com.ssafy.Dito.domain.auth.dto.response.LogoutRes;
 import com.ssafy.Dito.domain.auth.dto.response.SignInRes;
 import com.ssafy.Dito.domain.auth.service.AuthService;
 import com.ssafy.Dito.domain.auth.dto.request.SignInReq;
@@ -8,11 +7,10 @@ import com.ssafy.Dito.domain.auth.dto.request.SignUpReq;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,12 +49,12 @@ public class AuthController {
     }
 
     // 로그아웃
-    @PostMapping("/auth/logout")
-    public ResponseEntity<SingleResult<LogoutRes>> logout(
-            @RequestHeader("Authorization") String authorization
+    @PostMapping("/logout")
+    public ResponseEntity<CommonResult> logout(
+            @RequestHeader("Authorization") String accessToken
     ) {
-        LogoutRes response = authService.logout(authorization);
-        return ApiResponse.ok(response);
+        authService.logout(accessToken);
+        return ApiResponse.ok();
     }
 
     // 토큰 재발급
@@ -66,5 +64,14 @@ public class AuthController {
     ) {
         SignInRes response = authService.refresh(refreshToken);
         return ApiResponse.ok(response);
+    }
+
+    // 회원 탈퇴
+    @DeleteMapping("/sign-out")
+    public ResponseEntity<CommonResult> deleteUser(
+            @RequestHeader("Authorization") String accessToken
+    ) {
+        authService.deleteUser(accessToken);
+        return ApiResponse.ok();
     }
 }

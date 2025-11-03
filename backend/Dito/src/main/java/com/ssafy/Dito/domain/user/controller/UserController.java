@@ -49,11 +49,4 @@ public class UserController {
         userService.updateFrequency(req);
         return ApiResponse.ok();
     }
-
-    // 회원 탈퇴
-    @DeleteMapping("/delete")
-    public ResponseEntity<CommonResult> deleteUser() {
-        userService.deleteUser();
-        return ApiResponse.ok();
-    }
 }

@@ -1,7 +1,6 @@
 package com.ssafy.Dito.domain.auth.service;
 
 import com.ssafy.Dito.domain.auth.dto.request.SignInReq;
-import com.ssafy.Dito.domain.auth.dto.response.LogoutRes;
 import com.ssafy.Dito.domain.auth.dto.response.SignInRes;
 import com.ssafy.Dito.domain.auth.exception.DuplicatedPersonalIdException;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
@@ -10,6 +9,7 @@ import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.domain.auth.dto.request.SignUpReq;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.global.jwt.exception.UnauthorizedUserException;
+import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import com.ssafy.Dito.global.jwt.util.JwtClaims;
 import com.ssafy.Dito.global.jwt.util.JwtUtil;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +45,7 @@ public class AuthService {
         return userRepository.existsByPersonalId(personalId);
     }
 
+    @Transactional
     public SignInRes signIn(SignInReq req) {
         User user = userRepository.getByPersonalId(req.personalId());
 
@@ -68,27 +69,13 @@ public class AuthService {
     }
 
     @Transactional
-    public LogoutRes logout(String accessToken) {
-        if (accessToken.startsWith("Bearer ")) {
-            accessToken = accessToken.substring(7);
-        }
+    public void logout(String accessToken) {
+        long userId = JwtAuthentication.getUserId();
 
-        JwtClaims claims = jwtUtil.validateAndGetClaims(accessToken);
-        Long userId = claims.getUserId();
-
-        redisTemplate.delete(RT_PREFIX + userId);
-
-        long expiration = jwtUtil.getRemainingTime(accessToken);
-        redisTemplate.opsForValue().set(
-                BLACKLIST_PREFIX + accessToken,
-                "LOGOUT",
-                expiration,
-                TimeUnit.MILLISECONDS
-        );
-
-        return new LogoutRes(userId);
+        deleteAccessToken(accessToken, userId);
     }
 
+    @Transactional
     public SignInRes refresh(String refreshToken) {
         JwtClaims claims = jwtUtil.validateAndGetClaims(refreshToken);
         long userId = claims.getUserId();
@@ -100,5 +87,30 @@ public class AuthService {
 
         String newAccessToken = jwtUtil.generateAccessToken(userId);
         return new SignInRes(newAccessToken, refreshToken);
+    }
+    @Transactional
+    public void deleteUser(String accessToken) {
+        long userId = JwtAuthentication.getUserId();
+
+        deleteAccessToken(accessToken, userId);
+
+        userRepository.deleteById(userId);
+    }
+
+    private void deleteAccessToken(String accessToken, long userId){
+        if (accessToken.startsWith("Bearer ")) {
+            accessToken = accessToken.substring(7);
+        }
+
+        redisTemplate.delete(RT_PREFIX + userId);
+
+        long expiration = jwtUtil.getRemainingTime(accessToken);
+
+        redisTemplate.opsForValue().set(
+                BLACKLIST_PREFIX + accessToken,
+                "LOGOUT",
+                expiration,
+                TimeUnit.MILLISECONDS
+        );
     }
 }
