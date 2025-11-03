@@ -13,7 +13,7 @@ import org.hibernate.proxy.HibernateProxy;
 public abstract class IdentifiableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    protected Long id;
+    protected long id;
 
     @Override
     public boolean equals(Object o) {
@@ -33,7 +33,7 @@ public abstract class IdentifiableEntity {
             return false;
         }
         IdentifiableEntity that = (IdentifiableEntity) o;
-        return getId() != null && Objects.equals(getId(), that.getId());
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
