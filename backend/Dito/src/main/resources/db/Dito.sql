@@ -1,6 +1,6 @@
-﻿CREATE TABLE "app_usage_log" (
-	"user_id"	INT		NOT NULL,
-	"log_id"	INT		NULL,
+CREATE TABLE "app_usage_log" (
+	"user_id"	BIGINT		NOT NULL,
+	"log_id"	BIGINT		NULL,
 	"app_name"	VARCHAR(100)		NOT NULL,
 	"start_time"	TIMESTAMP		NOT NULL,
 	"end_time"	TIMESTAMP		NOT NULL,
@@ -11,7 +11,7 @@
 );
 
 CREATE TABLE "group" (
-	"id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
 	"group_name"	VARCHAR(100)		NOT NULL,
 	"invite_code"	CHAR(4)		NOT NULL,
 	"period"	INT		NOT NULL,
@@ -25,8 +25,8 @@ CREATE TABLE "group" (
 );
 
 CREATE TABLE "mission" (
-	"id"	INT		NOT NULL,
-	"user_id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
+	"user_id"	BIGINT		NOT NULL,
 	"mission_type"	VARCHAR(20)		NOT NULL,
 	"mission_text"	TEXT		NOT NULL,
 	"coin_reward"	INT		NOT NULL,
@@ -41,8 +41,8 @@ CREATE TABLE "mission" (
 );
 
 CREATE TABLE "status" (
-	"id"	INT		NOT NULL,
-	"user_id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
+	"user_id"	BIGINT		NOT NULL,
 	"self_care_stat"	INT	DEFAULT 0	NULL,
 	"focus_stat"	INT	DEFAULT 0	NULL,
 	"sleep_stat"	INT	DEFAULT 0	NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "status" (
 );
 
 CREATE TABLE "item" (
-	"id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
 	"type"	VARCHAR(20)		NOT NULL,
 	"name"	VARCHAR(100)		NOT NULL,
 	"price"	INT		NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE "item" (
 COMMENT ON COLUMN "item"."type" IS '배경, 아이템';
 
 CREATE TABLE "user" (
-	"id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
 	"personal_id"	VARCHAR(255)		NOT NULL,
 	"password"	VARCHAR(50)		NOT NULL,
 	"nickname"	VARCHAR(50)		NOT NULL,
@@ -72,11 +72,11 @@ CREATE TABLE "user" (
 	"coin_balance"	INT	DEFAULT 0	NOT NULL,
 	"last_login_at"	TIMESTAMP	DEFAULT CURRENT_TIMESTAMP	NOT NULL,
 	"created_at"	TIMESTAMP	DEFAULT CURRENT_TIMESTAMP	NOT NULL,
-	"FCM_teokn"	TEXT		NOT NULL
+	"FCM_token"	TEXT		NOT NULL
 );
 
 CREATE TABLE "content_cache" (
-	"cache_id"	INT		NULL,
+	"cache_id"	BIGINT		NULL,
 	"content_id"	VARCHAR(255)		NOT NULL,
 	"title"	VARCHAR(500)		NULL,
 	"channel_name"	VARCHAR(255)		NULL,
@@ -88,15 +88,15 @@ CREATE TABLE "content_cache" (
 );
 
 CREATE TABLE "mission_result" (
-	"id"	INT		NOT NULL,
-	"mission_id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
+	"mission_id"	BIGINT		NOT NULL,
 	"result"	VARCHAR(20)		NOT NULL,
 	"completed_at"	TIMESTAMP		NULL
 );
 
 CREATE TABLE "group_participant" (
-	"user_id"	INT		NOT NULL,
-	"group_id"	INT		NOT NULL,
+	"user_id"	BIGINT		NOT NULL,
+	"group_id"	BIGINT		NOT NULL,
 	"role"	VARCHAR(10)		NOT NULL,
 	"bet_coins"	INT		NOT NULL,
 	"rank"	INT		NOT NULL,
@@ -105,16 +105,16 @@ CREATE TABLE "group_participant" (
 );
 
 CREATE TABLE "weekly_goal" (
-	"id"	INT		NOT NULL,
-	"user_id"	INT		NOT NULL,
+	"id"	BIGINT		NOT NULL,
+	"user_id"	BIGINT		NOT NULL,
 	"goal"	TEXT	DEFAULT 목표를 설정해주세요.	NOT NULL,
 	"start_at"	TIMESTAMP		NOT NULL,
 	"is_active"	boolean	DEFAULT FALSE	NULL
 );
 
 CREATE TABLE "user_item" (
-	"item_id"	INT		NOT NULL,
-	"user_id"	INT		NOT NULL,
+	"item_id"	BIGINT		NOT NULL,
+	"user_id"	BIGINT		NOT NULL,
 	"purchased_at"	TIMESTAMP		NULL,
 	"is_equipped"	BOOLEAN	DEFAULT FALSE	NULL
 );
