@@ -44,11 +44,13 @@ services:
   app:
     image: ${APP_IMAGE:-dito-backend:latest-stable}
     container_name: dito-app
+    env_file:
+      - .env
     environment:
       # Database Configuration
       SPRING_DATASOURCE_URL: jdbc:postgresql://dito-postgres:5432/${DB_NAME:-dito}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-dito}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-dito}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-dito2025}
 
       # Redis Configuration (Spring Boot standard)
       SPRING_DATA_REDIS_HOST: localhost
@@ -77,6 +79,8 @@ services:
       # Security Configuration
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      JWT_ACCESS_EXPIRATION: 3600000
+      JWT_REFRESH_EXPIRATION: 604800000
 
 
       # Logging
