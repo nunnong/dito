@@ -45,7 +45,8 @@ services:
     image: ${APP_IMAGE:-dito-backend:latest-stable}
     container_name: dito-app
     env_file:
-      - .env
+      - /var/lib/docker/volumes/dito_jenkins_home/_data/workspace/dito-backend-cicd/backend/.env
+
     environment:
       # Database Configuration
       SPRING_DATASOURCE_URL: jdbc:postgresql://dito-postgres:5432/${DB_NAME:-dito}
