@@ -8,8 +8,8 @@ import com.ssafy.Dito.domain.groups.service.GroupChallengeService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
+import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -20,7 +20,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -80,15 +79,9 @@ public class GroupChallengeController {
             required = true,
             content = @Content(schema = @Schema(implementation = CreateGroupChallengeReq.class))
         )
-        @Valid @RequestBody CreateGroupChallengeReq request,
-
-        @Parameter(
-            description = "사용자 ID (임시, JWT 구현 후 제거 예정)",
-            required = true,
-            example = "1"
-        )
-        @RequestHeader("X-User-Id") Long userId
+        @Valid @RequestBody CreateGroupChallengeReq request
     ) {
+        Long userId = JwtAuthentication.getUserId();
         GroupChallengeRes response = groupChallengeService.createGroupChallenge(request, userId);
         return ApiResponse.create(response);
     }
@@ -156,15 +149,9 @@ public class GroupChallengeController {
             required = true,
             content = @Content(schema = @Schema(implementation = JoinGroupReq.class))
         )
-        @Valid @RequestBody JoinGroupReq request,
-
-        @Parameter(
-            description = "사용자 ID (임시, JWT 구현 후 제거 예정)",
-            required = true,
-            example = "1"
-        )
-        @RequestHeader("X-User-Id") Long userId
+        @Valid @RequestBody JoinGroupReq request
     ) {
+        Long userId = JwtAuthentication.getUserId();
         JoinGroupRes response = groupChallengeService.joinGroup(request, userId);
         return ApiResponse.of(HttpStatus.OK, "성공적으로 그룹에 참여했습니다!", response);
     }
