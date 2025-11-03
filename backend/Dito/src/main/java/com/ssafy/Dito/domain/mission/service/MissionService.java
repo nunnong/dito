@@ -24,7 +24,7 @@ public class MissionService {
     }
 
     public void createMission(MissionReq req) {
-        Long userId = JwtAuthentication.getUserId();
+        long userId = JwtAuthentication.getUserId();
         User user = userRepository.getById(userId);
 
         Mission mission = Mission.of(req, user);
