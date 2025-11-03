@@ -40,8 +40,8 @@ fun AppUsageEvent.toDto(): AppUsageEventDto {
         event_type = this.eventType,
         package_name = this.packageName,
         app_name = this.appName.takeIf { it.isNotBlank() },
-        timestamp = this.timestamp,
+        event_timestamp = this.timestamp,
         duration = if (this.duration > 0) this.duration else null,
-        date = this.date
+        event_date = this.date
     )
 }

@@ -1,7 +1,23 @@
 package com.dito.app.core.data
+import kotlinx.serialization.Serializable
 
-//앱 사용 이벤트와 미디어 세션 이벤트를 한 번에 묶어서 서버 전송
-data class EventBatchRequest(
-    val app_usage_events: List<AppUsageEventDto>,
-    val media_session_events: List<MediaSessionEventDto>
+@Serializable
+data class AppUsageBatchRequest(
+    val user_id: Int,
+    val events: List<AppUsageEventDto>
+)
+
+@Serializable
+data class MediaSessionBatchRequest(
+    val user_id: Int,
+    val events: List<MediaSessionEventDto>
+)
+
+@Serializable
+data class BatchUploadResponse(
+    val success: Boolean,
+    val received_count: Int,
+    val saved_count: Int,
+    val failed_event_ids: List<String> = emptyList(),
+    val message: String? = null
 )

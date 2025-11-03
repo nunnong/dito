@@ -3,6 +3,7 @@ package com.dito.app
 import android.app.Application
 import android.util.Log
 import com.dito.app.core.data.RealmConfig
+import com.dito.app.core.background.EventSyncWorker
 import dagger.hilt.android.HiltAndroidApp
 
 
@@ -25,7 +26,8 @@ class DitoApplication : Application() {
             Log.e(TAG, "❌ Realm 초기화 실패", e)
         }
 
-        Log.i(TAG, "✅ 앱 초기화 완료")
+        EventSyncWorker.setupPeriodicSync(this)
+        Log.i(TAG, "✅ WorkManager 등록 완료")
     }
 
     override fun onTerminate() {

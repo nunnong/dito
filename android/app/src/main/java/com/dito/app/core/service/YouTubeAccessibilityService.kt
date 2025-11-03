@@ -21,7 +21,7 @@ class YouTubeAccessibilityService : AccessibilityService() {
         private const val MIN_CHANNEL_LENGTH = 2
         private const val MAX_CHANNEL_LENGTH = 50
 
-        private const val DEBOUNCE_DELAY = 700L
+        private const val DEBOUNCE_DELAY = 500L
         private const val HYBRID_MAX_DEPTH = 5
         private const val TEXTSCAN_MAX_DEPTH = 6
 
@@ -35,21 +35,20 @@ class YouTubeAccessibilityService : AccessibilityService() {
 
         private val CHANNEL_IDS = listOf(
             "com.google.android.youtube:id/channel_name",
-            "com.google.android.youtube:id/user_name",
-            "com.google.android.youtube:id/owner_name",
-            "com.google.android.youtube:id/channel_name_text",
-            "com.google.android.youtube:id/metadata"
+            "com.google.android.youtube:id/metadata",
+            "com.google.android.youtube:id/text",
+            "com.google.android.youtube:id/attributed_channel_name"
         )
 
         private val BLACKLIST_PATTERNS = listOf(
             "(?i)\\bhome\\b", "(?i)\\bshorts\\b", "(?i)\\bsubscriptions\\b", "(?i)\\blibrary\\b",
             "(?i)홈", "(?i)쇼츠", "(?i)구독", "(?i)보관함",
             "(?i)youtube premium", "(?i)play store",
-            "(?i)좋아요", "(?i)싫어요", "(?i)공유", "(?i)저장"
+            "(?i)좋아요", "(?i)싫어요", "(?i)공유", "(?i)저장", "(?i)visit advertiser","(?i)sponsored"
         ).map { Regex(it) }
 
 
-        //채널 무효 패턴: 조회수, 광고 문구 등 채널 아닌 문자열 제외 -> 우리 서비스는 youtube premium 유저 대상
+        //채널 무효 패턴: 조회수, 광고 문구 등 채널 아닌 문자열 제외 -> 우리 서비스는 youtube premium 유저 대상?
         private val CHANNEL_INVALID_PATTERNS = listOf(
             Regex(".*\\d+[KMB]?\\s*(views?|watching|waiting).*", RegexOption.IGNORE_CASE),
             Regex(".*\\d+:\\d+.*"),

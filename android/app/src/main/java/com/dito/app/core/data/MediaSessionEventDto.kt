@@ -1,5 +1,8 @@
 package com.dito.app.core.data
+import kotlinx.serialization.Serializable
 
+
+@Serializable
 data class MediaSessionEventDto(
     val event_id: String,
     val event_type: String,
