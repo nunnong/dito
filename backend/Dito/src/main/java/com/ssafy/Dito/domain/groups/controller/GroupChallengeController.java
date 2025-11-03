@@ -1,7 +1,9 @@
 package com.ssafy.Dito.domain.groups.controller;
 
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
+import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
+import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import com.ssafy.Dito.domain.groups.service.GroupChallengeService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -41,14 +44,14 @@ public class GroupChallengeController {
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
-            description = "잘못된 요청 (유효성 검증 실패)",
+            description = "잘못된 요청 (유효성 검증 실패 또는 코인 부족)",
             content = @Content(
                 schema = @Schema(implementation = CommonResult.class),
                 examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
                     value = """
                     {
                       "error": true,
-                      "message": "잘못된 요청입니다. 입력값을 확인해주세요."
+                      "message": "코인이 부족합니다. 필요: 150, 보유: 100"
                     }
                     """
                 )
@@ -88,5 +91,81 @@ public class GroupChallengeController {
     ) {
         GroupChallengeRes response = groupChallengeService.createGroupChallenge(request, userId);
         return ApiResponse.create(response);
+    }
+
+    @Operation(
+        summary = "그룹 챌린지 참여",
+        description = "초대 코드를 사용하여 그룹 챌린지에 참여합니다."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "그룹 참여 성공",
+            content = @Content(schema = @Schema(implementation = JoinGroupRes.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 (코인 부족)",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "코인이 부족합니다. 필요: 150, 보유: 100"
+                    }
+                    """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "유효하지 않은 초대코드",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "유효하지 않은 초대코드입니다"
+                    }
+                    """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "409",
+            description = "이미 참여한 그룹",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "이미 참여한 그룹입니다"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    @PostMapping("/join")
+    public ResponseEntity<SingleResult<JoinGroupRes>> joinGroup(
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "그룹 참여 요청",
+            required = true,
+            content = @Content(schema = @Schema(implementation = JoinGroupReq.class))
+        )
+        @Valid @RequestBody JoinGroupReq request,
+
+        @Parameter(
+            description = "사용자 ID (임시, JWT 구현 후 제거 예정)",
+            required = true,
+            example = "1"
+        )
+        @RequestHeader("X-User-Id") Long userId
+    ) {
+        JoinGroupRes response = groupChallengeService.joinGroup(request, userId);
+        return ApiResponse.of(HttpStatus.OK, "성공적으로 그룹에 참여했습니다!", response);
     }
 }

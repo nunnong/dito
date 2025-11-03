@@ -86,4 +86,8 @@ public class GroupChallenge {
         return new GroupChallenge(groupName, inviteCode, period, null, null, goalDescription,
             penaltyDescription, "pending", betCoins, Instant.now());
     }
+
+    public void addBetCoins(int betCoins) {
+        this.totalBetCoins += betCoins;
+    }
 }
