@@ -292,7 +292,7 @@ pipeline {
     }
     always {
       echo 'Finalizing...'
-      sh "rm -f ${BACKEND_DIR}/.env || true"
+//       sh "rm -f ${BACKEND_DIR}/.env || true"
     }
   }
 }

@@ -53,12 +53,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-dito2025}
 
       # Redis Configuration (Spring Boot standard)
-      SPRING_DATA_REDIS_HOST: localhost
+      SPRING_DATA_REDIS_HOST: dito-redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-dito2025}
 
       # Redis Configuration (Custom ExternalsProperties)
-      EXTERNALS_REDIS_HOST: localhost
+      EXTERNALS_REDIS_HOST: dito-redis
       EXTERNALS_REDIS_PORT: 6379
       EXTERNALS_REDIS_PASSWORD: ${REDIS_PASSWORD:-dito2025}
 
