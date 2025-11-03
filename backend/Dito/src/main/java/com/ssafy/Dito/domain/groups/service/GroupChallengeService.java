@@ -32,7 +32,7 @@ public class GroupChallengeService {
         String inviteCode = generateUniqueInviteCode();
 
         // 생성자 조회 및 코인 차감
-        User creator = userRepository.findById(creatorUserId.intValue())
+        User creator = userRepository.findById(creatorUserId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
         if (creator.getCoinBalance() < request.betCoins()) {
@@ -69,7 +69,7 @@ public class GroupChallengeService {
             .orElseThrow(InvalidInviteCodeException::new);
 
         // 2. 사용자 조회
-        User user = userRepository.findById(userId.intValue())
+        User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
         // 3. 이미 참여했는지 확인
