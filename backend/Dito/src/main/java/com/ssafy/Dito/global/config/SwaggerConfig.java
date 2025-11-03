@@ -27,7 +27,7 @@ public class SwaggerConfig {
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
-                        .description("JWT 토큰 인증 (향후 구현 예정)"))
+                        .description("JWT Bearer 토큰 인증 - /auth/login에서 받은 accessToken을 입력하세요"))
                 .addSecuritySchemes(userId, new SecurityScheme()
                         .name(userId)
                         .type(SecurityScheme.Type.APIKEY)
@@ -37,7 +37,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .addServersItem(new Server().url("/").description("Default Server URL"))
                 .components(components)
-                .addSecurityItem(userIdRequirement)  // 기본적으로 X-User-Id 사용
+                .addSecurityItem(jwtRequirement)  // JWT를 기본 인증 방법으로 사용
                 .info(apiInfo());
     }
 
