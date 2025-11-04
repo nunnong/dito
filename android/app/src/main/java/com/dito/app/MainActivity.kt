@@ -23,9 +23,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.dito.app.core.ui.designsystem.DitoTheme
 import com.dito.app.ui.component.BottomTab
 import com.dito.app.ui.component.DitoBottomAppBar
-import com.dito.app.ui.screen.component.ChallengeModal
+import com.dito.app.ui.screen.group.ChallengeModal
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -43,13 +44,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun DitoTheme(content: @Composable () -> Unit) {
-    MaterialTheme {
-        content()
     }
 }
 

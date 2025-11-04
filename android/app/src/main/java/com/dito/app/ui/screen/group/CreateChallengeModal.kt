@@ -1,4 +1,4 @@
-package com.dito.app.ui.screen.component
+package com.dito.app.ui.screen.group
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
