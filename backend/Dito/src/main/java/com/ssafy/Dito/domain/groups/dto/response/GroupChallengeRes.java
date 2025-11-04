@@ -39,9 +39,9 @@ public record GroupChallengeRes(
     @JsonProperty("created_at")
     Instant createdAt,
 
-    CreatorInfo creator
+    HostInfo host
 ) {
-    public static GroupChallengeRes from(GroupChallenge groupChallenge, Long creatorUserId) {
+    public static GroupChallengeRes from(GroupChallenge groupChallenge, Long hostUserId) {
         return new GroupChallengeRes(
             groupChallenge.getId(),
             groupChallenge.getGroupName(),
@@ -55,7 +55,7 @@ public record GroupChallengeRes(
             groupChallenge.getTotalBetCoins(),
             groupChallenge.getTotalBetCoins(),
             groupChallenge.getCreatedAt(),
-            new CreatorInfo(creatorUserId, "creator")
+            new HostInfo(hostUserId, "host")
         );
     }
 }

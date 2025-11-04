@@ -35,17 +35,17 @@ public class GroupChallengeService {
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
 
     @Transactional
-    public GroupChallengeRes createGroupChallenge(CreateGroupChallengeReq request, Long creatorUserId) {
+    public GroupChallengeRes createGroupChallenge(CreateGroupChallengeReq request, Long hostUserId) {
         String inviteCode = generateUniqueInviteCode();
 
-        // 생성자 조회 및 코인 차감
-        User creator = userRepository.findById(creatorUserId)
+        // 호스트 조회 및 코인 차감
+        User host = userRepository.findById(hostUserId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
-        if (creator.getCoinBalance() < request.betCoins()) {
-            throw new InsufficientCoinsException(request.betCoins(), creator.getCoinBalance());
+        if (host.getCoinBalance() < request.betCoins()) {
+            throw new InsufficientCoinsException(request.betCoins(), host.getCoinBalance());
         }
-        creator.deductCoins(request.betCoins());
+        host.deductCoins(request.betCoins());
 
         GroupChallenge groupChallenge = GroupChallenge.of(
             request.groupName(),
@@ -58,15 +58,15 @@ public class GroupChallengeService {
 
         GroupChallenge savedChallenge = groupChallengeRepository.save(groupChallenge);
 
-        // 생성자를 host로 group_participant에 추가
+        // 호스트를 group_participant에 추가
         GroupParticipant hostParticipant = GroupParticipant.ofHost(
-            creator,
+            host,
             savedChallenge,
             request.betCoins()
         );
         groupParticipantRepository.save(hostParticipant);
 
-        return GroupChallengeRes.from(savedChallenge, creatorUserId);
+        return GroupChallengeRes.from(savedChallenge, hostUserId);
     }
 
     @Transactional
