@@ -13,9 +13,12 @@ data class MediaSessionBatchRequest(
 
 @Serializable
 data class BatchUploadResponse(
-    val success: Boolean,
-    val received_count: Int,
-    val saved_count: Int,
-    val failed_event_ids: List<String> = emptyList(),
-    val message: String? = null
+    val message: String? = null,
+    val data: UploadData,
+    val error: Boolean
+)
+
+@Serializable
+data class UploadData(
+    val uploaded_count: Int
 )

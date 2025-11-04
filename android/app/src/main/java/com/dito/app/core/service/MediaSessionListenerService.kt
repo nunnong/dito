@@ -25,52 +25,56 @@ class MediaSessionListenerService : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
 
-        val notification = sbn?.notification ?: return
-        val packageName = sbn.packageName
+        try {
+            val notification = sbn?.notification ?: return
+            val packageName = sbn.packageName
 
-        Log.d(TAG, "알림 수신: $packageName")
+            Log.d(TAG, "알림 수신: $packageName")
 
-        if (!isMediaApp(packageName)) {
-            return
+            if (!isMediaApp(packageName)) {
+                return
+            }
+
+            // MediaSession 토큰 추출
+            val mediaToken = notification.extras.getParcelable<MediaSession.Token>(
+                Notification.EXTRA_MEDIA_SESSION
+            )
+
+            if (mediaToken == null) {
+                Log.d(TAG, "MediaSession 토큰 없음")
+                return
+            }
+
+            //MediaController로 재생 상태를 추적할 수 있게 생성
+            val controller = MediaController(this, mediaToken)
+
+            activeControllers[packageName]?.unregisterCallback(mediaCallback)
+
+            activeControllers[packageName] = controller
+            controller.registerCallback(mediaCallback)
+
+            Log.d(TAG, "MediaController 등록: $packageName")
+
+            logMediaInfo(controller)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알림 처리 실패", e)
         }
-
-        // MediaSession 토큰 추출
-        val mediaToken = notification.extras.getParcelable<MediaSession.Token>(
-            Notification.EXTRA_MEDIA_SESSION
-        )
-
-        if (mediaToken == null) {
-            Log.d(TAG, "MediaSession 토큰 없음")
-            return
-        }
-
-        //MediaController로 재생 상태를 추적할 수 있게 생성
-        val controller = MediaController(this, mediaToken)
-
-
-        activeControllers[packageName]?.unregisterCallback(mediaCallback)
-
-
-        activeControllers[packageName] = controller
-        controller.registerCallback(mediaCallback)
-
-        Log.d(TAG, "MediaController 등록: $packageName")
-
-
-        logMediaInfo(controller)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         super.onNotificationRemoved(sbn)
 
-        val packageName = sbn?.packageName ?: return
+        try {
+            val packageName = sbn?.packageName ?: return
 
-        Log.d(TAG, "알림 제거: $packageName")
+            Log.d(TAG, "알림 제거: $packageName")
 
-
-        activeControllers[packageName]?.let { controller ->
-            controller.unregisterCallback(mediaCallback)
-            activeControllers.remove(packageName)
+            activeControllers[packageName]?.let { controller ->
+                controller.unregisterCallback(mediaCallback)
+                activeControllers.remove(packageName)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알림 제거 처리 실패", e)
         }
     }
 
@@ -83,9 +87,12 @@ class MediaSessionListenerService : NotificationListenerService() {
         super.onListenerDisconnected()
         Log.d(TAG, "NotificationListener 연결 해제됨")
 
-
-        activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
-        activeControllers.clear()
+        try {
+            activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
+            activeControllers.clear()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 연결 해제 처리 실패", e)
+        }
     }
 
 
@@ -100,21 +107,25 @@ class MediaSessionListenerService : NotificationListenerService() {
 
 
     private fun logMediaInfo(controller: MediaController) {
-        val metadata = controller.metadata
-        val playbackState = controller.playbackState
+        try {
+            val metadata = controller.metadata
+            val playbackState = controller.playbackState
 
-        if (metadata == null) {
-            Log.d(TAG, "메타데이터 없음")
-            return
+            if (metadata == null) {
+                Log.d(TAG, "메타데이터 없음")
+                return
+            }
+
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "앱: ${controller.packageName}")
+            Log.d(TAG, "제목: ${metadata.getString(MediaMetadata.METADATA_KEY_TITLE)}")
+            Log.d(TAG, "채널: ${metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)}")
+            Log.d(TAG, "길이: ${metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)}ms")
+            Log.d(TAG, "상태: ${getStateString(playbackState?.state)}")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 미디어 정보 로깅 실패", e)
         }
-
-        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-        Log.d(TAG, "앱: ${controller.packageName}")
-        Log.d(TAG, "제목: ${metadata.getString(MediaMetadata.METADATA_KEY_TITLE)}")
-        Log.d(TAG, "채널: ${metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)}")
-        Log.d(TAG, "길이: ${metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)}ms")
-        Log.d(TAG, "상태: ${getStateString(playbackState?.state)}")
-        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
     }
 
 
@@ -134,48 +145,59 @@ class MediaSessionListenerService : NotificationListenerService() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
             super.onPlaybackStateChanged(state)
 
-            Log.d(TAG, "재생 상태 변경: ${getStateString(state?.state)}")
+            try {
+                Log.d(TAG, "재생 상태 변경: ${getStateString(state?.state)}")
 
-
-            val controller = activeControllers.values.firstOrNull() ?: return
-            val metadata = controller.metadata ?: return
-
-            when (state?.state) {
-                PlaybackState.STATE_PLAYING -> {
-                    // 재생 시작
-                    sessionManager.handlePlaybackStarted(
-                        metadata = metadata,
-                        appPackage = controller.packageName
-                    )
+                val controller = activeControllers.values.firstOrNull()
+                if (controller == null) {
+                    Log.d(TAG, "활성 컨트롤러 없음")
+                    return
                 }
 
-                PlaybackState.STATE_PAUSED -> {
-                    // 일시정지
-                    sessionManager.handlePlaybackPaused()
+                val metadata = controller.metadata
+                if (metadata == null) {
+                    Log.d(TAG, "메타데이터 없음")
+                    return
                 }
 
-                PlaybackState.STATE_STOPPED, PlaybackState.STATE_NONE -> {
-                    // 재생 종료
-                    sessionManager.handlePlaybackStopped()
+                when (state?.state) {
+                    PlaybackState.STATE_PLAYING -> {
+                        sessionManager.handlePlaybackStarted(
+                            metadata = metadata,
+                            appPackage = controller.packageName
+                        )
+                    }
+
+                    PlaybackState.STATE_PAUSED -> {
+                        sessionManager.handlePlaybackPaused()
+                    }
+
+                    PlaybackState.STATE_STOPPED, PlaybackState.STATE_NONE -> {
+                        sessionManager.handlePlaybackStopped()
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 재생 상태 변경 처리 실패", e)
             }
         }
 
-        // 영상 제목이나 채널 변경 시 업데이트
         override fun onMetadataChanged(metadata: MediaMetadata?) {
             super.onMetadataChanged(metadata)
 
-            if (metadata == null) return
+            try {
+                if (metadata == null) return
 
-            val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
-            val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
+                val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
 
-            Log.d(TAG, "메타데이터 변경")
-            Log.d(TAG, "  제목: $title")
-            Log.d(TAG, "  채널: $artist")
+                Log.d(TAG, "메타데이터 변경")
+                Log.d(TAG, "  제목: $title")
+                Log.d(TAG, "  채널: $artist")
 
-            // SessionManager에 업데이트 전달
-            sessionManager.updateMetadata(metadata)
+                sessionManager.updateMetadata(metadata)
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 메타데이터 변경 처리 실패", e)
+            }
         }
     }
 }

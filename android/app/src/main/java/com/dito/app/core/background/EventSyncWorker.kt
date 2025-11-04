@@ -119,11 +119,11 @@ class EventSyncWorker @AssistedInject constructor(
             val jwt = getJwtToken()
 
             val response = apiService.uploadAppUsageEvents(
-                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIxNzIzMDIsImV4cCI6MTc2MjE3NTkwMn0.z0mu47p2nDGYkliU3Zrzn42dfLzzzSrqrPFSt3418Oo",
+                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMTUwMTUsImV4cCI6MTc2MjIxODYxNX0.DBHSJwAvCW6NgK0qfBZ8Bejh2lXrmy0B-5J__3xzZU4",
                 request = request
             )
 
-            if (response.isSuccessful && response.body()?.success == true) {
+            if (response.isSuccessful && response.body()?.error == false) {
                 Log.d(TAG, "✅ 앱 사용 이벤트 전송 성공 (${events.size}건)")
                 true
             } else {
@@ -161,11 +161,11 @@ class EventSyncWorker @AssistedInject constructor(
             val jwt = getJwtToken()
 
             val response = apiService.uploadMediaSessionEvents(
-                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIxNzIzMDIsImV4cCI6MTc2MjE3NTkwMn0.z0mu47p2nDGYkliU3Zrzn42dfLzzzSrqrPFSt3418Oo",
+                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMTUwMTUsImV4cCI6MTc2MjIxODYxNX0.DBHSJwAvCW6NgK0qfBZ8Bejh2lXrmy0B-5J__3xzZU4",
                 request = request
             )
 
-            if (response.isSuccessful && response.body()?.success == true) {
+            if (response.isSuccessful && response.body()?.error == false) {
                 Log.d(TAG, "✅ 미디어 이벤트 전송 성공 (${events.size}건)")
                 true
             } else {
