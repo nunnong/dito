@@ -1,39 +1,46 @@
 package com.ssafy.Dito.domain.log.mediaSessionEvent.service;
 
+import com.ssafy.Dito.domain.log.mediaSessionEvent.document.MediaSessionEventDocument;
 import com.ssafy.Dito.domain.log.mediaSessionEvent.dto.request.MediaSessionEventBatchReq;
 import com.ssafy.Dito.domain.log.mediaSessionEvent.dto.response.MediaSessionEventRes;
-import com.ssafy.Dito.domain.log.mediaSessionEvent.entity.MediaSessionEvent;
-import com.ssafy.Dito.domain.log.mediaSessionEvent.repository.MediaSessionEventRepository;
-import com.ssafy.Dito.domain.user.entity.User;
-import com.ssafy.Dito.domain.user.repository.UserRepository;
+import com.ssafy.Dito.domain.log.mediaSessionEvent.repository.MediaSessionLogRepository;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Media session event service - MongoDB implementation
+ * Stores media playback logs in MongoDB for behavioral analysis and AI intervention
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MediaSessionEventService {
 
-    private final UserRepository userRepository;
-    private final MediaSessionEventRepository mediaSessionEventRepository;
+    private final MediaSessionLogRepository mediaSessionLogRepository;
 
-    @Transactional
+    /**
+     * Save media session events to MongoDB
+     * @param req Batch request containing multiple media session events
+     * @return Response with count of saved events
+     */
     public MediaSessionEventRes saveMediaSessionEvent(MediaSessionEventBatchReq req) {
         long userId = JwtAuthentication.getUserId();
-        User user = userRepository.getById(userId);
 
-        List<MediaSessionEvent> entities = req.mediaSessionEvent().stream()
-            .map(e -> MediaSessionEvent.of(e, user))
+        // Convert DTOs to MongoDB documents
+        List<MediaSessionEventDocument> documents = req.mediaSessionEvent().stream()
+            .map(e -> MediaSessionEventDocument.of(e, userId))
             .collect(Collectors.toList());
 
-        if (!entities.isEmpty()) {
-            mediaSessionEventRepository.saveAll(entities);
+        // Save to MongoDB
+        if (!documents.isEmpty()) {
+            mediaSessionLogRepository.saveAll(documents);
+            log.debug("Saved {} media session events to MongoDB for user {}", documents.size(), userId);
         }
 
-        return new MediaSessionEventRes(entities.size());
-
+        return new MediaSessionEventRes(documents.size());
     }
 }
