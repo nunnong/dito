@@ -6,6 +6,7 @@ plugins {
     id("kotlin-kapt")
     id("io.realm.kotlin") version "3.0.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -103,6 +104,11 @@ dependencies {
 
     // ========== WorkManager (백그라운드) ==========
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // ========== Firebase ==========
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // ========== Test ==========
     testImplementation(libs.junit)
