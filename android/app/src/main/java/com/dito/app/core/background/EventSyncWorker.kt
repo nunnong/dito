@@ -119,7 +119,7 @@ class EventSyncWorker @AssistedInject constructor(
             val jwt = getJwtToken()
 
             val response = apiService.uploadAppUsageEvents(
-                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMTg1NzYsImV4cCI6MTc2MjIyMjE3Nn0.LYgdcDyqeD7jEoeH_1UX6Wsr0jnBzSz6I427AroJyJU",
+                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMzEwOTQsImV4cCI6MTc2MjIzNDY5NH0.J5V8GHouwmZeWXPzyRhfMJ73SnkyCwF-A3YVD8eo94c",
                 request = request
             )
 
@@ -161,7 +161,7 @@ class EventSyncWorker @AssistedInject constructor(
             val jwt = getJwtToken()
 
             val response = apiService.uploadMediaSessionEvents(
-                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMTg1NzYsImV4cCI6MTc2MjIyMjE3Nn0.LYgdcDyqeD7jEoeH_1UX6Wsr0jnBzSz6I427AroJyJU",
+                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMzEwOTQsImV4cCI6MTc2MjIzNDY5NH0.J5V8GHouwmZeWXPzyRhfMJ73SnkyCwF-A3YVD8eo94c",
                 request = request
             )
 
