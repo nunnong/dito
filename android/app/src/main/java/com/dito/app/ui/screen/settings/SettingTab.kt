@@ -3,14 +3,19 @@ package com.dito.app.ui.screen.settings
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.ui.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.text.font.*
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import com.dito.app.R
+import com.dito.app.core.ui.designsystem.Background
+import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.Spacing
 
+@Preview(showBackground = true)
 @Composable
 fun SettingTab() {
     Column(
@@ -18,7 +23,7 @@ fun SettingTab() {
             .fillMaxWidth()
             .fillMaxHeight()
             .background(
-                color = Color(0xFFFFFFFF),
+                color = Background,
             )
     ){
         Column(
@@ -33,7 +38,7 @@ fun SettingTab() {
                     .padding(bottom = 1.dp,)
                     .fillMaxWidth()
                     .background(
-                        color = Color(0xFFFFFFFF),
+                        color = Background,
                     )
                     .padding(vertical = 6.dp,)
             ){
@@ -42,8 +47,8 @@ fun SettingTab() {
                         .padding(10.dp)
                 ){
                     Text("설정",
-                        color = Color(0xFF000000),
-                        fontSize = 32.sp,
+                        color = OnSurface,
+                        style = DitoTypography.headlineLarge
                     )
                 }
             }
@@ -52,7 +57,7 @@ fun SettingTab() {
                     .padding(bottom = 1.dp,)
                     .fillMaxWidth()
                     .background(
-                        color = Color(0xFFFFFFFF),
+                        color = Background,
                     )
                     .padding(16.dp)
             ){
@@ -62,9 +67,8 @@ fun SettingTab() {
                         .padding(vertical = 22.dp,horizontal = 10.dp,)
                 ){
                     Text("내 정보",
-                        color = Color(0xFF000001),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        color = OnSurface,
+                        style = DitoCustomTextStyles.titleKMedium
                     )
                 }
                 Row(
@@ -75,14 +79,16 @@ fun SettingTab() {
                         .padding(vertical = 10.dp,)
                 ){
                     Text("닉네임 변경",
-                        color = Color(0xFF000000),
-                        fontSize = 16.sp,
+                        color =  OnSurface,
+                        style = DitoTypography.bodyLarge,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "닉네임 변경",
-                        modifier = Modifier.size(24.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.right),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = Spacing.s)
                     )
                 }
                 Row(
@@ -93,14 +99,16 @@ fun SettingTab() {
                         .padding(vertical = 11.dp,)
                 ){
                     Text("미션 빈도 변경",
-                        color = Color(0xFF000000),
-                        fontSize = 16.sp,
+                        color =  OnSurface,
+                        style = DitoTypography.bodyLarge,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "미션 빈도 변경",
-                        modifier = Modifier.size(24.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.right),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = Spacing.s)
                     )
                 }
                 Row(
@@ -111,14 +119,16 @@ fun SettingTab() {
                         .padding(vertical = 11.dp,)
                 ){
                     Text("서비스 이용약관",
-                        color = Color(0xFF000000),
-                        fontSize = 16.sp,
+                        color =  OnSurface,
+                        style = DitoTypography.bodyLarge,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "서비스 이용약관",
-                        modifier = Modifier.size(24.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.right),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = Spacing.s)
                     )
                 }
                 Row(
@@ -129,14 +139,16 @@ fun SettingTab() {
                         .padding(vertical = 11.dp,)
                 ){
                     Text("개인정보 처리방침",
-                        color = Color(0xFF000000),
-                        fontSize = 16.sp,
+                        color =  OnSurface,
+                        style = DitoTypography.bodyLarge,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "개인정보 처리방침",
-                        modifier = Modifier.size(24.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.right),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = Spacing.s)
                     )
                 }
                 Row(
@@ -147,14 +159,16 @@ fun SettingTab() {
                         .padding(vertical = 11.dp,)
                 ){
                     Text("문의하기",
-                        color = Color(0xFF000000),
-                        fontSize = 16.sp,
+                        color =  OnSurface,
+                        style = DitoTypography.bodyLarge,
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = "문의하기",
-                        modifier = Modifier.size(24.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.right),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = Spacing.s)
                     )
                 }
                 Column(
@@ -164,8 +178,8 @@ fun SettingTab() {
                         .padding(vertical = 19.dp,horizontal = 10.dp,)
                 ){
                     Text("로그아웃",
-                        color = Color(0xFF000000),
-                        fontSize = 16.sp,
+                        color =  OnSurface,
+                        style = DitoTypography.bodyLarge,
                     )
                 }
             }
