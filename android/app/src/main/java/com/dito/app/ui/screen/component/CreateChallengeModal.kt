@@ -1,4 +1,4 @@
-package com.dito.app.feature.group.component
+package com.dito.app.ui.screen.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -69,8 +69,8 @@ fun ChallengeModal() {
                     contentDescription = "뒤로가기",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .height(35.dp)
-                        .fillMaxWidth()
+                        .size(24.dp)
+                        .align(Alignment.TopStart)
                 )
             }
 

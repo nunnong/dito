@@ -12,28 +12,27 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.dito.app.core.ui.component.BottomTab
-import com.dito.app.core.ui.component.DitoBottomAppBar
-import com.dito.app.feature.group.component.ChallengeModal
+import com.dito.app.ui.component.BottomTab
+import com.dito.app.ui.component.DitoBottomAppBar
+import com.dito.app.ui.screen.component.ChallengeModal
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             DitoTheme {
                 Surface(
