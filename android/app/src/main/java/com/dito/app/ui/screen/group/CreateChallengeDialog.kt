@@ -13,14 +13,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
+import com.dito.app.core.ui.designsystem.hardShadow
 
+@Preview(showBackground = true)
 @Composable
 fun ChallengeDialog() {
     var period by remember { mutableStateOf("") }
@@ -38,11 +40,11 @@ fun ChallengeDialog() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(
-                    elevation = DitoElevation.Modal.blur,
-                    spotColor = DitoElevation.Modal.color,
-                    ambientColor = DitoElevation.Modal.color,
-                    shape = DitoShapes.extraLarge
+                .hardShadow(
+                    offsetX = 6.dp,
+                    offsetY = 6.dp,
+                    cornerRadius = 32.dp,
+                    color = Color.Black
                 )
                 .clip(DitoShapes.extraLarge)
                 .border(1.dp, Color.Black, DitoShapes.extraLarge)
@@ -149,9 +151,11 @@ fun ChallengeDialog() {
 
             Box(
                 modifier = Modifier
-                    .offset(
-                        x = DitoElevation.ButtonLarge.offsetX,
-                        y = DitoElevation.ButtonLarge.offsetY
+                    .hardShadow(
+                        offsetX = 4.dp,
+                        offsetY = 4.dp,
+                        cornerRadius = 8.dp,
+                        color = Color.Black
                     )
                     .clip(DitoShapes.small)
                     .border(1.dp, Color.Black, DitoShapes.small)

@@ -1,3 +1,5 @@
+package com.dito.app.ui.screen.group
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -25,9 +26,9 @@ import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
-import com.dito.app.core.ui.designsystem.DitoElevation
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.hardShadow
 
 @Preview(showBackground = true)
 @Composable
@@ -42,11 +43,11 @@ fun JoinWithCodeDialog() {
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .shadow(
-                    elevation = DitoElevation.Modal.blur,
-                    spotColor = DitoElevation.Modal.color,
-                    ambientColor = DitoElevation.Modal.color,
-                    shape = DitoShapes.extraLarge
+                .hardShadow(
+                    offsetX = 6.dp,
+                    offsetY = 6.dp,
+                    cornerRadius = 32.dp,
+                    color = OnSurface
                 )
                 .clip(DitoShapes.extraLarge)
                 .border(
