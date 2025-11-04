@@ -26,7 +26,8 @@ import androidx.core.content.ContextCompat
 import com.dito.app.core.ui.designsystem.DitoTheme
 import com.dito.app.ui.component.BottomTab
 import com.dito.app.ui.component.DitoBottomAppBar
-import com.dito.app.ui.screen.group.ChallengeModal
+import com.dito.app.ui.screen.group.ChallengeDialog
+import com.dito.app.ui.screen.settings.SettingTab
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -68,7 +69,7 @@ fun MainScreen() {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            ChallengeModal()
+            ChallengeDialog()
         }
     }
 }

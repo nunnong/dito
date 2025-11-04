@@ -45,6 +45,7 @@ object DitoElevation {
     val Modal = ShadowStyle(
         offsetX = 6.dp,
         offsetY = 6.dp,
+        blur = 0.dp,
         color = Color.Black.copy(alpha = 1f)
     )
 }
