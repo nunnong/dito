@@ -3,6 +3,7 @@ package com.ssafy.Dito.global.security.config;
 import com.ssafy.Dito.global.jwt.filter.JwtAuthenticationFilter;
 import com.ssafy.Dito.global.jwt.util.JwtUtil;
 import com.ssafy.Dito.global.security.environment.SecurityProperties;
+import com.ssafy.Dito.global.security.filter.ApiKeyAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,10 +24,15 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final SecurityProperties securityProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // 기존 JWT 필터
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil, redisTemplate);
+
+        // 새로운 API Key 필터
+        ApiKeyAuthFilter apiKeyFilter = new ApiKeyAuthFilter(securityProperties);
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -38,10 +44,13 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/actuator/**"
+                                "/actuator/**",
+                                "/fcm/send"  // API Key 인증 (permitAll로 필터에서 처리)
                         ).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().authenticated()  // 나머지 API는 JWT 인증 필요
                 )
+                // 필터 순서: ApiKeyFilter → JwtFilter → UsernamePasswordAuthenticationFilter
+                .addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

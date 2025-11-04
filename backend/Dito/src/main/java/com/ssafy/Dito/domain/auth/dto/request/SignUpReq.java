@@ -20,7 +20,8 @@ public record SignUpReq(
         LocalDate birth,
         Gender gender,
         Job job,
-        Frequency frequency
+        Frequency frequency,
+        String fcmToken  // FCM 토큰 (nullable)
 ) {
 
 }

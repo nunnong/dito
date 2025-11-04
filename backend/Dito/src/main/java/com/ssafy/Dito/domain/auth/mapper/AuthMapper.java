@@ -27,7 +27,7 @@ public class AuthMapper {
                 Frequency.NORMAL,
                 null,
                 Instant.now(),
-                null
+                req.fcmToken()  // FCM 토큰
         );
     }
 }

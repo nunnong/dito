@@ -7,7 +7,8 @@ public record SignInReq(
     @ValidPersonalId
     String personalId,
     @ValidPassword
-    String password
+    String password,
+    String fcmToken  // FCM 토큰 (nullable)
 ) {
 
 }
