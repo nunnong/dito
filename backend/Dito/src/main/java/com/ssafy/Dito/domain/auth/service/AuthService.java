@@ -33,12 +33,14 @@ public class AuthService {
     private static final String BLACKLIST_PREFIX = "BLACKLIST:";
 
     @Transactional
-    public void signUp(SignUpReq req) {
+    public SignInRes signUp(SignUpReq req) {
         if(userRepository.existsByPersonalId(req.personalId())){
             throw new DuplicatedPersonalIdException();
         }
         User user = authMapper.toEntity(req);
         userRepository.save(user);
+
+        return createToken(user.getId());
     }
 
     public boolean checkPersonalId(String personalId) {
@@ -49,23 +51,10 @@ public class AuthService {
     public SignInRes signIn(SignInReq req) {
         User user = userRepository.getByPersonalId(req.personalId());
 
-        if(!passwordEncoder.matches(req.password(), user.getPassword())){
+        if(user == null || !passwordEncoder.matches(req.password(), user.getPassword())){
             throw new NotFoundUserException();
         }
-
-        String accessToken = jwtUtil.generateAccessToken(user.getId());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
-
-        redisTemplate.opsForValue().set(
-                RT_PREFIX + user.getId(),
-                refreshToken,
-                jwtUtil.getRefreshTokenValidityMs(),
-                TimeUnit.MILLISECONDS
-        );
-
-        // FCM 토큰 업데이트
-
-        return new SignInRes(accessToken, refreshToken);
+        return createToken(user.getId());
     }
 
     @Transactional
@@ -96,6 +85,21 @@ public class AuthService {
 
         userRepository.deleteById(userId);
     }
+
+    private SignInRes createToken(long userId){
+        String accessToken = jwtUtil.generateAccessToken(userId);
+        String refreshToken = jwtUtil.generateRefreshToken(userId);
+
+        redisTemplate.opsForValue().set(
+            RT_PREFIX + userId,
+            refreshToken,
+            jwtUtil.getRefreshTokenValidityMs(),
+            TimeUnit.MILLISECONDS
+        );
+
+        return new SignInRes(accessToken, refreshToken);
+    }
+
 
     private void deleteAccessToken(String accessToken, long userId){
         if (accessToken.startsWith("Bearer ")) {
