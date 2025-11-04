@@ -42,12 +42,25 @@ class AppMonitoringService : AccessibilityService() {
     }
 
     private fun shouldIgnorePackage(packageName: String): Boolean {
-        return packageName.startsWith("com.android.systemui") ||
-                packageName.startsWith("com.samsung.android.biometrics") ||
-                packageName.contains("inputmethod") ||
+        return packageName.isEmpty() ||
                 packageName == "android" ||
-                packageName == "com.dito.app" || // 자기 앱 제외
-                packageName.isEmpty()
+                packageName == "com.dito.app" ||
+                packageName.startsWith("com.android.systemui") ||
+                packageName.contains("inputmethod") || // 키보드
+                packageName.startsWith("com.google.android.inputmethod") ||
+                packageName.startsWith("com.samsung.android.honeyboard") ||
+                packageName.startsWith("com.sec.android.inputmethod") ||
+                packageName.startsWith("com.android.launcher") ||
+                packageName.startsWith("com.google.android.apps.nexuslauncher") ||
+                packageName.startsWith("com.sec.android.app.launcher") ||
+                packageName.startsWith("com.android.settings") ||
+                packageName.startsWith("com.samsung.android.settings") ||
+                packageName.startsWith("com.android.camera") ||
+                packageName.startsWith("com.sec.android.app.camera") ||
+                packageName.startsWith("com.android.incallui") ||
+                packageName.startsWith("com.android.dialer") ||
+                packageName.startsWith("com.android.vending") ||
+                packageName.startsWith("com.google.android.gms")
     }
 
     private fun handleAppSwitch(newApp: String, timestamp: Long) {
