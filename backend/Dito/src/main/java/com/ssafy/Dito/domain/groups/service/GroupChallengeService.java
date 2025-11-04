@@ -4,6 +4,7 @@ import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
+import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
 import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.AlreadyJoinedGroupException;
@@ -102,7 +103,7 @@ public class GroupChallengeService {
     }
 
     @Transactional
-    public void startChallenge(Long groupId, Long userId) {
+    public StartChallengeRes startChallenge(Long groupId, Long userId) {
         // 1. 그룹 챌린지 조회
         GroupChallenge groupChallenge = groupChallengeRepository.findById(groupId)
             .orElseThrow(GroupNotFoundException::new);
@@ -126,6 +127,9 @@ public class GroupChallengeService {
 
         // 5. 챌린지 시작
         groupChallenge.startChallenge();
+
+        // 6. 응답 생성
+        return StartChallengeRes.from(groupChallenge);
     }
 
     private String generateUniqueInviteCode() {
