@@ -27,7 +27,7 @@ public class SwaggerConfig {
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
-                        .description("JWT Bearer 토큰 인증 - /auth/login에서 받은 accessToken을 입력하세요"))
+                        .description("JWT Bearer 토큰 인증 - /auth/login에서 받은 accessToken을 입력하세요"));
 //                .addSecuritySchemes(userId, new SecurityScheme()
 //                        .name(userId)
 //                        .type(SecurityScheme.Type.APIKEY)
