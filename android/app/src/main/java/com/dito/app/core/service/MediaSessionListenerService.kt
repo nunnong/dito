@@ -8,18 +8,28 @@ import android.media.session.PlaybackState
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
-
+@AndroidEntryPoint
 class MediaSessionListenerService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "MediaSession"
     }
 
-    private val sessionManager = SessionStateManager()
+    @Inject
+    lateinit var aiAgent: AIAgent
+    private lateinit var sessionManager: SessionStateManager
 
     // 앱별 MediaController 저장 -> 여러 앱 동시 실행 대비
     private val activeControllers = mutableMapOf<String, MediaController>()
+
+    override fun onCreate() {
+        super.onCreate()
+        sessionManager = SessionStateManager(applicationContext, aiAgent)
+        Log.d(TAG, "SessionStateManager 초기화 완료")
+    }
 
     // 알림 생성 시 호출됨 -> youtube 재생, 상태 변경
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -45,7 +55,7 @@ class MediaSessionListenerService : NotificationListenerService() {
                 return
             }
 
-            //MediaController로 재생 상태를 추적할 수 있게 생성
+            //MediaController로 재생 상태를 추적할 수 있게 생성(api)
             val controller = MediaController(this, mediaToken)
 
             activeControllers[packageName]?.unregisterCallback(mediaCallback)

@@ -1,15 +1,19 @@
 package com.dito.app.core.service
 
+import android.content.Context
 import android.media.MediaMetadata
 import com.dito.app.core.data.MediaSessionEvent
 import com.dito.app.core.data.RealmConfig
 import android.util.Log
-import io.realm.kotlin.internal.platform.currentTime
+import com.dito.app.core.network.BehaviorLog
 import java.text.SimpleDateFormat
 import java.util.*
 
 
-class SessionStateManager {
+class SessionStateManager (
+    private val context: Context,
+    private val aiAgent: AIAgent
+){
 
     companion object {
         private const val TAG = "SessionState"
@@ -161,11 +165,23 @@ class SessionStateManager {
         Log.d(TAG, "   날짜: ${formatDate(session.startTime)}")
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
+        val checkPoint = Checker.checkMediaSession(
+            title = session.title,
+            channel = session.channel,
+            watchTime = watchTime,
+            timestamp = endTime,
+            appPackage = session.appPackage
+        )
+
+        val trackType = if(checkPoint != null) "TRACK_1" else "TRACK_2"
+        val eventIds = mutableListOf<String>()
+
         try {
             val realm = RealmConfig.getInstance()
 
             realm.writeBlocking {
-                copyToRealm(MediaSessionEvent().apply {
+                val event = copyToRealm(MediaSessionEvent().apply {
+                    this.trackType = trackType
                     this.eventType = "VIDEO_END"
                     this.title = session.title
                     this.channel = session.channel
@@ -178,13 +194,26 @@ class SessionStateManager {
                     this.detectionMethod = "media-session"
                     this.synced = false
                 })
+                eventIds.add(event._id.toHexString())
             }
-
-            Log.d(TAG, "✅ Realm 저장 완료")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Realm 저장 실패", e)
+        }catch (e: Exception){
+            Log.e(TAG, "Realm 저장 실패", e)
+            return
         }
+
+        //AI 에이전트 호출
+        if (checkPoint != null) {
+            aiAgent.requestIntervention(
+                behaviorLog = BehaviorLog(
+                    appName = checkPoint.appName,
+                    durationSeconds = checkPoint.durationSeconds,
+                    usageTimestamp = checkPoint.usageTimestamp
+                ),
+                eventIds = eventIds
+            )
+        }
+
+
     }
 
 
