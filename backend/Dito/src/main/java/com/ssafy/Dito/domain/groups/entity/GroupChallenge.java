@@ -90,4 +90,14 @@ public class GroupChallenge {
     public void addBetCoins(int betCoins) {
         this.totalBetCoins += betCoins;
     }
+
+    public void startChallenge() {
+        this.startDate = LocalDate.now();
+        this.endDate = this.startDate.plusDays(this.period);
+        this.status = "in_progress";
+    }
+
+    public void completeChallenge() {
+        this.status = "completed";
+    }
 }

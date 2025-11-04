@@ -4,11 +4,15 @@ import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
+import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
 import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.AlreadyJoinedGroupException;
+import com.ssafy.Dito.domain.groups.exception.ChallengeAlreadyStartedException;
+import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.exception.InsufficientCoinsException;
 import com.ssafy.Dito.domain.groups.exception.InvalidInviteCodeException;
+import com.ssafy.Dito.domain.groups.exception.UnauthorizedStartChallengeException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.groups.util.InviteCodeGenerator;
@@ -96,6 +100,36 @@ public class GroupChallengeService {
 
         // 7. 응답 생성
         return JoinGroupRes.from(groupChallenge);
+    }
+
+    @Transactional
+    public StartChallengeRes startChallenge(Long groupId, Long userId) {
+        // 1. 그룹 챌린지 조회
+        GroupChallenge groupChallenge = groupChallengeRepository.findById(groupId)
+            .orElseThrow(GroupNotFoundException::new);
+
+        // 2. 이미 시작된 챌린지인지 확인
+        if (!"pending".equals(groupChallenge.getStatus())) {
+            throw new ChallengeAlreadyStartedException();
+        }
+
+        // 3. 사용자 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+
+        // 4. 사용자가 해당 그룹의 호스트인지 확인
+        GroupParticipant participant = groupParticipantRepository.findByIdUserAndIdGroup(user, groupChallenge)
+            .orElseThrow(() -> new RuntimeException("그룹에 참여하지 않은 사용자입니다"));
+
+        if (!"host".equals(participant.getRole())) {
+            throw new UnauthorizedStartChallengeException();
+        }
+
+        // 5. 챌린지 시작
+        groupChallenge.startChallenge();
+
+        // 6. 응답 생성
+        return StartChallengeRes.from(groupChallenge);
     }
 
     private String generateUniqueInviteCode() {
