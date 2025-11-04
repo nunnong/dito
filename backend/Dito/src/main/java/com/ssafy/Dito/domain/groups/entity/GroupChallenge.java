@@ -96,4 +96,8 @@ public class GroupChallenge {
         this.endDate = this.startDate.plusDays(this.period);
         this.status = "in_progress";
     }
+
+    public void completeChallenge() {
+        this.status = "completed";
+    }
 }
