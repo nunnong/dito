@@ -9,14 +9,17 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 앱 사용 이벤트 (Track 2 배치 전송용)
- *
- * 저장 위치: AppMonitoringService.saveAppUsage()
- * 사용 시점: WorkManager가 30분마다 서버로 배치 전송
- */
+* 앱 사용 이벤트
+*
+* - "TRACK_1": AI 즉시 호출용
+* - "TRACK_2": 배치 전송용 (synced 관리)
+*/
 class AppUsageEvent : RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId()
+
+    //Track 1,2 구분
+    var trackType: String = ""              // "TRACK_1" or "TRACK_2"
 
     // 이벤트 타입
     var eventType: String = ""              // "APP_OPEN" or "APP_CLOSE"
@@ -34,6 +37,12 @@ class AppUsageEvent : RealmObject {
     var synced: Boolean = false             // 서버 전송 완료 여부
     var syncedAt: Long = 0L                 // 전송 완료 시각
 
+    //AI 호출
+    var aiCalled: Boolean = false           // AI 호출 완료 여부
+    var aiCalledAt: Long = 0L               // AI 호출 시각
+    var aiRetryCount: Int = 0
+
+
     // 메타데이터
     var createdAt: Long = System.currentTimeMillis()
 }
@@ -43,7 +52,6 @@ fun AppUsageEvent.toDto(): AppUsageEventDto {
         event_id = try {
             this._id.toHexString()
         } catch (e: Exception) {
-            // detach 또는 null 방지용
             UUID.randomUUID().toString()
         },
         event_type = this.eventType.ifBlank { "UNKNOWN" },
