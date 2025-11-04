@@ -32,7 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             || path.startsWith("/swagger-ui")
             || path.startsWith("/v3/api-docs")
             || path.startsWith("/swagger-resources")
-            || path.startsWith("/actuator");  // Health check 등
+            || path.startsWith("/actuator")  // Health check 등
+            || path.equals("/fcm/send");  // FCM Internal API는 API Key 인증 사용
     }
 
 
