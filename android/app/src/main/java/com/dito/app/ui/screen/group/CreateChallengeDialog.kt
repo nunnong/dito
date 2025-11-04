@@ -22,7 +22,7 @@ import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
 
 @Composable
-fun ChallengeModal() {
+fun ChallengeDialog() {
     var period by remember { mutableStateOf("") }
     var goal by remember { mutableStateOf("") }
     var penalty by remember { mutableStateOf("") }
