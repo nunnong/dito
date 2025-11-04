@@ -54,6 +54,13 @@ public class AuthService {
         if(user == null || !passwordEncoder.matches(req.password(), user.getPassword())){
             throw new NotFoundUserException();
         }
+
+        // FCM 토큰 갱신 (Android가 Firebase에서 받은 토큰)
+        if (req.fcmToken() != null && !req.fcmToken().isBlank()) {
+            user.updateFcmToken(req.fcmToken());
+            userRepository.save(user);
+        }
+
         return createToken(user.getId());
     }
 
