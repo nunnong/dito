@@ -50,6 +50,10 @@ dependencies {
     // ========== Android Core ==========
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
+
+    // Splash Screen API
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
