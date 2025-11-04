@@ -26,10 +26,10 @@ public class AuthController {
 
     // 회원가입
     @PostMapping("/auth/sign-up")
-    public ResponseEntity<CommonResult> signUp(
+    public ResponseEntity<SingleResult<SignInRes>> signUp(
             @Valid @RequestBody SignUpReq req) {
-        authService.signUp(req);
-        return ApiResponse.ok();
+        SignInRes res = authService.signUp(req);
+        return ApiResponse.ok(res);
     }
 
     // 개인 아이디 중복 확인
@@ -44,8 +44,8 @@ public class AuthController {
     @PostMapping("/auth/sign-in")
     public ResponseEntity<SingleResult<SignInRes>> signIn(
             @Valid @RequestBody SignInReq req){
-        SignInRes response = authService.signIn(req);
-        return ApiResponse.ok(response);
+        SignInRes res = authService.signIn(req);
+        return ApiResponse.ok(res);
     }
 
     // 로그아웃
@@ -62,8 +62,8 @@ public class AuthController {
     public ResponseEntity<SingleResult<SignInRes>> refresh(
             @RequestHeader("refreshToken") String refreshToken
     ) {
-        SignInRes response = authService.refresh(refreshToken);
-        return ApiResponse.ok(response);
+        SignInRes res = authService.refresh(refreshToken);
+        return ApiResponse.ok(res);
     }
 
     // 회원 탈퇴
