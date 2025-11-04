@@ -6,4 +6,5 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.57.2" apply false
     id("io.realm.kotlin") version "3.0.0" apply false
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.10"
+    id("com.google.gms.google-services") version "4.4.0" apply false
 }
