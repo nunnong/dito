@@ -18,7 +18,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -154,5 +156,75 @@ public class GroupChallengeController {
         Long userId = JwtAuthentication.getUserId();
         JoinGroupRes response = groupChallengeService.joinGroup(request, userId);
         return ApiResponse.of(HttpStatus.OK, "성공적으로 그룹에 참여했습니다!", response);
+    }
+
+    @Operation(
+        summary = "그룹 챌린지 시작",
+        description = "그룹 챌린지를 시작합니다. 호스트만 시작할 수 있습니다."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "챌린지 시작 성공",
+            content = @Content(schema = @Schema(implementation = CommonResult.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "이미 시작된 챌린지",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "이미 시작된 챌린지입니다"
+                    }
+                    """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "권한 없음 (호스트가 아님)",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "챌린지를 시작할 권한이 없습니다. 호스트만 시작할 수 있습니다"
+                    }
+                    """
+                )
+            )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "그룹을 찾을 수 없음",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "그룹 챌린지를 찾을 수 없습니다"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    @PutMapping("/{group_id}/start")
+    public ResponseEntity<CommonResult> startChallenge(
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "그룹 챌린지 ID",
+            required = true,
+            example = "1"
+        )
+        @PathVariable("group_id") Long groupId
+    ) {
+        Long userId = JwtAuthentication.getUserId();
+        groupChallengeService.startChallenge(groupId, userId);
+        return ApiResponse.of(HttpStatus.OK, "챌린지가 성공적으로 시작되었습니다!");
     }
 }
