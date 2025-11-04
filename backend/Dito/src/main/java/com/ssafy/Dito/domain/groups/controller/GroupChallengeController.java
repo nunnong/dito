@@ -4,6 +4,7 @@ import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
+import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.service.GroupChallengeService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
@@ -166,7 +167,7 @@ public class GroupChallengeController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
             description = "챌린지 시작 성공",
-            content = @Content(schema = @Schema(implementation = CommonResult.class))
+            content = @Content(schema = @Schema(implementation = StartChallengeRes.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
@@ -215,7 +216,7 @@ public class GroupChallengeController {
         )
     })
     @PutMapping("/{group_id}/start")
-    public ResponseEntity<CommonResult> startChallenge(
+    public ResponseEntity<SingleResult<StartChallengeRes>> startChallenge(
         @io.swagger.v3.oas.annotations.Parameter(
             description = "그룹 챌린지 ID",
             required = true,
@@ -224,7 +225,7 @@ public class GroupChallengeController {
         @PathVariable("group_id") Long groupId
     ) {
         Long userId = JwtAuthentication.getUserId();
-        groupChallengeService.startChallenge(groupId, userId);
-        return ApiResponse.of(HttpStatus.OK, "챌린지가 성공적으로 시작되었습니다!");
+        StartChallengeRes response = groupChallengeService.startChallenge(groupId, userId);
+        return ApiResponse.of(HttpStatus.OK, "챌린지가 성공적으로 시작되었습니다!", response);
     }
 }
