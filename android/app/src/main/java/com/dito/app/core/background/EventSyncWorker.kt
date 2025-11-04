@@ -6,6 +6,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.dito.app.core.data.*
 import com.dito.app.core.network.ApiService
+import com.dito.app.core.storage.AuthTokenManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,8 @@ import java.util.concurrent.TimeUnit
 class EventSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val apiService: ApiService
+    private val apiService: ApiService,
+    private val authTokenManager: AuthTokenManager
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -116,10 +118,15 @@ class EventSyncWorker @AssistedInject constructor(
 
         return try {
             val request = AppUsageBatchRequest(safeEvents)
-            val jwt = getJwtToken()
+            val token = authTokenManager.getBearerToken()
+
+            if (token == null) {
+                Log.w(TAG, "⚠️ 토큰이 없어 앱 사용 이벤트 전송 불가")
+                return false
+            }
 
             val response = apiService.uploadAppUsageEvents(
-                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMzEwOTQsImV4cCI6MTc2MjIzNDY5NH0.J5V8GHouwmZeWXPzyRhfMJ73SnkyCwF-A3YVD8eo94c",
+                token = token,
                 request = request
             )
 
@@ -158,10 +165,15 @@ class EventSyncWorker @AssistedInject constructor(
 
         return try {
             val request = MediaSessionBatchRequest(safeEvents)
-            val jwt = getJwtToken()
+            val token = authTokenManager.getBearerToken()
+
+            if (token == null) {
+                Log.w(TAG, "⚠️ 토큰이 없어 미디어 이벤트 전송 불가")
+                return false
+            }
 
             val response = apiService.uploadMediaSessionEvents(
-                token = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJpYXQiOjE3NjIyMzEwOTQsImV4cCI6MTc2MjIzNDY5NH0.J5V8GHouwmZeWXPzyRhfMJ73SnkyCwF-A3YVD8eo94c",
+                token = token,
                 request = request
             )
 
@@ -176,14 +188,5 @@ class EventSyncWorker @AssistedInject constructor(
             Log.e(TAG, "❌미디어 이벤트 전송 예외", e)
             false
         }
-    }
-
-    private fun getUserId(): Int {
-        return 7
-    }
-
-    private fun getJwtToken(): String {
-        val prefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        return prefs.getString("access_token", "") ?: ""
     }
 }
