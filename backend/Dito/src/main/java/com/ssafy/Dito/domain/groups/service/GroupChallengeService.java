@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.groups.service;
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
+import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
@@ -14,6 +15,7 @@ import com.ssafy.Dito.domain.groups.exception.InsufficientCoinsException;
 import com.ssafy.Dito.domain.groups.exception.InvalidInviteCodeException;
 import com.ssafy.Dito.domain.groups.exception.UnauthorizedStartChallengeException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
+import com.ssafy.Dito.domain.groups.repository.GroupParticipantQueryRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.groups.util.InviteCodeGenerator;
 import com.ssafy.Dito.domain.user.entity.User;
@@ -28,6 +30,7 @@ public class GroupChallengeService {
 
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
+    private final GroupParticipantQueryRepository groupParticipantQueryRepository;
     private final UserRepository userRepository;
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
 
@@ -130,6 +133,15 @@ public class GroupChallengeService {
 
         // 6. 응답 생성
         return StartChallengeRes.from(groupChallenge);
+    }
+
+    @Transactional(readOnly = true)
+    public GroupParticipantsRes getParticipants(Long groupId) {
+        // 그룹 존재 여부 확인
+        groupChallengeRepository.findById(groupId)
+            .orElseThrow(GroupNotFoundException::new);
+
+        return groupParticipantQueryRepository.getParticipants(groupId);
     }
 
     private String generateUniqueInviteCode() {
