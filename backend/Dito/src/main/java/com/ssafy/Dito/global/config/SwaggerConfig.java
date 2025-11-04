@@ -16,10 +16,8 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         // JWT 보안 스키마 정의
         String jwt = "JWT";
-//        String userId = "X-User-Id";
 
         SecurityRequirement jwtRequirement = new SecurityRequirement().addList(jwt);
-        SecurityRequirement userIdRequirement = new SecurityRequirement().addList(userId);
 
         Components components = new Components()
                 .addSecuritySchemes(jwt, new SecurityScheme()
@@ -28,11 +26,6 @@ public class SwaggerConfig {
                         .scheme("bearer")
                         .bearerFormat("JWT")
                         .description("JWT Bearer 토큰 인증 - /auth/login에서 받은 accessToken을 입력하세요"));
-//                .addSecuritySchemes(userId, new SecurityScheme()
-//                        .name(userId)
-//                        .type(SecurityScheme.Type.APIKEY)
-//                        .in(SecurityScheme.In.HEADER)
-//                        .description("임시 사용자 ID (개발 환경)"));
 
         return new OpenAPI()
                 .addServersItem(new Server().url("/").description("Default Server URL"))
