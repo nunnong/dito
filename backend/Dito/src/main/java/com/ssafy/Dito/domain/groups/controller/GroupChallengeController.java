@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.groups.controller;
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
+import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.service.GroupChallengeService;
@@ -19,6 +20,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -227,5 +229,44 @@ public class GroupChallengeController {
         Long userId = JwtAuthentication.getUserId();
         StartChallengeRes response = groupChallengeService.startChallenge(groupId, userId);
         return ApiResponse.of(HttpStatus.OK, "챌린지가 성공적으로 시작되었습니다!", response);
+    }
+
+    @Operation(
+        summary = "그룹 챌린지 참여자 목록 조회",
+        description = "그룹 챌린지의 참여자 목록과 각 참여자가 장착한 아이템을 조회합니다."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "참여자 목록 조회 성공",
+            content = @Content(schema = @Schema(implementation = GroupParticipantsRes.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "그룹을 찾을 수 없음",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "그룹 챌린지를 찾을 수 없습니다"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    @GetMapping("/{group_id}/participants")
+    public ResponseEntity<SingleResult<GroupParticipantsRes>> getParticipants(
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "그룹 챌린지 ID",
+            required = true,
+            example = "1"
+        )
+        @PathVariable("group_id") Long groupId
+    ) {
+        GroupParticipantsRes response = groupChallengeService.getParticipants(groupId);
+        return ApiResponse.of(HttpStatus.OK, "참여자 목록 조회 성공", response);
     }
 }
