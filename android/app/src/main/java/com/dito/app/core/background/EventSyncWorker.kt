@@ -173,7 +173,7 @@ class EventSyncWorker @AssistedInject constructor(
                 false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 미디어 이벤트 전송 예외", e)
+            Log.e(TAG, "❌미디어 이벤트 전송 예외", e)
             false
         }
     }
