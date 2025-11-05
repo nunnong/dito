@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.fcm.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -8,8 +9,9 @@ import jakarta.validation.constraints.NotNull;
  * TECH_SPEC.md:882 - POST /fcm/send 엔드포인트 명세
  */
 public record FcmSendRequest(
-        @NotNull(message = "userId는 필수입니다")
-        Long userId,
+        @NotNull(message = "personalId는 필수입니다")
+        @JsonProperty("user_id")
+        String personalId,
 
         @NotBlank(message = "message는 필수입니다")
         String message,

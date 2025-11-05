@@ -33,7 +33,7 @@ public class FcmInternalController {
      * TECH_SPEC.md:882 참조
      *
      * @param apiKey  X-API-Key 헤더 (ApiKeyAuthFilter에서 검증)
-     * @param request 알림 요청 (userId, message, interventionId, type)
+     * @param request 알림 요청 (personalId, message, interventionId, type)
      * @return 성공 응답
      */
     @PostMapping("/send")
@@ -46,7 +46,7 @@ public class FcmInternalController {
             @RequestHeader("X-API-Key") String apiKey,
             @Valid @RequestBody FcmSendRequest request
     ) {
-        log.info("Received FCM send request from AI server for user: {}", request.userId());
+        log.info("Received FCM send request from AI server for user: {}", request.personalId());
 
         try {
             fcmService.sendInterventionNotification(request);
@@ -54,7 +54,7 @@ public class FcmInternalController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Notification sent successfully",
-                    "userId", request.userId(),
+                    "personalId", request.personalId(),
                     "interventionId", request.interventionId()
             ));
 
