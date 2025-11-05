@@ -76,9 +76,12 @@ public class FcmService {
      * TECH_SPEC.md:882 - POST /fcm/send 구현
      * TECH_SPEC.md:2136-2156 - FCM 푸시 알림 구조
      *
-     * @param request AI 서버 요청 (userId, message, interventionId, type)
+     * @param request AI 서버 요청 (personalId, message, interventionId, type)
      */
     public void sendInterventionNotification(FcmSendRequest request) {
+        // personalId로 User 조회
+        User user = userRepository.getByPersonalId(request.personalId());
+
         // TECH_SPEC.md:2136-2156 형식으로 알림 생성
         Map<String, String> data = new HashMap<>();
         data.put("type", request.type());
@@ -94,8 +97,8 @@ public class FcmService {
                 300  // timeToLive: 5분 (TECH_SPEC.md 참조)
         );
 
-        // sendNotificationToUser 호출
-        sendNotificationToUser(request.userId(), notificationRequest);
+        // sendNotificationToUser 호출 (database ID 사용)
+        sendNotificationToUser(user.getId(), notificationRequest);
     }
 
     /**
