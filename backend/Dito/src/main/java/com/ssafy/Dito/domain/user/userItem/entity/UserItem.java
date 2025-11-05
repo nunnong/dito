@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.user.userItem.entity;
 
+import com.ssafy.Dito.domain.item.dto.request.PurchaseItemReq;
 import com.ssafy.Dito.domain.item.entity.Item;
 import com.ssafy.Dito.domain.user.entity.User;
 import jakarta.persistence.Column;
@@ -42,6 +43,14 @@ public class UserItem {
     private UserItem(User user, Item item, boolean isEquipped) {
         this.id = new UserItemId(user, item);
         this.isEquipped = false;
+    }
+
+    public static UserItem of(User user, Item item) {
+        return new UserItem(user, item , false);
+    }
+
+    public void updateEquipStatus(boolean equipStatus) {
+        this.isEquipped = !equipStatus;
     }
 
     @Getter
