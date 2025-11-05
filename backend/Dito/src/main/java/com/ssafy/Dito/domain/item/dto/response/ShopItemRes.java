@@ -4,7 +4,7 @@ import com.querydsl.core.annotations.QueryProjection;
 import java.util.List;
 
 public record ShopItemRes(
-    int price,
+    int coin_balance,
     List<ItemRes> items
 ) {
     @QueryProjection

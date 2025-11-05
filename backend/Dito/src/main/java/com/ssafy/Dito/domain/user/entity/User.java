@@ -131,4 +131,8 @@ public class User extends IdentifiableEntity {
     public void updateFrequency(FrequencyReq req) {
         this.frequency = req.frequency();
     }
+
+    public void updateCoin(int coin){
+        this.coinBalance -= coin;
+    }
 }
