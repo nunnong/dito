@@ -6,5 +6,6 @@
     "evaluation": "./src/agent/evaluation_agent.py:evaluation_agent"
   },
   "env": ".env",
+  "python_version": "3.12",
   "image_distro": "wolfi"
 }
