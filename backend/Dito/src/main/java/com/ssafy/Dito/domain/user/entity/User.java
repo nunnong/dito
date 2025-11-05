@@ -107,28 +107,9 @@ public class User extends IdentifiableEntity {
         this.coinBalance -= amount;
     }
 
-    // 엔티티 레벨에서 닉네임 변경 로직 추가
-    public void updateNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
-            throw new IllegalArgumentException("닉네임은 비어있을 수 없습니다");
-        }
-        this.nickname = nickname;
-    }
-
     // FCM 토큰 갱신
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
-    }
-
-    // 코인 충전
-    public void increaseCoins(int amount) {
-        if (amount < 0) throw new IllegalArgumentException("음수 금액은 지원하지 않습니다");
-        this.coinBalance += amount;
-    }
-
-    // 마지막 로그인 시간 갱신
-    public void updateLastLoginAt(Instant lastLoginAt) {
-        this.lastLoginAt = lastLoginAt == null ? Instant.now() : lastLoginAt;
     }
 
     public void updateNickname(NicknameReq req) {
@@ -140,6 +121,6 @@ public class User extends IdentifiableEntity {
     }
 
     public void updateCoin(int coin){
-        this.coinBalance -= coin;
+        this.coinBalance += coin;
     }
 }
