@@ -62,11 +62,8 @@ class AIAgent @Inject constructor(
             Log.i(TAG, "🚀 AI 호출: ${behaviorLog.appName} (${behaviorLog.durationSeconds}초)")
 
             val request = AIRunRequest(
-                assistantId = "intervention",
-                input = AIInput(
-                    userId = getUserId(),
-                    behaviorLog = behaviorLog
-                )
+                userId = getPersonalId(),
+                behaviorLog = behaviorLog
             )
 
             val response = withTimeout(10000L) {
@@ -123,13 +120,13 @@ class AIAgent @Inject constructor(
         }
     }
 
-    private fun getUserId(): Int {
-        val userId = authTokenManager.getUserId()
-        if (userId == -1) {
+    private fun getPersonalId(): String {
+        val personalId = authTokenManager.getPersonalId()
+        if (personalId.isNullOrBlank()) {
             Log.e(TAG, "❌ 사용자 ID가 없습니다. AI 호출 중단")
             throw IllegalStateException("User not authenticated")
         }
-        return userId
+        return personalId
     }
 
     fun shutdown() {

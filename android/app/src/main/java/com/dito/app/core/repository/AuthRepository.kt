@@ -51,6 +51,7 @@ class AuthRepository @Inject constructor(
                     // 토큰 저장
                     authTokenManager.saveAccessToken(authData.accessToken)
                     authTokenManager.saveRefreshToken(authData.refreshToken)
+                    authTokenManager.savePersonalId(username)
 
                     Log.d(TAG, "✅ 로그인 성공: username=$username")
                     Result.success(Unit)
@@ -98,6 +99,7 @@ class AuthRepository @Inject constructor(
                     // 토큰 저장
                     authTokenManager.saveAccessToken(authData.accessToken)
                     authTokenManager.saveRefreshToken(authData.refreshToken)
+                    authTokenManager.savePersonalId(username)
 
                     Log.d(TAG, "✅ 회원가입 성공: username=$username")
                     Result.success(Unit)

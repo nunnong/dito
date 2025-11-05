@@ -6,7 +6,7 @@ import retrofit2.http.POST
 
 interface AIService {
 
-    @POST("/runs")
+    @POST("/ai/intervention")
     suspend fun sendToAI(
         @Body request: AIRunRequest
     ): Response<AIRunResponse>

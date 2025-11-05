@@ -6,21 +6,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AIRunRequest(
-    @SerialName("assistant_id")
-    val assistantId: String,
-
-    @SerialName("input")
-    val input: AIInput
-)
-
-@Serializable
-data class AIInput(
     @SerialName("user_id")
-    val userId: Int,
+    val userId: String,
 
     @SerialName("behavior_log")
     val behaviorLog: BehaviorLog
 )
+
 
 @Serializable
 data class BehaviorLog(
