@@ -26,10 +26,10 @@ public class AuthController {
 
     // 회원가입
     @PostMapping("/auth/sign-up")
-    public ResponseEntity<SingleResult<SignInRes>> signUp(
+    public ResponseEntity<CommonResult> signUp(
             @Valid @RequestBody SignUpReq req) {
-        SignInRes res = authService.signUp(req);
-        return ApiResponse.ok(res);
+        authService.signUp(req);
+        return ApiResponse.ok();
     }
 
     // 개인 아이디 중복 확인

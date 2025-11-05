@@ -4,7 +4,8 @@ import com.ssafy.Dito.domain.auth.dto.request.SignInReq;
 import com.ssafy.Dito.domain.auth.dto.response.SignInRes;
 import com.ssafy.Dito.domain.auth.exception.DuplicatedPersonalIdException;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
-import com.ssafy.Dito.domain.auth.mapper.AuthMapper;
+import com.ssafy.Dito.domain.status.entity.Status;
+import com.ssafy.Dito.domain.status.repository.StatusRepository;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.domain.auth.dto.request.SignUpReq;
 import com.ssafy.Dito.domain.user.entity.User;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final AuthMapper authMapper;
+    private final StatusRepository statusRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -33,14 +34,18 @@ public class AuthService {
     private static final String BLACKLIST_PREFIX = "BLACKLIST:";
 
     @Transactional
-    public SignInRes signUp(SignUpReq req) {
+    public void signUp(SignUpReq req) {
         if(userRepository.existsByPersonalId(req.personalId())){
             throw new DuplicatedPersonalIdException();
         }
-        User user = authMapper.toEntity(req);
+
+        String encodedPassword = passwordEncoder.encode(req.password());
+
+        User user = User.of(req, encodedPassword);
         userRepository.save(user);
 
-        return createToken(user.getId());
+        Status status = Status.of(user);
+        statusRepository.save(status);
     }
 
     public boolean checkPersonalId(String personalId) {

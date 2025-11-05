@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.user.entity;
 
 import com.ssafy.Dito.domain._common.IdentifiableEntity;
+import com.ssafy.Dito.domain.auth.dto.request.SignUpReq;
 import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
 import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
 import jakarta.persistence.Column;
@@ -73,23 +74,29 @@ public class User extends IdentifiableEntity {
     private String fcmToken;
 
     private User(String personalId, String password, String nickname, LocalDate birth, Gender gender,
-            Job job, int coinBalance, Frequency frequency, Instant lastLoginAt, Instant createdAt, String fcmToken) {
+            Job job, Frequency frequency) {
         this.personalId = personalId;
         this.password = password;
         this.nickname = nickname;
         this.birth = birth;
         this.gender = gender;
         this.job = job == null ? Job.ETC : job;
-        this.coinBalance = Math.max(0, coinBalance);
+        this.coinBalance = 0;
         this.frequency = frequency == null ? Frequency.NORMAL : frequency;
-        this.lastLoginAt = lastLoginAt;
+        this.lastLoginAt = null;
         this.createdAt = createdAt == null ? Instant.now() : createdAt;
-        this.fcmToken = fcmToken;
+        this.fcmToken = null;
     }
 
-    public static User of(String personalId, String password, String nickname, LocalDate birth, Gender gender,
-            Job job, int coinBalance, Frequency frequency, Instant lastLoginAt, Instant createdAt, String fcmToken) {
-        return new User(personalId, password, nickname, birth, gender, job, coinBalance, frequency, lastLoginAt, createdAt, fcmToken);
+    public static User of(SignUpReq req, String encodedPassword) {
+        return new User(
+                req.personalId(),
+                encodedPassword,
+                req.nickname(),
+                req.birth(),
+                req.gender(),
+                req.job(),
+                req.frequency());
     }
 
     public void deductCoins(int amount) {
