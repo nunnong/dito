@@ -3,13 +3,8 @@ package com.dito.app.feature.group
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,13 +13,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.app.core.ui.designsystem.*
+import com.dito.app.core.ui.component.DitoModalContainer
+import com.dito.app.core.ui.designsystem.Background
+import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Preview(showBackground = true)
@@ -39,22 +39,18 @@ fun CreateGroupNameDialog() {
             .padding(horizontal = Spacing.l, vertical = Spacing.xl),
         contentAlignment = Alignment.Center
     ) {
-        // Column: 전체 컨텐츠를 세로로 배치
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .hardShadow(
-                    offsetX = 6.dp,
-                    offsetY = 6.dp,
-                    cornerRadius = 32.dp,
-                    color = Color.Black
-                )
-                .clip(DitoShapes.extraLarge)
-                .border(1.dp, Color.Black, DitoShapes.extraLarge)
-                .background(Color.White)
-                .padding(vertical = Spacing.l),
-            horizontalAlignment = Alignment.CenterHorizontally
+        DitoModalContainer(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = Color.White,
+            borderColor = Color.Black,
+            shadowColor = Color.Black,
+            contentPadding = PaddingValues(vertical = Spacing.l)
         ) {
+            // Column: 전체 컨텐츠를 세로로 배치
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             // Box: 뒤로가기 버튼을 왼쪽에 정렬하기 위해
             Box(
                 modifier = Modifier
@@ -160,7 +156,8 @@ fun CreateGroupNameDialog() {
                 )
             }
 
-            Spacer(Modifier.height(Spacing.m))
+                Spacer(Modifier.height(Spacing.m))
+            }
         }
     }
 }

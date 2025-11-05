@@ -21,7 +21,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.app.core.ui.designsystem.*
+import com.dito.app.core.ui.component.DitoModalContainer
+import com.dito.app.core.ui.designsystem.Background
+import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.OnSurfaceVariant
+import com.dito.app.core.ui.designsystem.Outline
+import com.dito.app.core.ui.designsystem.PrimaryContainer
+import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Preview(showBackground = true)
@@ -39,21 +47,18 @@ fun ChallengeDialog() {
             .padding(horizontal = Spacing.l, vertical = Spacing.xl),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .hardShadow(
-                    offsetX = 6.dp,
-                    offsetY = 6.dp,
-                    cornerRadius = 32.dp,
-                    color = Color.Black
-                )
-                .clip(DitoShapes.extraLarge)
-                .border(1.dp, Color.Black, DitoShapes.extraLarge)
-                .background(Color.White)
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = Spacing.l)
+        DitoModalContainer(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = Color.White,
+            borderColor = Color.Black,
+            shadowColor = Color.Black,
+            contentPadding = PaddingValues(vertical = Spacing.l)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -195,7 +200,8 @@ fun ChallengeDialog() {
                 }
             }
 
-            Spacer(Modifier.height(Spacing.xl))
+                Spacer(Modifier.height(Spacing.xl))
+            }
         }
     }
 }
