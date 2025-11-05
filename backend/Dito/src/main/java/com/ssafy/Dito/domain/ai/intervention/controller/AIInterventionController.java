@@ -44,7 +44,7 @@ public class AIInterventionController {
      * POST /ai/intervention
      * AI 개입 요청 처리 (Echo Server)
      *
-     * @param request AI 개입 요청 (assistant_id, input)
+     * @param request AI 개입 요청 (user_id, behavior_log)
      * @return InterventionResponse (run_id, thread_id, status)
      */
     @PostMapping("/intervention")
@@ -55,19 +55,17 @@ public class AIInterventionController {
     public ResponseEntity<InterventionResponse> handleIntervention(
             @Valid @RequestBody InterventionRequest request
     ) {
-        log.info("Received intervention request - assistantId: {}, userId: {}, appName: {}",
-                request.assistantId(),
-                request.input().userId(),
-                request.input().behaviorLog().appName());
+        log.info("Received intervention request - personalId: {}, appName: {}",
+                request.userId(),
+                request.behaviorLog().appName());
 
-        // 1. 사용자 검증
-        Long userId = request.input().userId();
-        User user = userRepository.findById(userId)
-                .orElseThrow(NotFoundUserException::new);
+        // 1. 사용자 검증 (personalId로 조회)
+        String personalId = request.userId();
+        User user = userRepository.getByPersonalId(personalId);
 
         // FCM 토큰 검증 (로그만 남김, 전송은 FcmService에서 처리)
         if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
-            log.warn("User {} has no FCM token. FCM notification will be skipped.", userId);
+            log.warn("User {} has no FCM token. FCM notification will be skipped.", personalId);
         }
 
         // 2. UUID 생성
@@ -75,8 +73,8 @@ public class AIInterventionController {
         String threadId = UUID.randomUUID().toString();
 
         // 3. FCM 메시지 구성
-        String appName = request.input().behaviorLog().appName();
-        int durationMinutes = request.input().behaviorLog().getDurationMinutes();
+        String appName = request.behaviorLog().appName();
+        int durationMinutes = request.behaviorLog().getDurationMinutes();
 
         String title = "디토 AI 개입 테스트";
         String body = String.format("%s을(를) %d분 사용 중입니다", appName, durationMinutes);
@@ -87,7 +85,7 @@ public class AIInterventionController {
         data.put("run_id", runId);
         data.put("thread_id", threadId);
         data.put("app_name", appName);
-        data.put("duration_seconds", String.valueOf(request.input().behaviorLog().durationSeconds()));
+        data.put("duration_seconds", String.valueOf(request.behaviorLog().durationSeconds()));
         data.put("action", "rest_suggestion");
         data.put("deep_link", "dito://intervention/" + runId);
 
@@ -99,10 +97,11 @@ public class AIInterventionController {
                 300      // timeToLive: 5분
         );
 
-        // 4. FCM 푸시 알림 전송
-        fcmService.sendNotificationToUser(userId, fcmRequest);
+        // 4. FCM 푸시 알림 전송 (DB ID 사용)
+        fcmService.sendNotificationToUser(user.getId(), fcmRequest);
 
-        log.info("Intervention processing completed - runId: {}, threadId: {}", runId, threadId);
+        log.info("Intervention processing completed - personalId: {}, runId: {}, threadId: {}",
+                personalId, runId, threadId);
 
         // 5. 응답 반환
         InterventionResponse response = new InterventionResponse(runId, threadId, "pending");

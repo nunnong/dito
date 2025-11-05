@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.ai.intervention.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,25 +12,24 @@ import jakarta.validation.constraints.NotNull;
  *
  * 요청 형식:
  * {
- *   "assistant_id": "intervention",
- *   "input": {
- *     "user_id": 1,
- *     "behavior_log": {
- *       "app_name": "YouTube Shorts",
- *       "duration_seconds": 1200,
- *       "usage_timestamp": "2025-01-03T23:45:00"
- *     }
+ *   "user_id": "catch",
+ *   "behavior_log": {
+ *     "app_name": "YouTube Shorts",
+ *     "duration_seconds": 1200,
+ *     "usage_timestamp": "2025-01-03T23:45:00"
  *   }
  * }
  */
 public record InterventionRequest(
-        @NotBlank(message = "assistant_id는 필수입니다")
-        @JsonProperty("assistant_id")
-        String assistantId,
+        @NotBlank(message = "사용자 ID는 필수입니다")
+        @JsonProperty("user_id")
+        @Schema(description = "사용자 로그인 ID (personalId)", example = "catch")
+        String userId,
 
-        @NotNull(message = "input은 필수입니다")
+        @NotNull(message = "행동 로그는 필수입니다")
         @Valid
-        @JsonProperty("input")
-        InterventionInput input
+        @JsonProperty("behavior_log")
+        @Schema(description = "앱 사용 행동 로그")
+        BehaviorLog behaviorLog
 ) {
 }
