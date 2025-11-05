@@ -1,7 +1,6 @@
 package com.dito.app.feature.group
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,13 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import com.dito.app.R
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 
-// 입장 후 start 버튼 화면
+@Preview(showBackground = true)
 @Composable
-fun GroupLeaderScreen(
+fun GroupMemberScreen(
     onNavigateToTab: (BottomTab) -> Unit = {}
 ) {
     Scaffold(
