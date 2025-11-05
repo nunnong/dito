@@ -28,7 +28,7 @@ import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.OnSurface
-import com.dito.app.core.ui.designsystem.hardShadow
+import com.dito.app.ui.component.DitoModalContainer
 
 @Preview(showBackground = true)
 @Composable
@@ -40,23 +40,8 @@ fun JoinWithCodeDialog() {
             .background(color = Background)
     ) {
         // 내용 다이얼로그
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .hardShadow(
-                    offsetX = 6.dp,
-                    offsetY = 6.dp,
-                    cornerRadius = 32.dp,
-                    color = OnSurface
-                )
-                .clip(DitoShapes.extraLarge)
-                .border(
-                    width = 1.dp,
-                    color = OnSurface,
-                    shape = DitoShapes.extraLarge
-                )
-                .background(color = Background)
-                .padding(horizontal = 48.dp, vertical = 56.dp)
+        DitoModalContainer(
+            modifier = Modifier.align(Alignment.Center)
         ) {
             // 닫기 버튼 (다이얼로그 우측 상단)
             Image(
