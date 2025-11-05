@@ -38,11 +38,15 @@ object Checker {
     //앱 사용 시간 -> AI 호출 체크
     fun shouldCallAi(
         packageName: String,
-        timestamp: Long
+        sessionStartTime: Long,
+        duration: Long
     ): Boolean{
         if(!isTargetApp(packageName)) return false
 
-        val cacheKey = "$packageName:${timestamp / 1000}"
+        // 10초 미만이면 호출 안 함
+        if (duration < TEST_CHECKER_MS) return false
+
+        val cacheKey = "$packageName:${sessionStartTime / 1000}"
         if (isCached(cacheKey)){
             Log.d(TAG, "중복 감지 무시: $packageName")
             return false
@@ -62,7 +66,7 @@ object Checker {
         timestamp: Long,
         appPackage: String
     ):CheckPoint? {
-        if(watchTime < 5000L){
+        if(watchTime < TEST_CHECKER_MS){
             Log.d(TAG, "시청 시간 너무 짧음 → AI 호출 불필요")
             return null
         }
@@ -136,6 +140,18 @@ object Checker {
     fun formatTimestamp(timestamp: Long): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
         return sdf.format(Date(timestamp))
+    }
+
+
+    fun clearExpiredCache(){
+        val now = System.currentTimeMillis()
+        val beforeSize = sentCache.size
+        sentCache.entries.removeIf { (_, expiry) -> now > expiry}
+        val afterSize = sentCache.size
+
+        if(beforeSize != afterSize){
+            Log.d(TAG, "만료된 캐시 정리: ${beforeSize - afterSize}개 제거, 남은 캐시: ${afterSize}개")
+        }
     }
 
 }

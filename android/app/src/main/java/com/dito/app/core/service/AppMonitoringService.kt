@@ -122,7 +122,11 @@ class AppMonitoringService : AccessibilityService() {
             if (currentApp == packageName) {
                 Log.w(TAG, "⚠️ [$packageName] ${duration / 1000}초 사용 중 → AI 호출 시도")
 
-                if (Checker.shouldCallAi(packageName, currentTime)) {
+                if (Checker.shouldCallAi(
+                        packageName = packageName,
+                        sessionStartTime = startTime,
+                        duration = duration
+                    )) {
                     //TRACK_1 로그 저장
                     val (eventIds, appName) = saveToRealm(
                         packageName = packageName,
@@ -228,6 +232,9 @@ class AppMonitoringService : AccessibilityService() {
         }
 
         aiCheckJob?.cancel()
+
+        Checker.clearExpiredCache()
+
         Log.d(TAG, "🛑 AppMonitoringService 종료")
     }
 }

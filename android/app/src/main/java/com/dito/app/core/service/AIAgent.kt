@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.dito.app.core.data.RealmRepository
 import com.dito.app.core.network.*
+import com.dito.app.core.storage.AuthTokenManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import javax.inject.Inject
@@ -15,7 +16,8 @@ import javax.inject.Singleton
 @Singleton
 class AIAgent @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val aiService: AIService
+    private val aiService: AIService,
+    private val authTokenManager: AuthTokenManager
 ) {
 
     companion object {
@@ -34,6 +36,12 @@ class AIAgent @Inject constructor(
         behaviorLog: BehaviorLog,
         eventIds: List<String>
     ) {
+
+        if (!InterventionManager.canIntervene(context)) {
+            Log.d(TAG, "개입 조건 미충족 - AI 호출 취소")
+            return
+        }
+
         Log.d(TAG, "🧪 테스트 모드 → 무조건 AI 호출 수행")
 
         aiScope.launch {
@@ -116,8 +124,7 @@ class AIAgent @Inject constructor(
     }
 
     private fun getUserId(): Int {
-        val prefs = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-        val userId = prefs.getInt("user_id", -1)
+        val userId = authTokenManager.getUserId()
         if (userId == -1) {
             Log.e(TAG, "❌ 사용자 ID가 없습니다. AI 호출 중단")
             throw IllegalStateException("User not authenticated")
