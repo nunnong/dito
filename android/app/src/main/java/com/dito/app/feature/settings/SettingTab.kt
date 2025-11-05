@@ -1,4 +1,4 @@
-package com.dito.app.ui.screen.settings
+package com.dito.app.feature.settings
 
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
