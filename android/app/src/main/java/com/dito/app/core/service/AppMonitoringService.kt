@@ -168,7 +168,7 @@ class AppMonitoringService : AccessibilityService() {
             realm.writeBlocking {
                 val event = copyToRealm(AppUsageEvent().apply {
                     this.trackType = trackType
-                    this.eventType = "APP_USAGE"
+                    this.eventType = "APP_CLOSE"
                     this.packageName = packageName
                     this.appName = getAppName(packageName)
                     this.timestamp = endTime

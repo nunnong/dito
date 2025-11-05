@@ -31,7 +31,7 @@ object NetworkModule {
     private const val BASE_URL = "http://52.78.96.102:8080/"
 
     //실제 기기 테스트 시 -> PC_IP:8123 (PC_IP는 같은 Wi-Fi 네트워크에서 PC의 IP)
-//    private const val AI_BASE_URL = ""
+    private const val AI_BASE_URL = "http://52.78.96.102:8080/"
 
     @Provides
     @Singleton
@@ -41,6 +41,7 @@ object NetworkModule {
             coerceInputValues = true
             encodeDefaults = true
             isLenient = true
+            explicitNulls = false
         }
     }
 
@@ -97,11 +98,16 @@ object NetworkModule {
     @Provides
     @Singleton
     @AiOkHttpClient
-    fun provideAiOkHttpClient(): OkHttpClient {
+    fun provideAiOkHttpClient(
+        @ApplicationContext context: Context
+    ): OkHttpClient {
+        val authTokenManager = AuthTokenManager(context)
+
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(createAuthInterceptor(authTokenManager))
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
             })
@@ -117,7 +123,7 @@ object NetworkModule {
         json: Json
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(AI_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()

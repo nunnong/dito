@@ -44,7 +44,7 @@ class MediaSessionListenerService : NotificationListenerService() {
 
             if (!isMediaApp(packageName)) return
 
-            // ✅ MediaSession 토큰 추출 (API 33 이상 대응)
+            // MediaSession 토큰 추출 (API 33 이상 대응)
             val mediaToken: MediaSession.Token? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 notification.extras.getParcelable(
                     Notification.EXTRA_MEDIA_SESSION,
@@ -81,6 +81,11 @@ class MediaSessionListenerService : NotificationListenerService() {
         try {
             val packageName = sbn?.packageName ?: return
             Log.d(TAG, "알림 제거: $packageName")
+
+            if (isMediaApp(packageName)) {
+                sessionManager.handlePlaybackStopped()
+                Log.d(TAG, "⚠️ 알림 제거 → 세션 저장 트리거")
+            }
 
             activeControllers[packageName]?.let { controller ->
                 controller.unregisterCallback(mediaCallback)

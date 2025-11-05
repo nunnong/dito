@@ -68,24 +68,45 @@ class SessionStateManager (
 
 
         currentSession?.let { session ->
+
             if (session.title != title) {
+                // 다른 영상 → 기존 세션 저장
                 saveSession(session)
+
+                // 새 세션 생성
+                currentSession = ActiveSession(
+                    title = title,
+                    channel = channel,
+                    appPackage = appPackage,
+                    duration = duration,
+                    startTime = System.currentTimeMillis()
+                )
+                Log.d(TAG, "새 세션 생성 (다른 영상)")
+            } else {
+
+                session.lastPauseTime?.let { pauseTime ->
+                    val pauseDuration = System.currentTimeMillis() - pauseTime
+                    session.totalPauseTime += pauseDuration
+                    session.lastPauseTime = null
+                    Log.d(TAG, "재생 재개 (일시정지: ${pauseDuration / 1000}초)")
+                } ?: run {
+                    Log.d(TAG, "기존 세션 계속 (일시정지 없음)")
+                }
             }
+        } ?: run {
+            // 세션이 없으면 새로 생성
+            currentSession = ActiveSession(
+                title = title,
+                channel = channel,
+                appPackage = appPackage,
+                duration = duration,
+                startTime = System.currentTimeMillis()
+            )
+            Log.d(TAG, "새 세션 생성 (첫 재생)")
         }
-
-
-        currentSession = ActiveSession(
-            title = title,
-            channel = channel,
-            appPackage = appPackage,
-            duration = duration,
-            startTime = System.currentTimeMillis()
-        )
 
         lastSessionTitle = title
         lastSessionTime = currentTime
-
-        Log.d(TAG, "새 세션 생성")
     }
 
 
@@ -160,6 +181,7 @@ class SessionStateManager (
         Log.d(TAG, "   앱: ${session.appPackage}")
         Log.d(TAG, "   시작: ${formatTime(session.startTime)}")
         Log.d(TAG, "   종료: ${formatTime(endTime)}")
+        Log.d(TAG, "   총 경과: ${totalTime / 1000}초")
         Log.d(TAG, "   시청 시간: ${watchTime / 1000}초")
         Log.d(TAG, "   일시정지: ${session.totalPauseTime / 1000}초")
         Log.d(TAG, "   날짜: ${formatDate(session.startTime)}")
