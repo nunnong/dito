@@ -10,7 +10,7 @@ object Checker {
     private const val TAG = "Checker"
 
     //테스트 모드 & 배포 모드
-    const val TEST_CHECKER_MS = 10 * 1000L //10초
+    const val TEST_CHECKER_MS = 20 * 1000L //20초
     const val PRODUCTION_CHECKER_MS = 30 * 60 * 1000L //30분
 
     private val TARGET_APPS = setOf(

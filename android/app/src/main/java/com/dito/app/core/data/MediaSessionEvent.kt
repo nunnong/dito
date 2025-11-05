@@ -57,7 +57,7 @@ fun MediaSessionEvent.toDto(): MediaSessionEventDto {
         },
         event_type = this.eventType.ifBlank { "UNKNOWN" },
         package_name = this.appPackage.ifBlank { "unknown.package" },
-        app_name = null,
+        app_name = getAppNameFromPackage(this.appPackage),
         title = this.title.takeIf { it.isNotBlank() },
         channel = this.channel.takeIf { it.isNotBlank() },
         event_timestamp = this.timestamp,
@@ -67,6 +67,20 @@ fun MediaSessionEvent.toDto(): MediaSessionEventDto {
         event_date = this.date.ifBlank { getTodayDateString() }
     )
 }
+
+private fun getAppNameFromPackage(packageName: String): String {
+    return when (packageName) {
+        "com.google.android.youtube" -> "YouTube"
+        "com.google.android.youtube.music" -> "YouTube Music"
+        "com.samsung.android.app.music" -> "Samsung Music"
+        "com.android.chrome" -> "Chrome"
+        else -> {
+            // 패키지명에서 앱 이름 추출 (마지막 부분)
+            packageName.split(".").lastOrNull()?.capitalize(Locale.ROOT) ?: packageName
+        }
+    }
+}
+
 
 private fun getTodayDateString(): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())

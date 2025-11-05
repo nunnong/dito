@@ -34,7 +34,8 @@ class SessionStateManager (
         var duration: Long,
         var startTime: Long,
         var lastPauseTime: Long? = null,
-        var totalPauseTime: Long = 0L
+        var totalPauseTime: Long = 0L,
+        var bestChannel: String = ""
     )
 
 
@@ -43,7 +44,7 @@ class SessionStateManager (
         appPackage: String
     ) {
         val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE) ?: ""
-        val channel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: "알 수 없음"
+        val channel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: ""
         val duration = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
         val currentTime = System.currentTimeMillis()
 
@@ -74,15 +75,23 @@ class SessionStateManager (
                 saveSession(session)
 
                 // 새 세션 생성
+                val initialChannel = if (isValidChannel(channel)) channel else "알 수 없음"
                 currentSession = ActiveSession(
                     title = title,
-                    channel = channel,
+                    channel = initialChannel,
                     appPackage = appPackage,
                     duration = duration,
-                    startTime = System.currentTimeMillis()
+                    startTime = System.currentTimeMillis(),
+                    bestChannel = if (isValidChannel(channel)) channel else ""
                 )
                 Log.d(TAG, "새 세션 생성 (다른 영상)")
             } else {
+                // 같은 영상 - 채널 업데이트 시도
+                if (isValidChannel(channel) && channel != session.channel) {
+                    session.channel = channel
+                    session.bestChannel = channel
+                    Log.d(TAG, "채널 업데이트됨: $channel")
+                }
 
                 session.lastPauseTime?.let { pauseTime ->
                     val pauseDuration = System.currentTimeMillis() - pauseTime
@@ -95,12 +104,14 @@ class SessionStateManager (
             }
         } ?: run {
             // 세션이 없으면 새로 생성
+            val initialChannel = if (isValidChannel(channel)) channel else "알 수 없음"
             currentSession = ActiveSession(
                 title = title,
-                channel = channel,
+                channel = initialChannel,
                 appPackage = appPackage,
                 duration = duration,
-                startTime = System.currentTimeMillis()
+                startTime = System.currentTimeMillis(),
+                bestChannel = if (isValidChannel(channel)) channel else ""
             )
             Log.d(TAG, "새 세션 생성 (첫 재생)")
         }
@@ -148,25 +159,47 @@ class SessionStateManager (
             val newTitle = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             val newChannel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
 
-
-            if (newTitle != null && newTitle != session.title) {
-                Log.d(TAG, "제목 업데이트: ${session.title} → $newTitle")
-                session.title = newTitle
-                lastSessionTitle = newTitle
+            // 제목 업데이트 - 빈 값이 아니고, 유효한 제목일 때만 업데이트
+            if (newTitle != null && newTitle.isNotBlank() && newTitle != session.title) {
+                // YouTube 로딩 화면 무시
+                if (newTitle != "YouTube" && newTitle != "youtube") {
+                    Log.d(TAG, "제목 업데이트: ${session.title} → $newTitle")
+                    session.title = newTitle
+                    lastSessionTitle = newTitle
+                }
             }
 
-            //0.5초 후 메타데이터 업데이트로 실제 채널명 받기
-            if (newChannel != null && newChannel != "알 수 없음" && session.channel == "알 수 없음") {
-                Log.d(TAG, "채널 업데이트: $newChannel")
-                session.channel = newChannel
+            // 채널 업데이트 - 유효한 채널명이면 무조건 업데이트
+            if (newChannel != null && isValidChannel(newChannel)) {
+                if (session.bestChannel.isBlank() || newChannel != session.bestChannel) {
+                    Log.d(TAG, "채널 업데이트: ${session.channel} → $newChannel")
+                    session.channel = newChannel
+                    session.bestChannel = newChannel
+                }
             }
         }
+    }
+
+
+    private fun isValidChannel(channel: String?): Boolean {
+        if (channel.isNullOrBlank()) return false
+
+        val invalidValues = setOf(
+            "알 수 없음",
+            "m.youtube.com",
+            "www.youtube.com",
+            "YouTube",
+            "youtube",
+            ""
+        )
+
+        return channel !in invalidValues && channel.length >= 2
     }
 
     private fun saveSession(session: ActiveSession) {
         val endTime = System.currentTimeMillis()
         val totalTime = endTime - session.startTime
-        val watchTime = totalTime - session.totalPauseTime //실제 시청 시간
+        val watchTime = totalTime - session.totalPauseTime
 
         // 5초 미만 무시
         if (watchTime < MIN_WATCH_TIME) {
@@ -174,10 +207,23 @@ class SessionStateManager (
             return
         }
 
+        // 최종 채널명 결정 - bestChannel 우선 사용
+        val finalChannel = when {
+            session.bestChannel.isNotBlank() -> session.bestChannel
+            session.channel.isNotBlank() && session.channel != "알 수 없음" -> session.channel
+            else -> "알 수 없는 채널"
+        }
+
+        // 최종 제목 검증
+        val finalTitle = session.title.ifBlank {
+            Log.w(TAG, "⚠️ 제목이 비어있음 - 저장 중단")
+            return
+        }
+
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
         Log.d(TAG, "세션 저장")
-        Log.d(TAG, "   제목: ${session.title}")
-        Log.d(TAG, "   채널: ${session.channel}")
+        Log.d(TAG, "   제목: $finalTitle")
+        Log.d(TAG, "   채널: $finalChannel (bestChannel: ${session.bestChannel})")
         Log.d(TAG, "   앱: ${session.appPackage}")
         Log.d(TAG, "   시작: ${formatTime(session.startTime)}")
         Log.d(TAG, "   종료: ${formatTime(endTime)}")
@@ -188,14 +234,14 @@ class SessionStateManager (
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
         val checkPoint = Checker.checkMediaSession(
-            title = session.title,
-            channel = session.channel,
+            title = finalTitle,
+            channel = finalChannel,
             watchTime = watchTime,
             timestamp = endTime,
             appPackage = session.appPackage
         )
 
-        val trackType = if(checkPoint != null) "TRACK_1" else "TRACK_2"
+        val trackType = "TRACK_2"
         val eventIds = mutableListOf<String>()
 
         try {
@@ -205,8 +251,8 @@ class SessionStateManager (
                 val event = copyToRealm(MediaSessionEvent().apply {
                     this.trackType = trackType
                     this.eventType = "VIDEO_END"
-                    this.title = session.title
-                    this.channel = session.channel
+                    this.title = finalTitle
+                    this.channel = finalChannel
                     this.appPackage = session.appPackage
                     this.timestamp = endTime
                     this.videoDuration = session.duration
@@ -218,12 +264,12 @@ class SessionStateManager (
                 })
                 eventIds.add(event._id.toHexString())
             }
-        }catch (e: Exception){
+        } catch (e: Exception) {
             Log.e(TAG, "Realm 저장 실패", e)
             return
         }
 
-        //AI 에이전트 호출
+        // AI 에이전트 호출
         if (checkPoint != null) {
             aiAgent.requestIntervention(
                 behaviorLog = BehaviorLog(
@@ -234,8 +280,6 @@ class SessionStateManager (
                 eventIds = eventIds
             )
         }
-
-
     }
 
 

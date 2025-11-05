@@ -7,14 +7,13 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.dito.app.core.network.BehaviorLog
 import dagger.hilt.android.AndroidEntryPoint
+import io.realm.kotlin.ext.query
 import kotlinx.coroutines.*
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
 @AndroidEntryPoint
-//앱 전환 감지
 class AppMonitoringService : AccessibilityService() {
 
     companion object {
@@ -29,7 +28,7 @@ class AppMonitoringService : AccessibilityService() {
     private var currentApp = ""
     private var currentAppStartTime = 0L
 
-    //Coroutine으로 실행되는 AI 호출 타이머
+    // Coroutine으로 실행되는 AI 호출 타이머
     private var aiCheckJob: Job? = null
 
 
@@ -40,7 +39,6 @@ class AppMonitoringService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-
 
         // 앱 전환 시에만 감지
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
@@ -76,7 +74,7 @@ class AppMonitoringService : AccessibilityService() {
                 packageName.startsWith("com.google.android.gms")
     }
 
-    //앱 전환 감지 → 이전 앱 세션 종료 + 새 앱 감시 시작
+    // 앱 전환 감지 → 이전 앱 세션 종료 + 새 앱 감시 시작
     private fun handleAppSwitch(newApp: String, timestamp: Long) {
         if (newApp == currentApp) return
 
@@ -89,12 +87,12 @@ class AppMonitoringService : AccessibilityService() {
 
             // 3초 미만 무시
             if (duration >= MIN_USAGE_TIME) {
+                // ⭐ 무조건 TRACK_2로 저장 (배치 전송용)
                 saveToRealm(
                     packageName = currentApp,
                     startTime = currentAppStartTime,
                     endTime = timestamp,
-                    duration = duration,
-                    trackType = "TRACK_2"
+                    duration = duration
                 )
             }
         }
@@ -102,23 +100,22 @@ class AppMonitoringService : AccessibilityService() {
         currentApp = newApp
         currentAppStartTime = timestamp
 
-        if(Checker.isTargetApp(newApp)){
+        if (Checker.isTargetApp(newApp)) {
             scheduleAICheck(newApp, timestamp)
         }
     }
 
-    //10초 후에도 여전히 동일 앱이면 AI 호출 (추후에는 30분으로 조정?)
+    // 10초 후에도 여전히 동일 앱이면 AI 호출
     private fun scheduleAICheck(packageName: String, startTime: Long) {
         aiCheckJob = CoroutineScope(Dispatchers.IO).launch {
             Log.d(TAG, "[$packageName] 감시 타이머 시작 (10초)")
 
             delay(Checker.TEST_CHECKER_MS)
 
-
             val currentTime = System.currentTimeMillis()
             val duration = currentTime - startTime
 
-            //여전히 같은 앱 사용 중인지 확인
+            // 여전히 같은 앱 사용 중인지 확인
             if (currentApp == packageName) {
                 Log.w(TAG, "⚠️ [$packageName] ${duration / 1000}초 사용 중 → AI 호출 시도")
 
@@ -127,39 +124,40 @@ class AppMonitoringService : AccessibilityService() {
                         sessionStartTime = startTime,
                         duration = duration
                     )) {
-                    //TRACK_1 로그 저장
-                    val (eventIds, appName) = saveToRealm(
+
+
+                    val (eventIds, appName) = saveToRealmForAI(
                         packageName = packageName,
                         startTime = startTime,
-                        endTime = currentTime,
-                        duration = duration,
-                        trackType = "TRACK_1"
+                        duration = duration
                     )
 
-                    aiAgent.requestIntervention(
-                        behaviorLog = BehaviorLog(
-                            appName = getAppName(packageName),
-                            durationSeconds = (duration / 1000).toInt(),
-                            usageTimestamp = Checker.formatTimestamp(currentTime)
-                        ),
-                        eventIds = eventIds
-                    )
+                    if (eventIds.isNotEmpty()) {
+                        Log.d(TAG, "🤖 AI 실시간 호출 (배치 전송과 별개)")
+                        aiAgent.requestIntervention(
+                            behaviorLog = BehaviorLog(
+                                appName = appName,
+                                durationSeconds = (duration / 1000).toInt(),
+                                usageTimestamp = Checker.formatTimestamp(currentTime)
+                            ),
+                            eventIds = eventIds
+                        )
+                    } else {
+                        Log.w(TAG, "⚠️ Realm 저장 실패 → AI 호출 불가")
+                    }
                 }
             } else {
                 Log.d(TAG, "10초 내 앱 전환 → AI 호출 취소")
-             }
-
-         }
+            }
+        }
     }
 
-    private fun saveToRealm(
+    private fun saveToRealmForAI(
         packageName: String,
         startTime: Long,
-        endTime: Long,
-        duration: Long,
-        trackType: String
+        duration: Long
     ): Pair<List<String>, String> {
-        Log.i(TAG, "💾 Realm 저장 ($trackType): $packageName | ${formatDuration(duration)}")
+        Log.i(TAG, "💾 AI용 Realm 저장 (TRACK_2): $packageName | ${formatDuration(duration)}")
         val eventIds = mutableListOf<String>()
         var appName = packageName
 
@@ -167,7 +165,45 @@ class AppMonitoringService : AccessibilityService() {
             val realm = RealmConfig.getInstance()
             realm.writeBlocking {
                 val event = copyToRealm(AppUsageEvent().apply {
-                    this.trackType = trackType
+                    this.trackType = "TRACK_2"
+                    this.eventType = "APP_CLOSE"
+                    this.packageName = packageName
+                    this.appName = getAppName(packageName)
+                    this.timestamp = System.currentTimeMillis()
+                    this.duration = duration
+                    this.date = formatDate(System.currentTimeMillis())
+                    this.synced = false
+                    this.aiCalled = true
+                })
+                eventIds.add(event._id.toHexString())
+                appName = event.appName
+            }
+
+            Log.d(TAG, "✅ AI용 Realm 저장 완료")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ AI용 Realm 저장 실패", e)
+        }
+
+        return Pair(eventIds, appName)
+    }
+
+
+    private fun saveToRealm(
+        packageName: String,
+        startTime: Long,
+        endTime: Long,
+        duration: Long
+    ): Pair<List<String>, String> {
+        Log.i(TAG, "💾 Realm 저장 (TRACK_2): $packageName | ${formatDuration(duration)}")
+        val eventIds = mutableListOf<String>()
+        var appName = packageName
+
+        try {
+            val realm = RealmConfig.getInstance()
+            realm.writeBlocking {
+                val event = copyToRealm(AppUsageEvent().apply {
+                    this.trackType = "TRACK_2"
                     this.eventType = "APP_CLOSE"
                     this.packageName = packageName
                     this.appName = getAppName(packageName)
@@ -181,14 +217,14 @@ class AppMonitoringService : AccessibilityService() {
                 appName = event.appName
             }
 
+            Log.d(TAG, "✅ Realm 저장 완료 (배치 전송 대기)")
+
         } catch (e: Exception) {
             Log.e(TAG, "❌ Realm 저장 실패", e)
         }
 
         return Pair(eventIds, appName)
     }
-
-
 
     private fun getAppName(packageName: String): String {
         return try {
@@ -204,7 +240,6 @@ class AppMonitoringService : AccessibilityService() {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
-
 
     private fun formatDuration(duration: Long): String {
         val seconds = duration / 1000
@@ -222,17 +257,16 @@ class AppMonitoringService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // 마지막 세션 TRACK_2로 저장
+        // 마지막 세션 저장
         if (currentApp.isNotEmpty() && currentAppStartTime > 0) {
             val now = System.currentTimeMillis()
             val duration = now - currentAppStartTime
             if (duration >= MIN_USAGE_TIME) {
-                saveToRealm(currentApp, currentAppStartTime, now, duration, "TRACK_2")
+                saveToRealm(currentApp, currentAppStartTime, now, duration)
             }
         }
 
         aiCheckJob?.cancel()
-
         Checker.clearExpiredCache()
 
         Log.d(TAG, "🛑 AppMonitoringService 종료")

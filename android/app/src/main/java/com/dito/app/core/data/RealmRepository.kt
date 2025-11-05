@@ -17,15 +17,14 @@ object RealmRepository {
     // Track 2 전용 쿼리 (배치 전송용)
     fun getUnsyncedAppEvents(): List<AppUsageEvent> {
         return realm.query<AppUsageEvent>(
-            "trackType == $0 AND synced == false",
-            "TRACK_2"
+            "synced == false"
         ).find()
     }
 
     fun getUnsyncedMediaEvents(): List<MediaSessionEvent> {
         return realm.query<MediaSessionEvent>(
-            "trackType == $0 AND synced == false",
-            "TRACK_2"
+            "synced == false AND eventType == $0",
+            "VIDEO_END"
         ).find()
     }
 
