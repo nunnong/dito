@@ -23,7 +23,7 @@ public class WeeklyController {
     private final WeeklyGoalService weeklyGoalService;
 
     // 주간 목표 생성
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<CommonResult> createWeeklyGoal(
             @RequestBody WeeklyGoalReq req
     ){
@@ -32,7 +32,7 @@ public class WeeklyController {
     }
 
     // <AI> 해당 유저 주간 목표 조회
-    @GetMapping()
+    @GetMapping("/user")
     public ResponseEntity<SingleResult<UserWeeklyGoalRes>> getUserWeeklyGoal(
         @RequestBody UserWeeklyGoalReq req
     ){
