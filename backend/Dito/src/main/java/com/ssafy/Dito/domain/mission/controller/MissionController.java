@@ -33,8 +33,8 @@ public class MissionController {
         return ApiResponse.ok(res);
     }
 
-    // 미션 등록
-    @PostMapping
+    // <AI> 미션 등록
+    @PostMapping("/user")
     public ResponseEntity<CommonResult> createMission(
             @Valid @RequestBody MissionReq req
     ) {
