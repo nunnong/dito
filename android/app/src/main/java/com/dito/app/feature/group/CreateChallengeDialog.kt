@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -50,7 +52,7 @@ fun ChallengeDialog() {
                 .border(1.dp, Color.Black, DitoShapes.extraLarge)
                 .background(Color.White)
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = Spacing.l, horizontal = Spacing.l)
+                .padding(vertical = Spacing.l)
         ) {
             Box(
                 modifier = Modifier
@@ -64,7 +66,7 @@ fun ChallengeDialog() {
                         )
                     )
                     .background(Color.White)
-                    .padding(horizontal = Spacing.l, vertical = Spacing.m)
+                    .padding(horizontal = Spacing.s, vertical = Spacing.m)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back),
@@ -77,13 +79,27 @@ fun ChallengeDialog() {
             }
 
             Row(
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(DitoShapes.medium)
-                    .border(1.dp, Color.Black, DitoShapes.medium)
-                    .background(Color(0xFFF5EBD2))
-                    .padding(horizontal = Spacing.m, vertical = Spacing.s)
+                    .background(PrimaryContainer)
+                    .drawBehind {
+                        // 위쪽 선
+                        drawLine(
+                            color = Outline, // 선 색상
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                        // 아래쪽 선
+                        drawLine(
+                            color = Outline,
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.dito),
@@ -99,6 +115,7 @@ fun ChallengeDialog() {
                         color = Color.Black,
                         style = DitoCustomTextStyles.titleDMedium
                     )
+                    Spacer(Modifier.height(Spacing.xs))
                     Text(
                         text = "1등이 되면 모든 참가자의 배팅 금액을 가져요!",
                         color = OnSurfaceVariant,
@@ -109,66 +126,73 @@ fun ChallengeDialog() {
 
             Spacer(Modifier.height(Spacing.l))
 
-            ChallengeInputField(
-                title = "기간(일수)",
-                hint = "최소 1일 이상으로 입력해주세요.",
-                iconRes = R.drawable.period,
-                value = period,
-                onValueChange = { period = it }
-            )
-
-            Spacer(Modifier.height(Spacing.m))
-
-            ChallengeInputField(
-                title = "목표",
-                hint = "예 : 유튜브 하루 2시간 이하",
-                iconRes = R.drawable.goal,
-                value = goal,
-                onValueChange = { goal = it }
-            )
-
-            Spacer(Modifier.height(Spacing.m))
-
-            ChallengeInputField(
-                title = "벌칙",
-                hint = "예 : 커피 사주기",
-                iconRes = R.drawable.penalty,
-                value = penalty,
-                onValueChange = { penalty = it }
-            )
-
-            Spacer(Modifier.height(Spacing.m))
-
-            ChallengeInputField(
-                title = "배팅 금액(최소 10레몬)",
-                hint = "10",
-                iconRes = R.drawable.coin,
-                value = bet,
-                onValueChange = { bet = it }
-            )
-
-            Spacer(Modifier.height(Spacing.xl))
-
-            Box(
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .hardShadow(
-                        offsetX = 4.dp,
-                        offsetY = 4.dp,
-                        cornerRadius = 8.dp,
-                        color = Color.Black
-                    )
-                    .clip(DitoShapes.small)
-                    .border(1.dp, Color.Black, DitoShapes.small)
-                    .background(Color.White)
-                    .padding(vertical = 14.dp)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.m)
             ) {
-                Text(
-                    text = "챌린지 방 만들기",
-                    color = Color.Black,
-                    style = DitoCustomTextStyles.titleDMedium
+                ChallengeInputField(
+                    title = "기간(일수)",
+                    hint = "최소 1일 이상으로 입력해주세요.",
+                    iconRes = R.drawable.period,
+                    value = period,
+                    onValueChange = { period = it }
                 )
+
+                Spacer(Modifier.height(Spacing.m))
+
+                ChallengeInputField(
+                    title = "목표",
+                    hint = "예 : 유튜브 하루 2시간 이하",
+                    iconRes = R.drawable.goal,
+                    value = goal,
+                    onValueChange = { goal = it }
+                )
+
+                Spacer(Modifier.height(Spacing.m))
+
+                ChallengeInputField(
+                    title = "벌칙",
+                    hint = "예 : 커피 사주기",
+                    iconRes = R.drawable.penalty,
+                    value = penalty,
+                    onValueChange = { penalty = it }
+                )
+
+                Spacer(Modifier.height(Spacing.m))
+
+                ChallengeInputField(
+                    title = "배팅 금액(최소 10레몬)",
+                    hint = "10",
+                    iconRes = R.drawable.coin,
+                    value = bet,
+                    onValueChange = { bet = it }
+                )
+
+                Spacer(Modifier.height(Spacing.xl))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .hardShadow(
+                            offsetX = 4.dp,
+                            offsetY = 4.dp,
+                            cornerRadius = 8.dp,
+                            color = Color.Black
+                        )
+                        .clip(DitoShapes.small)
+                        .border(1.dp, Color.Black, DitoShapes.small)
+                        .background(Color.White)
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "챌린지 방 만들기",
+                        color = Color.Black,
+                        style = DitoCustomTextStyles.titleDMedium
+                    )
+                }
             }
 
             Spacer(Modifier.height(Spacing.xl))
@@ -202,14 +226,13 @@ fun ChallengeInputField(
                 .clip(DitoShapes.small)
                 .border(1.dp, Color.Black, DitoShapes.small)
                 .background(Color.White)
-                .padding(horizontal = Spacing.m, vertical = Spacing.s)
+                .padding(horizontal = Spacing.s, vertical = Spacing.s)
         ) {
             Image(
                 painter = painterResource(id = iconRes),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(20.dp)
-                    .padding(end = Spacing.s)
+                    .size(24.dp)
             )
             Box(Modifier.weight(1f)) {
                 if (value.isEmpty()) {

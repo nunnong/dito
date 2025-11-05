@@ -65,6 +65,7 @@ fun DitoModalContainer(
             )
             .background(color = backgroundColor)
             .padding(contentPadding)
+
     ) {
         content()
     }

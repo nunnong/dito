@@ -8,16 +8,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -29,19 +31,20 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.ui.component.DitoModalContainer
+import com.dito.app.core.ui.designsystem.hardShadow
 
 @Preview(showBackground = true)
 @Composable
 fun JoinWithCodeDialog() {
     Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
+            .fillMaxSize()
             .background(color = Background)
     ) {
         // 내용 다이얼로그
         DitoModalContainer(
-            modifier = Modifier.align(Alignment.Center)
+            modifier = Modifier.fillMaxWidth(0.9f).widthIn(max = 360.dp)
         ) {
             // 닫기 버튼 (다이얼로그 우측 상단)
             Image(
@@ -51,6 +54,8 @@ fun JoinWithCodeDialog() {
                 modifier = Modifier
                     .size(24.dp)
                     .align(Alignment.TopEnd)
+                    .widthIn(max = 360.dp)
+                    .fillMaxWidth(0.9f)
             )
 
             // 컨텐츠
@@ -67,15 +72,16 @@ fun JoinWithCodeDialog() {
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     repeat(4) {
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
+                                .weight(1f)
+                                .height(64.dp)
                                 .border(
-                                    1.dp, color = OnSurface,
-                                    shape = DitoShapes.extraSmall
+                                    1.dp, color = OnSurface, shape = DitoShapes.extraSmall
                                 )
                                 .background(color = Background)
                         )
@@ -85,3 +91,4 @@ fun JoinWithCodeDialog() {
         }
     }
 }
+
