@@ -41,6 +41,7 @@ import com.dito.app.core.repository.AuthRepository
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.auth.SignUpScreen
 import com.dito.app.feature.intervention.InterventionScreen
+import com.dito.app.feature.health.HealthScreen
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -201,7 +202,10 @@ fun AppNavigation(activity: MainActivity, isLoggedIn: Boolean) {
 
         // 메인 화면 (기존 테스트 UI)
         composable("main") {
-            MainScreen(activity = activity)
+            MainScreen(
+                activity = activity,
+                onNavigateToHealth = { navController.navigate("health") }
+            )
         }
 
         // Intervention 상세 화면 (Deep Link 지원)
@@ -217,11 +221,19 @@ fun AppNavigation(activity: MainActivity, isLoggedIn: Boolean) {
                 }
             )
         }
+
+        // Health 화면
+        composable("health") {
+            HealthScreen()
+        }
     }
 }
 
 @Composable
-fun MainScreen(activity: MainActivity) {
+fun MainScreen(
+    activity: MainActivity,
+    onNavigateToHealth: () -> Unit = {}
+) {
     val context = LocalContext.current
 
     NotificationPermissionRequest()
@@ -318,6 +330,15 @@ fun MainScreen(activity: MainActivity) {
             onClick = {
                 sendTestNotification(context)
             }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PermissionCard(
+            title = "💚 헬스 정보",
+            description = "걸음 수, 심박수, 수면, 이동거리 데이터를 확인합니다",
+            buttonText = "헬스 정보 보기",
+            onClick = onNavigateToHealth
         )
     }
 }
