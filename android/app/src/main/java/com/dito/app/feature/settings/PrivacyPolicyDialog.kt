@@ -22,6 +22,7 @@ import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
@@ -98,7 +99,7 @@ fun PrivacyPoicyDialog() {
                     Text(
                         text = termsText,
                         color = Color.Black,
-                        style = DitoCustomTextStyles.titleDMedium,
+                        style = DitoTypography.bodyMedium,
                         modifier = Modifier.verticalScroll(rememberScrollState())
                     )
                 }
