@@ -47,7 +47,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/fcm/send",  // API Key 인증 (permitAll로 필터에서 처리)
                                 "/weekly-goal/user",
-                                "/mission/user"
+                                "/mission/user",
+                                "/mission-result"
                         ).permitAll()
                         .anyRequest().authenticated()  // 나머지 API는 JWT 인증 필요
                 )
