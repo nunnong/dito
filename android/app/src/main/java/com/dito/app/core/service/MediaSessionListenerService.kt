@@ -5,6 +5,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -31,7 +32,7 @@ class MediaSessionListenerService : NotificationListenerService() {
         Log.d(TAG, "SessionStateManager 초기화 완료")
     }
 
-    // 알림 생성 시 호출됨 -> youtube 재생, 상태 변경
+    // 알림 생성 시 호출됨 -> YouTube 재생, 상태 변경 등
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
 
@@ -41,25 +42,28 @@ class MediaSessionListenerService : NotificationListenerService() {
 
             Log.d(TAG, "알림 수신: $packageName")
 
-            if (!isMediaApp(packageName)) {
-                return
-            }
+            if (!isMediaApp(packageName)) return
 
-            // MediaSession 토큰 추출
-            val mediaToken = notification.extras.getParcelable<MediaSession.Token>(
-                Notification.EXTRA_MEDIA_SESSION
-            )
+            // ✅ MediaSession 토큰 추출 (API 33 이상 대응)
+            val mediaToken: MediaSession.Token? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notification.extras.getParcelable(
+                    Notification.EXTRA_MEDIA_SESSION,
+                    MediaSession.Token::class.java
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                notification.extras.getParcelable(Notification.EXTRA_MEDIA_SESSION)
+            }
 
             if (mediaToken == null) {
                 Log.d(TAG, "MediaSession 토큰 없음")
                 return
             }
 
-            //MediaController로 재생 상태를 추적할 수 있게 생성(api)
+            // MediaController 생성 및 콜백 등록
             val controller = MediaController(this, mediaToken)
 
             activeControllers[packageName]?.unregisterCallback(mediaCallback)
-
             activeControllers[packageName] = controller
             controller.registerCallback(mediaCallback)
 
@@ -76,7 +80,6 @@ class MediaSessionListenerService : NotificationListenerService() {
 
         try {
             val packageName = sbn?.packageName ?: return
-
             Log.d(TAG, "알림 제거: $packageName")
 
             activeControllers[packageName]?.let { controller ->
@@ -105,7 +108,6 @@ class MediaSessionListenerService : NotificationListenerService() {
         }
     }
 
-
     private fun isMediaApp(packageName: String): Boolean {
         return packageName in listOf(
             "com.google.android.youtube",           // YouTube
@@ -114,7 +116,6 @@ class MediaSessionListenerService : NotificationListenerService() {
             "com.android.chrome"                    // Chrome (YouTube 웹)
         )
     }
-
 
     private fun logMediaInfo(controller: MediaController) {
         try {
@@ -138,13 +139,20 @@ class MediaSessionListenerService : NotificationListenerService() {
         }
     }
 
-
     private fun getStateString(state: Int?): String {
         return when (state) {
-            PlaybackState.STATE_PLAYING -> "PLAYING"
-            PlaybackState.STATE_PAUSED -> "PAUSED"
-            PlaybackState.STATE_STOPPED -> "STOPPED"
             PlaybackState.STATE_NONE -> "NONE"
+            PlaybackState.STATE_STOPPED -> "STOPPED"
+            PlaybackState.STATE_PAUSED -> "PAUSED"
+            PlaybackState.STATE_PLAYING -> "PLAYING"
+            PlaybackState.STATE_FAST_FORWARDING -> "FAST_FORWARDING"
+            PlaybackState.STATE_REWINDING -> "REWINDING"
+            PlaybackState.STATE_BUFFERING -> "BUFFERING"
+            PlaybackState.STATE_ERROR -> "ERROR"
+            PlaybackState.STATE_CONNECTING -> "CONNECTING"
+            PlaybackState.STATE_SKIPPING_TO_NEXT -> "SKIPPING_TO_NEXT"
+            PlaybackState.STATE_SKIPPING_TO_PREVIOUS -> "SKIPPING_TO_PREVIOUS"
+            PlaybackState.STATE_SKIPPING_TO_QUEUE_ITEM -> "SKIPPING_TO_QUEUE_ITEM"
             else -> "UNKNOWN($state)"
         }
     }
@@ -154,7 +162,6 @@ class MediaSessionListenerService : NotificationListenerService() {
 
         override fun onPlaybackStateChanged(state: PlaybackState?) {
             super.onPlaybackStateChanged(state)
-
             try {
                 Log.d(TAG, "재생 상태 변경: ${getStateString(state?.state)}")
 
@@ -177,11 +184,9 @@ class MediaSessionListenerService : NotificationListenerService() {
                             appPackage = controller.packageName
                         )
                     }
-
                     PlaybackState.STATE_PAUSED -> {
                         sessionManager.handlePlaybackPaused()
                     }
-
                     PlaybackState.STATE_STOPPED, PlaybackState.STATE_NONE -> {
                         sessionManager.handlePlaybackStopped()
                     }
@@ -193,7 +198,6 @@ class MediaSessionListenerService : NotificationListenerService() {
 
         override fun onMetadataChanged(metadata: MediaMetadata?) {
             super.onMetadataChanged(metadata)
-
             try {
                 if (metadata == null) return
 
