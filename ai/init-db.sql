@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- - checkpoint_blobs: stores large binary data
 
 -- Grant necessary permissions
-GRANT ALL PRIVILEGES ON DATABASE dito_langgraph TO dito_user;
+GRANT ALL PRIVILEGES ON DATABASE dito_langgraph TO dito;
 
 -- Create additional tables for Dito application (optional)
 -- These tables can be used for storing intervention metadata, user data, etc.
@@ -44,8 +44,8 @@ CREATE INDEX IF NOT EXISTS idx_evaluations_intervention_id ON evaluations(interv
 CREATE INDEX IF NOT EXISTS idx_evaluations_user_id ON evaluations(user_id);
 
 -- Grant permissions on tables
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO dito_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO dito_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO dito;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO dito;
 
 -- Log initialization completion
 DO $$
