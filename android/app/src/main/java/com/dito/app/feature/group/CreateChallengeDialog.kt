@@ -183,7 +183,7 @@ fun ChallengeDialog() {
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
+                        .background(Background)
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

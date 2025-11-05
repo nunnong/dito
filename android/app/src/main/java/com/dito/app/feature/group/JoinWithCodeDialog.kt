@@ -35,7 +35,7 @@ import com.dito.app.core.ui.designsystem.Outline
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.Spacing.m
 import com.dito.app.core.ui.designsystem.hardShadow
-import com.dito.app.ui.component.DitoModalContainer
+import com.dito.app.core.ui.component.DitoModalContainer
 
 @Preview(showBackground = true)
 @Composable
