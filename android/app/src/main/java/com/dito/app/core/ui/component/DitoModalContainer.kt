@@ -1,11 +1,13 @@
 package com.dito.app.ui.component
 
+import android.R.attr.shadowColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.OutlinedTextFieldDefaults.contentPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.Spacing.l
+import com.dito.app.core.ui.designsystem.Spacing.xxl
 import com.dito.app.core.ui.designsystem.hardShadow
 
 /**
@@ -46,7 +50,7 @@ fun DitoModalContainer(
     shadowOffsetY: Dp = 6.dp,
     shadowColor: Color = OnSurface,
     cornerRadius: Dp = 32.dp,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 48.dp, vertical = 56.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = xxl, vertical = l),
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
