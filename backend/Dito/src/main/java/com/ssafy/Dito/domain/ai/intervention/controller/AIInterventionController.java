@@ -74,7 +74,8 @@ public class AIInterventionController {
 
         // 3. FCM 메시지 구성
         String appName = request.behaviorLog().appName();
-        int durationMinutes = request.behaviorLog().getDurationMinutes();
+        int durationSeconds = request.behaviorLog().durationSeconds();
+        int durationMinutes = durationSeconds / 60;
 
         String title = "디토 AI 개입 테스트";
         String body = String.format("%s을(를) %d분 사용 중입니다", appName, durationMinutes);
