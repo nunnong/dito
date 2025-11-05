@@ -5,6 +5,9 @@ import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
 import com.ssafy.Dito.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -12,9 +15,12 @@ import java.sql.Timestamp;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Comment;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Getter
+@EntityListeners(AuditingEntityListener.class)
 @NoArgsConstructor
 public class Mission extends IdentifiableEntity {
 
@@ -31,6 +37,7 @@ public class Mission extends IdentifiableEntity {
     private int coinReward;
 
     @Column(name = "trigger_time", nullable = true)
+    @CreatedDate
     @Comment("미션 시작 시간")
     private Timestamp triggerTime;
 
@@ -55,8 +62,9 @@ public class Mission extends IdentifiableEntity {
     private int statChangeSleep;
 
     @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
     @Comment("미션 진행 상태")
-    private String status;
+    private Status status;
 
     @Column(name = "prompt", nullable = false)
     @Comment("프롬프트")
@@ -68,7 +76,7 @@ public class Mission extends IdentifiableEntity {
 
     private Mission(String missionType, String missionText, int coinReward,
                     int durationSeconds, String targetApp, int statChangeSelfCare, int statChangeFocus,
-                    int statChangeSleep, String status, String prompt, User user) {
+                    int statChangeSleep, String prompt, User user) {
         this.missionType = missionType;
         this.missionText = missionText;
         this.coinReward = coinReward;
@@ -78,7 +86,7 @@ public class Mission extends IdentifiableEntity {
         this.statChangeSelfCare = statChangeSelfCare;
         this.statChangeFocus = statChangeFocus;
         this.statChangeSleep = statChangeSleep;
-        this.status = status;
+        this.status = Status.IN_PROGRESS;
         this.prompt = prompt;
         this.user = user;
     }
@@ -93,9 +101,12 @@ public class Mission extends IdentifiableEntity {
                 req.statChangeSelfCare(),
                 req.statChangeFocus(),
                 req.statChangeSleep(),
-                req.status(),
                 req.prompt(),
                 user
         );
+    }
+
+    public void updateStatus() {
+        this.status = Status.COMPLETED;
     }
 }

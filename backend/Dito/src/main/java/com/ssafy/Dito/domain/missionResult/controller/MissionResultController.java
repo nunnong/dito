@@ -18,9 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class MissionResultController {
     private final MissionResultService missionResultService;
 
-    // 미션 결과 반영
+    // <AI> 미션 결과 반영
     @PostMapping
-    public ResponseEntity<CommonResult> createMissionResult(@Valid @RequestBody MissionResultReq req) {
+    public ResponseEntity<CommonResult> createMissionResult(
+        @Valid @RequestBody MissionResultReq req) {
         missionResultService.createMissionResult(req);
         return ApiResponse.ok();
     }

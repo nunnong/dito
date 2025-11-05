@@ -9,7 +9,6 @@ public record MissionReq(
         int statChangeSelfCare,
         int statChangeFocus,
         int statChangeSleep,
-        String status,
         String prompt
 ) {
 
