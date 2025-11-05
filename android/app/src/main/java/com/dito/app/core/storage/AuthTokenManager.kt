@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 /**
  * JWT 토큰과 사용자 ID를 중앙에서 관리하는 클래스
@@ -23,13 +24,14 @@ class AuthTokenManager @Inject constructor(
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_ID = "user_id"
+        private const val KEY_PERSONAL_ID = "personal_id"
     }
 
     /**
      * JWT Access Token 저장
      */
     fun saveAccessToken(token: String) {
-        prefs.edit().putString(KEY_ACCESS_TOKEN, token).apply()
+        prefs.edit { putString(KEY_ACCESS_TOKEN, token) }
     }
 
     /**
@@ -53,7 +55,7 @@ class AuthTokenManager @Inject constructor(
      * Refresh Token 저장
      */
     fun saveRefreshToken(token: String) {
-        prefs.edit().putString(KEY_REFRESH_TOKEN, token).apply()
+        prefs.edit { putString(KEY_REFRESH_TOKEN, token) }
     }
 
     /**
@@ -67,7 +69,7 @@ class AuthTokenManager @Inject constructor(
      * 사용자 ID 저장
      */
     fun saveUserId(userId: Int) {
-        prefs.edit().putInt(KEY_USER_ID, userId).apply()
+        prefs.edit { putInt(KEY_USER_ID, userId) }
     }
 
     /**
@@ -85,17 +87,26 @@ class AuthTokenManager @Inject constructor(
         return !getAccessToken().isNullOrBlank()
     }
 
+    fun savePersonalId(personalId: String){
+        prefs.edit { putString(KEY_PERSONAL_ID, personalId) }
+    }
+
+    fun getPersonalId(): String? {
+        return prefs.getString(KEY_PERSONAL_ID, null)
+    }
+
+
     /**
      * 모든 토큰 및 사용자 정보 삭제 (로그아웃)
      */
     fun clearAll() {
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
     }
 
     /**
      * Access Token만 삭제 (토큰 갱신 시)
      */
     fun clearAccessToken() {
-        prefs.edit().remove(KEY_ACCESS_TOKEN).apply()
+        prefs.edit { remove(KEY_ACCESS_TOKEN) }
     }
 }

@@ -10,13 +10,12 @@ import java.util.Locale
 
 /**
  * 미디어 세션 이벤트 (유튜브 영상 시청 기록)
- *
- * 저장 위치: SessionStateManager.saveSession()
- * 사용 시점: WorkManager가 30분마다 서버로 배치 전송
  */
 class MediaSessionEvent : RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId()
+
+    var trackType: String = "TRACK_2"
 
     // 이벤트 타입
     var eventType: String = ""              // "VIDEO_START", "VIDEO_PAUSE", "VIDEO_END"
@@ -39,6 +38,10 @@ class MediaSessionEvent : RealmObject {
     // 동기화 플래그
     var synced: Boolean = false             // 서버 전송 완료 여부
     var syncedAt: Long = 0L                 // 전송 완료 시각
+
+    var aiCalled: Boolean = false
+    var aiCalledAt:Long = 0L
+    var aiRetryCount: Int = 0
 
     // 메타데이터
     var createdAt: Long = System.currentTimeMillis()

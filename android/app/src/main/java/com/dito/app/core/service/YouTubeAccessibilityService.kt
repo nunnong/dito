@@ -70,15 +70,17 @@ class YouTubeAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        //화면 전환, 뷰 내용 변경, 클릭 이벤트만 감지함
-        val isRelevant = event.eventType in listOf(
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
-            AccessibilityEvent.TYPE_VIEW_CLICKED
-        )
-        if (!isRelevant) return
+        val packageName = event.packageName?.toString() ?: return
 
-        //디바운스 처리: 짧은 시간 내 연속 이벤트 무시
+        if (packageName != "com.google.android.youtube") {
+            return
+        }
+
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            return
+        }
+
+        // 디바운스 처리: 짧은 시간 내 연속 이벤트 무시
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastEventTime < DEBOUNCE_DELAY) return
         lastEventTime = currentTime
@@ -88,7 +90,7 @@ class YouTubeAccessibilityService : AccessibilityService() {
             try {
                 val rootNode = rootInActiveWindow ?: return@launch
                 val result = withTimeoutOrNull(1200L) { findYouTubeVideoAndChannel(rootNode) }
-                rootNode.recycle()
+
 
                 if (result != null && result != lastDetectedVideo) {
                     lastDetectedVideo = result
@@ -133,7 +135,7 @@ class YouTubeAccessibilityService : AccessibilityService() {
                     }
 
                     // hybrid 탐색 (부모/자식)
-                    val channelHybrid = findChannelFromTextHybrid(titleNode ?: node, HYBRID_MAX_DEPTH)
+                    val channelHybrid = findChannelFromTextHybrid(titleNode, HYBRID_MAX_DEPTH)
                     if (channelHybrid != null) return@withContext Triple(title, channelHybrid, "hybrid")
                 }
             }
