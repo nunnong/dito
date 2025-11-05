@@ -1,1 +1,5 @@
 /.idea/
+PLAN*.md
+.gitignore
+TECH*.md
+.mcp.json

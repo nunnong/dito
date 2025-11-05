@@ -3,13 +3,19 @@ package com.ssafy.Dito.domain.groups.service;
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
+import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
+import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
 import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.AlreadyJoinedGroupException;
+import com.ssafy.Dito.domain.groups.exception.ChallengeAlreadyStartedException;
+import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.exception.InsufficientCoinsException;
 import com.ssafy.Dito.domain.groups.exception.InvalidInviteCodeException;
+import com.ssafy.Dito.domain.groups.exception.UnauthorizedStartChallengeException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
+import com.ssafy.Dito.domain.groups.repository.GroupParticipantQueryRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.groups.util.InviteCodeGenerator;
 import com.ssafy.Dito.domain.user.entity.User;
@@ -24,21 +30,22 @@ public class GroupChallengeService {
 
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
+    private final GroupParticipantQueryRepository groupParticipantQueryRepository;
     private final UserRepository userRepository;
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
 
     @Transactional
-    public GroupChallengeRes createGroupChallenge(CreateGroupChallengeReq request, Long creatorUserId) {
+    public GroupChallengeRes createGroupChallenge(CreateGroupChallengeReq request, Long hostUserId) {
         String inviteCode = generateUniqueInviteCode();
 
-        // 생성자 조회 및 코인 차감
-        User creator = userRepository.findById(creatorUserId)
+        // 호스트 조회 및 코인 차감
+        User host = userRepository.findById(hostUserId)
             .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
 
-        if (creator.getCoinBalance() < request.betCoins()) {
-            throw new InsufficientCoinsException(request.betCoins(), creator.getCoinBalance());
+        if (host.getCoinBalance() < request.betCoins()) {
+            throw new InsufficientCoinsException(request.betCoins(), host.getCoinBalance());
         }
-        creator.deductCoins(request.betCoins());
+        host.deductCoins(request.betCoins());
 
         GroupChallenge groupChallenge = GroupChallenge.of(
             request.groupName(),
@@ -51,15 +58,15 @@ public class GroupChallengeService {
 
         GroupChallenge savedChallenge = groupChallengeRepository.save(groupChallenge);
 
-        // 생성자를 host로 group_participant에 추가
+        // 호스트를 group_participant에 추가
         GroupParticipant hostParticipant = GroupParticipant.ofHost(
-            creator,
+            host,
             savedChallenge,
             request.betCoins()
         );
         groupParticipantRepository.save(hostParticipant);
 
-        return GroupChallengeRes.from(savedChallenge, creatorUserId);
+        return GroupChallengeRes.from(savedChallenge, hostUserId);
     }
 
     @Transactional
@@ -96,6 +103,45 @@ public class GroupChallengeService {
 
         // 7. 응답 생성
         return JoinGroupRes.from(groupChallenge);
+    }
+
+    @Transactional
+    public StartChallengeRes startChallenge(Long groupId, Long userId) {
+        // 1. 그룹 챌린지 조회
+        GroupChallenge groupChallenge = groupChallengeRepository.findById(groupId)
+            .orElseThrow(GroupNotFoundException::new);
+
+        // 2. 이미 시작된 챌린지인지 확인
+        if (!"pending".equals(groupChallenge.getStatus())) {
+            throw new ChallengeAlreadyStartedException();
+        }
+
+        // 3. 사용자 조회
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다"));
+
+        // 4. 사용자가 해당 그룹의 호스트인지 확인
+        GroupParticipant participant = groupParticipantRepository.findByIdUserAndIdGroup(user, groupChallenge)
+            .orElseThrow(() -> new RuntimeException("그룹에 참여하지 않은 사용자입니다"));
+
+        if (!"host".equals(participant.getRole())) {
+            throw new UnauthorizedStartChallengeException();
+        }
+
+        // 5. 챌린지 시작
+        groupChallenge.startChallenge();
+
+        // 6. 응답 생성
+        return StartChallengeRes.from(groupChallenge);
+    }
+
+    @Transactional(readOnly = true)
+    public GroupParticipantsRes getParticipants(Long groupId) {
+        // 그룹 존재 여부 확인
+        groupChallengeRepository.findById(groupId)
+            .orElseThrow(GroupNotFoundException::new);
+
+        return groupParticipantQueryRepository.getParticipants(groupId);
     }
 
     private String generateUniqueInviteCode() {

@@ -42,3 +42,9 @@ out/
 
 volume
 .env
+
+### Firebase ###
+# Firebase 서비스 계정 키 (보안상 중요)
+**/firebase/
+firebase-adminsdk.json
+**/firebase-adminsdk*.json

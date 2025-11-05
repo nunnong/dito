@@ -26,6 +26,8 @@ security:
     refresh:
       secret: ${JWT_REFRESH_SECRET:local_refresh_secret_local_refre}
       expiration-default: 7200000
+  internal-api:
+    key: ${INTERNAL_API_KEY:please put internal api key}
 
 externals:
   redis:

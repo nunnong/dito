@@ -4,7 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "security")
 public record SecurityProperties(
-        JwtProperties jwt
+        JwtProperties jwt,
+        InternalApiProperties internalApi
 ) {
 
     public record JwtProperties(
@@ -25,5 +26,11 @@ public record SecurityProperties(
         ) {
 
         }
+    }
+
+    public record InternalApiProperties(
+            String key  // X-API-Key 값
+    ) {
+
     }
 }

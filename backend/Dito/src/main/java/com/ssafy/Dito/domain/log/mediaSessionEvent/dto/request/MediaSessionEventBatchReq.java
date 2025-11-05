@@ -5,5 +5,5 @@ import java.util.List;
 public record MediaSessionEventBatchReq(
     List<MediaSessionEventReq> mediaSessionEvent
 ) {
-
+    
 }

@@ -3,3 +3,16 @@ spring:
     import: optional:file:.env[.properties]
   profiles:
     default: prod
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      uri: ${MONGO_URL:mongodb+srv://S13P31A708:5Nwpt9QeY7@ssafy.ngivl.mongodb.net/S13P31A708?authSource=admin}
+      database: ${SPRING_DATA_MONGODB_DATABASE:S13P31A708}
+      auto-index-creation: true
+
+# Firebase Configuration
+firebase:
+  credentials:
+    # path: ${FIREBASE_CREDENTIALS_PATH:classpath:firebase/firebase-adminsdk.json}
+    credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
