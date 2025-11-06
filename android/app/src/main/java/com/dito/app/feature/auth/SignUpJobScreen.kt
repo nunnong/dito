@@ -64,10 +64,10 @@ fun SignUpJobScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                    .padding(start = 32.dp, end = 32.dp, bottom = 100.dp)
+                    .padding(start = 32.dp, end = 32.dp, bottom = 90.dp)
             ) {
                 LargeSignUpButton(
-                    text = "Complete",
+                    text = "Next",
                     enabled = isFormValid,
                     onClick = {
                         focusManager.clearFocus()
@@ -84,9 +84,7 @@ fun SignUpJobScreen(
                 .background(Color.White)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 32.dp)
-                .padding(innerPadding),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(innerPadding)
         ) {
             // 상단 헤더 - 뒤로가기 버튼 + 제목
             Row(
@@ -96,6 +94,7 @@ fun SignUpJobScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 뒤로가기 버튼
                 Image(
                     painter = painterResource(id = R.drawable.angle_left),
                     contentDescription = "뒤로가기",
@@ -105,26 +104,33 @@ fun SignUpJobScreen(
                 )
 
                 Text(
-                    text = "직업 선택",
+                    text = "직업정보",
                     style = DitoTypography.headlineMedium,
                     color = Color.Black
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 설명 텍스트
+            Text(
+                text = "디토 AI가 보다 정확한 솔루션을\n제공하기 위해 필요해요.",
+                style = DitoCustomTextStyles.titleDMedium,
+                color = Color.Black,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // 직업 선택 영역
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 0.dp),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(30.dp)
             ) {
-                Text(
-                    text = "직업",
-                    style = DitoCustomTextStyles.titleDLarge,
-                    color = Color.Black,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
 
                 JobButton(
                     text = "학생",
@@ -133,7 +139,7 @@ fun SignUpJobScreen(
                 )
 
                 JobButton(
-                    text = "직장인",
+                    text = "회사원",
                     isSelected = uiState.selectedJob == "EMPLOYEE",
                     onClick = { viewModel.onJobSelect("EMPLOYEE") }
                 )
@@ -174,7 +180,7 @@ private fun JobButton(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(44.dp)
             .hardShadow(DitoHardShadow.ButtonLarge.copy(cornerRadius = 4.dp))
             .clip(RoundedCornerShape(4.dp))
             .background(backgroundColor)
@@ -184,7 +190,7 @@ private fun JobButton(
     ) {
         Text(
             text = text,
-            style = DitoCustomTextStyles.titleDLarge,
+            style = DitoCustomTextStyles.titleDMedium,
             color = textColor
         )
     }

@@ -84,7 +84,7 @@ fun SignUpProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                    .padding(start = 32.dp, end = 32.dp, bottom = 100.dp)
+                    .padding(start = 32.dp, end = 32.dp, bottom = 130.dp)
             ) {
                 LargeSignUpButton(
                     text = "Next",
@@ -116,6 +116,7 @@ fun SignUpProfileScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 뒤로가기 버튼
             Image(
                 painter = painterResource(id = R.drawable.angle_left),
                 contentDescription = "뒤로가기",
