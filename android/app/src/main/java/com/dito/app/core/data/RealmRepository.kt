@@ -1,6 +1,8 @@
 package com.dito.app.core.data
 
 import android.util.Log
+import com.dito.app.core.data.phone.AppUsageEvent
+import com.dito.app.core.data.phone.MediaSessionEvent
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
 import org.mongodb.kbson.BsonObjectId
@@ -17,15 +19,15 @@ object RealmRepository {
     // Track 2 전용 쿼리 (배치 전송용)
     fun getUnsyncedAppEvents(): List<AppUsageEvent> {
         return realm.query<AppUsageEvent>(
-            "trackType == $0 AND synced == false",
-            "TRACK_2"
+            "synced == false AND eventType == $0",
+            "APP_CLOSE"
         ).find()
     }
 
     fun getUnsyncedMediaEvents(): List<MediaSessionEvent> {
         return realm.query<MediaSessionEvent>(
-            "trackType == $0 AND synced == false",
-            "TRACK_2"
+            "synced == false AND eventType == $0",
+            "VIDEO_END"
         ).find()
     }
 

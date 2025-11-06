@@ -10,11 +10,12 @@ object Checker {
     private const val TAG = "Checker"
 
     //테스트 모드 & 배포 모드
-    const val TEST_CHECKER_MS = 10 * 1000L //10초
+    const val TEST_CHECKER_MS = 20 * 1000L //20초
     const val PRODUCTION_CHECKER_MS = 30 * 60 * 1000L //30분
 
     private val TARGET_APPS = setOf(
-        "com.google.android.youtube" // 추후 sns, 숏폼 추가
+        "com.google.android.youtube", // 추후 sns, 숏폼 추가
+        "com.instagram.android"
     )
 
     private val sentCache = ConcurrentHashMap<String, Long>() //최근에 AI 호출한 이벤트를 기록 -> 중복 호출 방지

@@ -38,6 +38,9 @@ data class AIRunResponse(
     @SerialName("run_id")
     val runId: String,
 
+    @SerialName("thread_id")
+    val threadId: String,
+
     @SerialName("status")
     val status: String,
 

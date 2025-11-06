@@ -96,8 +96,10 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier
-                        .padding(horizontal = 24.dp)
-                        .padding(vertical = 4.dp)
+                        .fillMaxWidth()
+                        .padding(end = 38.dp)
+                        .padding(vertical = 4.dp),
+                    textAlign = TextAlign.End
                 )
             }
 
