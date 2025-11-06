@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.dito.app.core.data.RealmRepository
-import com.dito.app.core.service.UsageStatsHelper
+import com.dito.app.core.service.phone.UsageStatsHelper
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager

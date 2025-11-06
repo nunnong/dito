@@ -1,16 +1,22 @@
-package com.dito.app.core.service
+package com.dito.app.core.service.phone
 
 import android.accessibilityservice.AccessibilityService
-import com.dito.app.core.data.AppUsageEvent
-import com.dito.app.core.data.RealmConfig
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import com.dito.app.core.data.RealmConfig
+import com.dito.app.core.data.phone.AppUsageEvent
 import com.dito.app.core.network.BehaviorLog
+import com.dito.app.core.service.AIAgent
+import com.dito.app.core.service.Checker
 import dagger.hilt.android.AndroidEntryPoint
-import io.realm.kotlin.ext.query
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint

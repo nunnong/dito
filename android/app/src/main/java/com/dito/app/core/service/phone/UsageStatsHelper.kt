@@ -1,14 +1,16 @@
-package com.dito.app.core.service
+package com.dito.app.core.service.phone
 
 import android.app.AppOpsManager
-import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.os.Process
 import android.provider.Settings
 import android.util.Log
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 // 앱 사용 시간 조회
 object UsageStatsHelper {
@@ -19,7 +21,7 @@ object UsageStatsHelper {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = appOps.checkOpNoThrow(
             AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
+            Process.myUid(),
             context.packageName
         )
         return mode == AppOpsManager.MODE_ALLOWED
@@ -54,7 +56,9 @@ object UsageStatsHelper {
             if (it.totalTimeInForeground > 0) {
                 Log.d(
                     TAG,
-                    "${it.packageName} - ${it.totalTimeInForeground / 1000 / 60}분 (마지막: ${format.format(Date(it.lastTimeUsed))})"
+                    "${it.packageName} - ${it.totalTimeInForeground / 1000 / 60}분 (마지막: ${format.format(
+                        Date(it.lastTimeUsed)
+                    )})"
                 )
             }
         }
@@ -138,4 +142,3 @@ object UsageStatsHelper {
         Log.d(TAG, "총 스크린 타임: ${hours}시간 ${remainingMinutes}분")
     }
 }
-

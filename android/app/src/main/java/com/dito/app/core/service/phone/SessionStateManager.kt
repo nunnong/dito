@@ -1,15 +1,18 @@
-package com.dito.app.core.service
+package com.dito.app.core.service.phone
 
 import android.content.Context
 import android.media.MediaMetadata
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import com.dito.app.core.data.MediaSessionEvent
 import com.dito.app.core.data.RealmConfig
+import com.dito.app.core.data.phone.MediaSessionEvent
 import com.dito.app.core.network.BehaviorLog
+import com.dito.app.core.service.AIAgent
+import com.dito.app.core.service.Checker
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class SessionStateManager(
     private val context: Context,
