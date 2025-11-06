@@ -49,7 +49,7 @@ public class AuthService {
     }
 
     public boolean checkPersonalId(String personalId) {
-        return userRepository.existsByPersonalId(personalId);
+        return !userRepository.existsByPersonalId(personalId);
     }
 
     @Transactional

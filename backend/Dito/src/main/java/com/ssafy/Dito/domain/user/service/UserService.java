@@ -2,6 +2,7 @@ package com.ssafy.Dito.domain.user.service;
 
 import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
 import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
+import com.ssafy.Dito.domain.user.dto.response.MainRes;
 import com.ssafy.Dito.domain.user.dto.response.ProfileRes;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.exception.DuplicatedNicknameException;
@@ -19,6 +20,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserQueryRepository userQueryRepository;
 
+    @Transactional(readOnly = true)
     public ProfileRes getProfile() {
         long userId = JwtAuthentication.getUserId();
         return userQueryRepository.getProfile(userId);
@@ -46,5 +48,12 @@ public class UserService {
         user.updateFrequency(req);
 
         userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public MainRes getMainPage() {
+        long userId = JwtAuthentication.getUserId();
+
+        return userQueryRepository.getMainPage(userId);
     }
 }
