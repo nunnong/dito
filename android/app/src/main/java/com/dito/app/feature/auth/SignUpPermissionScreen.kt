@@ -18,12 +18,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
+import com.dito.app.core.util.PermissionHelper
 
 /** 회원가입 화면 - 4단계: 사용 권한 허용 */
 @Composable
@@ -42,6 +47,26 @@ fun SignUpPermissionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 화면이 다시 보일 때마다 권한 상태 확인
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.checkPermissions(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // 초기 권한 상태 확인
+    LaunchedEffect(Unit) {
+        viewModel.checkPermissions(context)
+    }
 
     LaunchedEffect(uiState.navigateToNext) {
         if (uiState.navigateToNext) {
@@ -137,7 +162,11 @@ fun SignUpPermissionScreen(
                     title = "접근성 권한 허용",
                     description = "앱 사용 패턴을 자동으로 분석하기 위해 필요해요.",
                     isGranted = uiState.accessibilityPermission,
-                    onToggle = { viewModel.onAccessibilityPermissionChange(it) },
+                    onToggle = {
+                        if (!uiState.accessibilityPermission) {
+                            PermissionHelper.openAccessibilitySettings(context)
+                        }
+                    },
                     showTopBorder = true
                 )
 
@@ -145,7 +174,11 @@ fun SignUpPermissionScreen(
                     title = "사용정보 접근 허용",
                     description = "스크린 타임과 앱 사용 기록을 추적하기 위해 필요해요.",
                     isGranted = uiState.usageStatsPermission,
-                    onToggle = { viewModel.onUsageStatsPermissionChange(it) },
+                    onToggle = {
+                        if (!uiState.usageStatsPermission) {
+                            PermissionHelper.openUsageStatsSettings(context)
+                        }
+                    },
                     showTopBorder = true
                 )
 
@@ -153,7 +186,11 @@ fun SignUpPermissionScreen(
                     title = "알림 허용",
                     description = "디토 AI의 맞춤 조언과 미션 알림을 받을 수 있어요.",
                     isGranted = uiState.notificationPermission,
-                    onToggle = { viewModel.onNotificationPermissionChange(it) },
+                    onToggle = {
+                        if (!uiState.notificationPermission) {
+                            PermissionHelper.openNotificationSettings(context)
+                        }
+                    },
                     showTopBorder = true
                 )
             }

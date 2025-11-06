@@ -1,6 +1,8 @@
 package com.dito.app.feature.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.dito.app.core.util.PermissionHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,16 +23,17 @@ class SignUpPermissionViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(SignUpPermissionUiState())
     val uiState: StateFlow<SignUpPermissionUiState> = _uiState.asStateFlow()
 
-    fun onAccessibilityPermissionChange(granted: Boolean) {
-        _uiState.update { it.copy(accessibilityPermission = granted) }
-    }
-
-    fun onUsageStatsPermissionChange(granted: Boolean) {
-        _uiState.update { it.copy(usageStatsPermission = granted) }
-    }
-
-    fun onNotificationPermissionChange(granted: Boolean) {
-        _uiState.update { it.copy(notificationPermission = granted) }
+    /**
+     * 현재 권한 상태를 확인하여 UI 상태 업데이트
+     */
+    fun checkPermissions(context: Context) {
+        _uiState.update {
+            it.copy(
+                accessibilityPermission = PermissionHelper.isAccessibilityPermissionGranted(context),
+                usageStatsPermission = PermissionHelper.isUsageStatsPermissionGranted(context),
+                notificationPermission = PermissionHelper.isNotificationPermissionGranted(context)
+            )
+        }
     }
 
     fun onLetsStartClicked() {
