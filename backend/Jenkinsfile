@@ -108,7 +108,7 @@ pipeline {
           script {
             sh '''#!/bin/bash -e
               echo "========================================="
-              echo "Starting Zero-Downtime Deployment"
+              echo "Starting Zero-Downtime Deployment (Blue-Green)"
               echo "New Image: ${DOCKER_IMAGE}"
               echo "========================================="
 
@@ -117,25 +117,57 @@ pipeline {
 
               if [ -n "$OLD_CONTAINER" ]; then
                 echo "Found existing container: $OLD_CONTAINER"
-                echo "Will perform rolling update..."
+                echo "Will keep it running until new container is healthy..."
               else
                 echo "No existing container found. First deployment."
               fi
 
-              # 환경변수 파일로 Docker Compose 이미지 태그 설정
-              export APP_IMAGE="${DOCKER_IMAGE}"
+              # 이전 실패한 임시 컨테이너 정리
+              echo "Cleaning up any previous failed deployment..."
+              docker rm -f dito-app-new 2>/dev/null || true
 
-              # 기존 app 컨테이너 중지 및 제거 (네트워크 재연결 위해)
-              echo "Stopping and removing old app container..."
-              docker rm -f dito-app 2>/dev/null || true
-              docker compose -f docker-compose.yml rm -f app || true
+              # .env 파일 읽기
+              set -a
+              source .env
+              set +a
 
-              # 새 컨테이너 시작 (--force-recreate로 완전히 새로 생성)
-              echo "Starting new container with image: ${DOCKER_IMAGE}..."
-              docker compose --env-file .env -f docker-compose.yml up -d --force-recreate --no-deps app
+              # 새 컨테이너를 임시 이름으로 시작 (dito-app-new)
+              echo "Starting new container as 'dito-app-new' with image: ${DOCKER_IMAGE}..."
 
+              docker run -d \
+                --name dito-app-new \
+                --network dito-network \
+                --env-file .env \
+                -e SPRING_DATASOURCE_URL="jdbc:postgresql://dito-postgres:5432/${DB_NAME:-dito}" \
+                -e SPRING_DATASOURCE_USERNAME="${DB_USER:-dito}" \
+                -e SPRING_DATASOURCE_PASSWORD="${DB_PASSWORD:-dito2025}" \
+                -e SPRING_DATA_REDIS_HOST=dito-redis \
+                -e SPRING_DATA_REDIS_PORT=6379 \
+                -e SPRING_DATA_REDIS_PASSWORD="${REDIS_PASSWORD:-dito2025}" \
+                -e EXTERNALS_REDIS_HOST=dito-redis \
+                -e EXTERNALS_REDIS_PORT=6379 \
+                -e EXTERNALS_REDIS_PASSWORD="${REDIS_PASSWORD:-dito2025}" \
+                -e SPRING_JPA_HIBERNATE_DDL_AUTO="${DDL_AUTO:-validate}" \
+                -e SPRING_JPA_SHOW_SQL="${SHOW_SQL:-false}" \
+                -e SPRING_FLYWAY_ENABLED="${FLYWAY_ENABLED:-true}" \
+                -e SPRING_PROFILES_ACTIVE="${SPRING_PROFILE:-prod}" \
+                -e SERVER_PORT=8080 \
+                -e JWT_SECRET="${JWT_SECRET}" \
+                -e JWT_ACCESS_EXPIRATION=604800000 \
+                -e JWT_REFRESH_EXPIRATION=604800000 \
+                -e LOGGING_LEVEL_ROOT="${LOG_LEVEL:-INFO}" \
+                -e LOGGING_LEVEL_COM_SSAFY="${APP_LOG_LEVEL:-DEBUG}" \
+                -p 8081:8080 \
+                --restart unless-stopped \
+                --health-cmd="wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1" \
+                --health-interval=10s \
+                --health-timeout=5s \
+                --health-retries=10 \
+                --health-start-period=60s \
+                "${DOCKER_IMAGE}"
 
-              echo "New container started. Waiting for health check..."
+              echo "New container started. Container will be validated in next stage..."
+              echo "Old container is still serving traffic."
             '''
           }
         }
@@ -144,62 +176,150 @@ pipeline {
 
 
 
-    stage('Health Check') {
+    stage('Health Check & Swap') {
       steps {
         script {
           try {
-            // 최대 10번, 10초 간격으로 재시도
-            retry(10) {
-              sh '''
-                set -e
+            dir("${BACKEND_DIR}") {
+              sh '''#!/bin/bash -e
+                echo "========================================="
+                echo "Validating New Container Health"
+                echo "========================================="
 
-                APP_PORT="${APP_PORT:-8080}"
-                URL="http://localhost:${APP_PORT}/actuator/health"
+                # 1. Docker healthcheck가 healthy가 될 때까지 대기 (최대 120초)
+                echo "Waiting for Docker healthcheck to become healthy..."
+                TIMEOUT=120
+                ELAPSED=0
 
-                # 상태코드만 추출 (에러여도 종료하지 않도록 || true)
-                CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+                while [ $ELAPSED -lt $TIMEOUT ]; do
+                  HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' dito-app-new 2>/dev/null || echo "none")
 
-                if [ "$CODE" = "200" ] || [ "$CODE" = "403" ]; then
-                  echo "Health check passed with HTTP $CODE"
-                  exit 0
-                else
-                  echo "Health not ready yet (HTTP $CODE). Retrying..."
-                  sleep 10
+                  echo "[${ELAPSED}s] Container health status: $HEALTH_STATUS"
+
+                  if [ "$HEALTH_STATUS" = "healthy" ]; then
+                    echo "✓ Container is healthy!"
+                    break
+                  elif [ "$HEALTH_STATUS" = "unhealthy" ]; then
+                    echo "✗ Container is unhealthy. Check logs below:"
+                    docker logs --tail=100 dito-app-new
+                    exit 1
+                  fi
+
+                  sleep 5
+                  ELAPSED=$((ELAPSED + 5))
+                done
+
+                if [ $ELAPSED -ge $TIMEOUT ]; then
+                  echo "✗ Health check timeout after ${TIMEOUT}s"
+                  echo "Container logs:"
+                  docker logs --tail=100 dito-app-new
                   exit 1
                 fi
+
+                # 2. 추가 HTTP health check (포트 8081)
+                echo ""
+                echo "Performing additional HTTP health check on port 8081..."
+
+                MAX_ATTEMPTS=10
+                for i in $(seq 1 $MAX_ATTEMPTS); do
+                  CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081/actuator/health" || echo "000")
+
+                  if [ "$CODE" = "200" ] || [ "$CODE" = "403" ]; then
+                    echo "✓ HTTP health check passed with status $CODE"
+                    break
+                  else
+                    echo "Attempt $i/$MAX_ATTEMPTS: HTTP $CODE, retrying..."
+                    if [ $i -eq $MAX_ATTEMPTS ]; then
+                      echo "✗ HTTP health check failed after $MAX_ATTEMPTS attempts"
+                      exit 1
+                    fi
+                    sleep 5
+                  fi
+                done
+
+                echo ""
+                echo "========================================="
+                echo "✓ All health checks passed!"
+                echo "Swapping containers..."
+                echo "========================================="
+
+                # 3. 기존 컨테이너 중지 및 제거
+                OLD_CONTAINER=$(docker ps -q -f name=dito-app) || true
+                if [ -n "$OLD_CONTAINER" ]; then
+                  echo "Stopping old container: $OLD_CONTAINER"
+                  docker stop dito-app || true
+                  docker rm dito-app || true
+                fi
+
+                # 4. 새 컨테이너 중지 및 제거
+                echo "Stopping temporary container dito-app-new..."
+                docker stop dito-app-new || true
+                docker rm dito-app-new || true
+
+                # 5. Docker Compose로 정식 컨테이너 시작
+                echo "Starting production container with docker-compose..."
+                export APP_IMAGE="${DOCKER_IMAGE}"
+                docker compose --env-file .env -f docker-compose.yml up -d app
+
+                # 6. 최종 확인
+                echo ""
+                echo "Waiting for production container to be ready..."
+                sleep 10
+
+                FINAL_STATUS=$(docker inspect --format='{{.State.Health.Status}}' dito-app 2>/dev/null || echo "starting")
+                echo "Production container status: $FINAL_STATUS"
+
+                echo ""
+                echo "========================================="
+                echo "✓ Deployment Successful!"
+                echo "========================================="
               '''
             }
-            echo "Health check succeeded! Deployment successful."
+            echo "Health check and container swap completed successfully!"
           } catch (Exception e) {
-            echo "Health check failed! Starting rollback..."
+            echo "Health check failed! Rolling back..."
             dir("${BACKEND_DIR}") {
               sh '''#!/bin/bash
                 echo "========================================="
-                echo "HEALTH CHECK FAILED - ROLLING BACK"
+                echo "✗ HEALTH CHECK FAILED - ROLLING BACK"
                 echo "========================================="
 
-                # 실패한 컨테이너 로그 출력
+                # 실패한 새 컨테이너 로그 출력
                 echo "Failed container logs:"
-                docker compose -f docker-compose.yml logs --tail=50 app || true
+                docker logs --tail=100 dito-app-new 2>/dev/null || echo "No logs available"
 
-                # 새 컨테이너 종료
-                echo "Stopping failed container..."
-                docker compose -f docker-compose.yml down app || true
+                # 새 컨테이너만 제거 (기존 컨테이너는 유지!)
+                echo ""
+                echo "Removing failed container dito-app-new..."
+                docker rm -f dito-app-new 2>/dev/null || true
 
-                # latest-stable 이미지 확인
-                STABLE_IMAGE="${IMAGE_NAME}:${STABLE_TAG}"
-                if docker image inspect "$STABLE_IMAGE" >/dev/null 2>&1; then
-                  echo "Rollback to stable image: $STABLE_IMAGE"
-                  export APP_IMAGE="$STABLE_IMAGE"
-                  docker compose -f docker-compose.yml up -d app
-                  echo "Rollback completed. Service restored with previous version."
+                # 기존 컨테이너 상태 확인
+                OLD_CONTAINER=$(docker ps -q -f name=dito-app) || true
+                if [ -n "$OLD_CONTAINER" ]; then
+                  echo "✓ Old container (dito-app) is still running"
+                  echo "Service is not interrupted!"
                 else
-                  echo "WARNING: No stable image found. Service is down!"
-                  echo "Please deploy a working version manually."
+                  echo "⚠ No running container found!"
+                  echo "Attempting to start with latest-stable image..."
+
+                  STABLE_IMAGE="${IMAGE_NAME}:${STABLE_TAG}"
+                  if docker image inspect "$STABLE_IMAGE" >/dev/null 2>&1; then
+                    echo "Starting container with stable image: $STABLE_IMAGE"
+                    export APP_IMAGE="$STABLE_IMAGE"
+                    docker compose -f docker-compose.yml up -d app
+                    echo "✓ Service restored with previous stable version"
+                  else
+                    echo "✗ No stable image found. Manual intervention required!"
+                  fi
                 fi
+
+                echo ""
+                echo "========================================="
+                echo "Rollback completed"
+                echo "========================================="
               '''
             }
-            error("Deployment failed and rolled back")
+            error("Deployment failed. Old container preserved, new container removed.")
           }
         }
       }
