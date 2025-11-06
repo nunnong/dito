@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 public record ProfileRes(
+    long userId,
     String personalId,
     String nickname,
     LocalDate birth,

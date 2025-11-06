@@ -1,7 +1,9 @@
 package com.ssafy.Dito.domain.user.repository;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
 import com.ssafy.Dito.domain.item.entity.QItem;
 import com.ssafy.Dito.domain.item.entity.Type;
@@ -10,6 +12,8 @@ import com.ssafy.Dito.domain.user.dto.response.MainRes;
 import com.ssafy.Dito.domain.user.dto.response.ProfileRes;
 import com.ssafy.Dito.domain.user.dto.response.QMainRes;
 import com.ssafy.Dito.domain.user.dto.response.QProfileRes;
+import com.ssafy.Dito.domain.user.dto.response.QUserInfoRes;
+import com.ssafy.Dito.domain.user.dto.response.UserInfoRes;
 import com.ssafy.Dito.domain.user.entity.QUser;
 import com.ssafy.Dito.domain.user.userItem.entity.QUserItem;
 import com.ssafy.Dito.domain.weaklyGoal.entity.QWeeklyGoal;
@@ -30,6 +34,7 @@ public class UserQueryRepository {
     public ProfileRes getProfile(long userId) {
         ProfileRes res = jpaQueryFactory
             .select(new QProfileRes(
+                user.id,
                 user.personalId,
                 user.nickname,
                 user.birth,
@@ -92,6 +97,38 @@ public class UserQueryRepository {
             .where(user.id.eq(userId))
             .fetchOne();
 
+        return res;
+    }
+
+    public UserInfoRes getUserInfoForAi(AiReq req) {
+        long userId = req.userId();
+
+        UserInfoRes res = jpaQueryFactory
+            .select(Projections.constructor(
+                UserInfoRes.class,
+                user.id,
+                user.personalId,
+                user.nickname,
+                user.birth,
+                user.gender,
+                user.job,
+                user.coinBalance,
+                user.frequency,
+                user.lastLoginAt,
+                user.createdAt,
+                user.fcmToken,
+                status.selfCareStat,
+                status.focusStat,
+                status.sleepStat
+            ))
+            .from(user)
+            .join(status).on(status.user.id.eq(user.id))
+            .where(user.id.eq(userId))
+            .fetchOne();
+
+        if (res == null) {
+            throw new NotFoundUserException();
+        }
         return res;
     }
 }

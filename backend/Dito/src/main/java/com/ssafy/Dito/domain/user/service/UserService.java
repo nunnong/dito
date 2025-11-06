@@ -1,9 +1,11 @@
 package com.ssafy.Dito.domain.user.service;
 
+import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
 import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
 import com.ssafy.Dito.domain.user.dto.response.MainRes;
 import com.ssafy.Dito.domain.user.dto.response.ProfileRes;
+import com.ssafy.Dito.domain.user.dto.response.UserInfoRes;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.exception.DuplicatedNicknameException;
 import com.ssafy.Dito.domain.user.repository.UserQueryRepository;
@@ -55,5 +57,9 @@ public class UserService {
         long userId = JwtAuthentication.getUserId();
 
         return userQueryRepository.getMainPage(userId);
+    }
+
+    public UserInfoRes getUserInfoForAi(AiReq req) {
+        return userQueryRepository.getUserInfoForAi(req);
     }
 }

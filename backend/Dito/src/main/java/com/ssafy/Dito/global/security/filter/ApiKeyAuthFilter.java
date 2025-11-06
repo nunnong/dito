@@ -27,9 +27,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         // /fcm/send 경로에만 이 필터 적용
         return !path.equals("/fcm/send")
-            && !path.equals("/weekly-goal/user")
-            && !path.equals("/mission/ai")
-            && !path.equals("/mission-result");
+            && !path.equals("/api/ai");
     }
 
     @Override

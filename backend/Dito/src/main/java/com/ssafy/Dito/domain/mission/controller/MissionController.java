@@ -37,22 +37,4 @@ public class MissionController {
         Page<MissionRes> res = missionService.getMissions(page_number);
         return ApiResponse.ok(res);
     }
-
-    // <AI> 미션 등록
-    @PostMapping("/ai")
-    public ResponseEntity<CommonResult> createMission(
-            @Valid @RequestBody MissionReq req
-    ) {
-        missionService.createMission(req);
-        return ApiResponse.ok();
-    }
-
-    // <AI> 미션 조회
-    @GetMapping("/ai")
-    public ResponseEntity<ListResult<AiMissionRes>> getMissionForAi(
-        @RequestBody AiMissionReq req
-    ) {
-        List<AiMissionRes> res = missionService.getMissionForAi(req);
-        return ApiResponse.ok(res);
-    }
 }
