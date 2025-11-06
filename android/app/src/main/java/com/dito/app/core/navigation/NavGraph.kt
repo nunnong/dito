@@ -12,6 +12,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.LoginScreen
+import com.dito.app.feature.auth.SignUpProfileScreen
 import com.dito.app.feature.home.HomeScreen // Added import for HomeScreen
 import kotlinx.coroutines.delay
 
@@ -61,19 +62,29 @@ fun DitoNavGraph(
             )
         }
 
-        // 4) 회원가입 2단계: 프로필 정보 입력 (임시 화면)
-//        composable(
-//            route = Route.SignUpProfile.path,
-//            arguments = listOf(
-//                navArgument("username") { type = NavType.StringType },
-//                navArgument("password") { type = NavType.StringType }
-//            )
-//        ) { backStackEntry ->
-//            val username = backStackEntry.arguments?.getString("username") ?: ""
-//            val password = backStackEntry.arguments?.getString("password") ?: ""
-//            // TODO: Implement SignUpProfileScreen and pass username/password
-//            Text(text = "SignUpProfile Screen: Username = $username, Password = $password")
-//        }
+        // 4) 회원가입 2단계: 프로필 정보 입력
+        composable(
+            route = Route.SignUpProfile.path,
+            arguments = listOf(
+                navArgument("username") { type = NavType.StringType },
+                navArgument("password") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString("username") ?: ""
+            val password = backStackEntry.arguments?.getString("password") ?: ""
+            SignUpProfileScreen(
+                username = username,
+                password = password,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToNext = { username, password, nickname, birthYear, birthMonth, birthDay, gender ->
+                    // TODO: Here you might want to use these parameters to finalize sign-up or pass them to the Home screen
+                    navController.navigate(Route.Home.path) {
+                        popUpTo(Route.Login.path) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            ) // Assuming SignUpProfileScreen exists
+        }
 
         // 5) 메인 화면 (Home) - Added new composable block for HomeScreen
         composable(Route.Home.path) {
