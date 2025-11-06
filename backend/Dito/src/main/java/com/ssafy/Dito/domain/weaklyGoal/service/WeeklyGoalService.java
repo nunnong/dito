@@ -9,6 +9,7 @@ import com.ssafy.Dito.domain.weaklyGoal.dto.response.UserWeeklyGoalRes;
 import com.ssafy.Dito.domain.weaklyGoal.entity.WeeklyGoal;
 import com.ssafy.Dito.domain.weaklyGoal.repository.WeeklyGoalQueryRepository;
 import com.ssafy.Dito.domain.weaklyGoal.repository.WeeklyGoalRepository;
+import com.ssafy.Dito.global.exception.DuplicateException;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,11 @@ public class WeeklyGoalService {
     @Transactional
     public void createWeeklyGoal(WeeklyGoalReq req) {
         long userId = JwtAuthentication.getUserId();
+
+        if(weeklyGoalRepository.existsById(userId)){
+            throw new DuplicateException("주간목표");
+        }
+
         User user = userRepository.getById(userId);
 
         WeeklyGoal weeklyGoal = WeeklyGoal.of(req, user);
