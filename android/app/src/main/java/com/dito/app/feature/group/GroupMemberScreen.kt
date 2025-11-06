@@ -37,7 +37,6 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.Primary
-import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.Spacing.m
 import com.dito.app.core.ui.designsystem.Spacing.s
 import com.dito.app.core.ui.designsystem.hardShadow
