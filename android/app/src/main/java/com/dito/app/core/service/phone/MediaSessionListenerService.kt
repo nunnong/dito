@@ -116,6 +116,9 @@ class MediaSessionListenerService : NotificationListenerService() {
         super.onDestroy()
 
         try {
+
+            sessionManager.cleanup()
+
             activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
             activeControllers.clear()
         } catch (e: Exception) {

@@ -35,7 +35,7 @@ class SessionStateManager(
     data class ActiveSession(
         var title: String,
         var channel: String,
-        var bestChannel: String? = null,
+        var bestChannel: String,
         var appPackage: String,
         var duration: Long,
         var startTime: Long,
@@ -48,86 +48,132 @@ class SessionStateManager(
         appPackage: String
     ) {
         val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE) ?: ""
-        val channel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: "알 수 없음"
+        val rawChannel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: ""
+
+
+        val channel = rawChannel.ifBlank { "알 수 없음" }
+
         val duration = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
         val currentTime = System.currentTimeMillis()
 
-        if (title == lastSessionTitle && (currentTime - lastSessionTime) < SESSION_UPDATE_THRESHOLD) {
-            Log.d(TAG, "중복 세션 무시")
-            return
-        }
 
-        if (title.isEmpty() || title.isBlank()) {
+        if (title.isBlank()) {
             Log.d(TAG, "빈 제목 무시")
             return
         }
 
-        if (title == "YouTube" || title == "youtube" ||
-            channel == "m.youtube.com" || channel == "www.youtube.com"
-        ) {
+
+        if (title == "YouTube" || title == "youtube") {
             Log.d(TAG, "YouTube 로딩 중 - 대기")
             return
         }
 
+
+        val isValidChannel = channel != "알 수 없음" &&
+                channel != "m.youtube.com" &&
+                channel != "www.youtube.com" &&
+                channel != "YouTube" &&
+                channel != "youtube"
+
         Log.d(TAG, "재생 시작")
         Log.d(TAG, "   제목: $title")
-        Log.d(TAG, "   채널: $channel")
+        Log.d(TAG, "   채널: $channel (유효: $isValidChannel)")
 
 
         pendingSaveRunnable?.let { handler.removeCallbacks(it) }
         pendingSaveRunnable = null
 
         currentSession?.let { session ->
-            if (session.title != title) {
+            val isDifferentVideo = session.title != title
+            val isLongTimeSinceLastEvent = (currentTime - lastSessionTime) >= SESSION_UPDATE_THRESHOLD
+
+            if (isDifferentVideo) {
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(TAG, "다른 영상 감지: ${session.title} → $title")
                 Log.d(TAG, "즉시 저장 (영상 전환)")
-                Log.d(TAG, "bestChannel 사용: ${session.bestChannel ?: session.channel}")
+                Log.d(TAG, "bestChannel 사용: ${session.bestChannel}")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 saveSession(session)
 
-                // 새 세션 생성 시 초기 채널 설정
+
                 currentSession = ActiveSession(
                     title = title,
                     channel = channel,
-                    bestChannel = if (channel != "알 수 없음") channel else null,  // ✅ 추가
+                    bestChannel = if (isValidChannel) channel else "",
                     appPackage = appPackage,
                     duration = duration,
                     startTime = System.currentTimeMillis()
                 )
-                Log.d(TAG, "새 세션 생성 (재시작) - 초기 채널: $channel")
-            } else {
+                Log.d(TAG, "새 세션 생성 (다른 영상)")
+                Log.d(TAG, "  초기 channel: $channel")
+                Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) channel else ""}")
+
+            } else if (isLongTimeSinceLastEvent) {
+                // 같은 제목이지만 5초 이상 지남 → 재시작으로 간주
                 val elapsedTime = System.currentTimeMillis() - session.startTime
-                Log.d(TAG, "같은 영상 재시작 감지 (${elapsedTime / 1000}초 경과)")
-
-
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-                Log.d(TAG, "즉시 저장 (영상 전환)")
-                Log.d(TAG, "bestChannel 사용: ${session.bestChannel ?: session.channel}")
+                Log.d(TAG, "같은 영상 재시작 감지 (${elapsedTime / 1000}초 경과)")
+                Log.d(TAG, "즉시 저장 (재시작)")
+                Log.d(TAG, "bestChannel 사용: ${session.bestChannel}")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 saveSession(session)
 
-
+                // 새 세션 생성 (기존 bestChannel 유지)
                 currentSession = ActiveSession(
                     title = title,
-                    channel = session.bestChannel ?: channel,
-                    bestChannel = session.bestChannel,
+                    channel = session.bestChannel.ifBlank { channel },
+                    bestChannel = session.bestChannel.ifBlank { (if (isValidChannel) channel else "") },
                     appPackage = appPackage,
                     duration = duration,
                     startTime = System.currentTimeMillis()
                 )
-                Log.d(TAG, "새 세션 생성 (재시작) - 초기 채널: ${currentSession?.channel}")
+                Log.d(TAG, "새 세션 생성 (재시작)")
+                Log.d(TAG, "  channel: ${currentSession?.channel}")
+                Log.d(TAG, "  bestChannel: ${currentSession?.bestChannel}")
+
+            } else {
+
+                Log.d(TAG, "기존 세션 유지 (${currentTime - lastSessionTime}ms 경과)")
+
+                // 채널 업데이트
+                if (isValidChannel) {
+                    if (session.bestChannel.isBlank() || session.bestChannel != channel) {
+                        Log.d(TAG, "handlePlaybackStarted에서 채널 업데이트: ${session.channel} → $channel")
+                        session.channel = channel
+                        session.bestChannel = channel
+                    } else {
+                        Log.d(TAG, "채널 이미 설정됨: $channel")
+                    }
+                } else {
+                    Log.d(TAG, "유효하지 않은 채널이므로 업데이트 안 함: $channel")
+                }
+
+                // 일시정지 재개 처리
+                session.lastPauseTime?.let { pauseTime ->
+                    val pauseDuration = System.currentTimeMillis() - pauseTime
+                    session.totalPauseTime += pauseDuration
+                    session.lastPauseTime = null
+                    Log.d(TAG, "재생 재개 (일시정지: ${pauseDuration / 1000}초)")
+                }
+
+
+                lastSessionTitle = title
+                lastSessionTime = currentTime
+                return
             }
         } ?: run {
 
             currentSession = ActiveSession(
                 title = title,
                 channel = channel,
-                bestChannel = if (channel != "알 수 없음") channel else null,  // ✅ 추가
+                bestChannel = if (isValidChannel) channel else "",
                 appPackage = appPackage,
                 duration = duration,
                 startTime = System.currentTimeMillis()
             )
-            Log.d(TAG, "새 세션 생성 (첫 재생) - 초기 채널: $channel")
+            Log.d(TAG, "새 세션 생성 (첫 재생)")
+            Log.d(TAG, "  초기 channel: $channel")
+            Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) channel else ""}")
         }
 
         lastSessionTitle = title
@@ -185,44 +231,83 @@ class SessionStateManager(
     fun updateMetadata(metadata: MediaMetadata) {
         currentSession?.let { session ->
             val newTitle = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
-            val newChannel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+            val rawChannel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
 
-            // 제목 업데이트 (빈 문자열 무시)
+
+            val newChannel = if (rawChannel.isNullOrBlank()) "" else rawChannel
+
+
             if (!newTitle.isNullOrBlank() && newTitle != session.title) {
-                // YouTube 로딩 중 무시
                 if (newTitle == "YouTube" || newTitle == "youtube") {
                     Log.d(TAG, "YouTube 로딩 중 제목 무시")
                     return@let
                 }
 
-                Log.d(TAG, "제목 업데이트: ${session.title} → $newTitle")
-                session.title = newTitle
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(TAG, "⚠️ updateMetadata에서 제목 변경 감지!")
+                Log.d(TAG, "   이전: ${session.title}")
+                Log.d(TAG, "   새로운: $newTitle")
+                Log.d(TAG, "   → 다른 영상으로 간주, 기존 세션 즉시 저장")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
+
+                saveSession(session)
+
+
+                val isValidChannel = newChannel.isNotBlank() &&
+                        newChannel != "알 수 없음" &&
+                        newChannel != "m.youtube.com" &&
+                        newChannel != "www.youtube.com" &&
+                        newChannel != "YouTube" &&
+                        newChannel != "youtube"
+
+                currentSession = ActiveSession(
+                    title = newTitle,
+                    channel = if (isValidChannel) newChannel else "알 수 없음",
+                    bestChannel = if (isValidChannel) newChannel else "",
+                    appPackage = session.appPackage,
+                    duration = 0L,  // 새 영상이므로 duration은 나중에 업데이트됨
+                    startTime = System.currentTimeMillis()
+                )
+
                 lastSessionTitle = newTitle
+                lastSessionTime = System.currentTimeMillis()
+
+                Log.d(TAG, "새 세션 생성 (updateMetadata)")
+                Log.d(TAG, "  제목: $newTitle")
+                Log.d(TAG, "  초기 channel: ${if (isValidChannel) newChannel else "알 수 없음"}")
+                Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) newChannel else ""}")
+
+                return@let
             }
 
-            // 채널 업데이트 (빈 문자열 + 무효 값 무시)
-            if (!newChannel.isNullOrBlank() &&
-                newChannel != "알 수 없음" &&
-                newChannel != "m.youtube.com" &&
-                newChannel != "www.youtube.com") {
 
-                if (session.channel.isBlank() || session.channel == "알 수 없음") {
-                    // 처음으로 실제 채널명 받음
-                    Log.d(TAG, "updateMetadata에서 채널 업데이트: ${session.channel} → $newChannel")
-                    session.channel = newChannel
-                    session.bestChannel = newChannel
-                } else if (session.channel != newChannel) {
-                    // 채널명이 변경됨 (다른 영상)
-                    Log.d(TAG, "updateMetadata에서 채널 변경 감지: ${session.channel} → $newChannel")
-                    session.channel = newChannel
-                    session.bestChannel = newChannel
-                } else {
-                    // 같은 채널명 → bestChannel 보강
-                    if (session.bestChannel.isNullOrBlank()) {
+            if (newChannel.isNotBlank()) {
+                val isValidChannel = newChannel != "알 수 없음" &&
+                        newChannel != "m.youtube.com" &&
+                        newChannel != "www.youtube.com" &&
+                        newChannel != "YouTube" &&
+                        newChannel != "youtube"
+
+                if (isValidChannel) {
+                    if (session.bestChannel.isBlank()) {
+                        // 처음으로 유효한 채널명 받음
+                        Log.d(TAG, "updateMetadata에서 채널 업데이트: ${session.channel} → $newChannel")
+                        session.channel = newChannel
                         session.bestChannel = newChannel
-                        Log.d(TAG, "bestChannel 보강: $newChannel")
+                    } else if (session.bestChannel != newChannel) {
+                        // 채널명이 변경됨
+                        Log.w(TAG, "⚠️ updateMetadata에서 채널 변경 감지: ${session.bestChannel} → $newChannel (같은 제목)")
+                        session.channel = newChannel
+                        session.bestChannel = newChannel
+                    } else {
+                        Log.d(TAG, "updateMetadata: 이미 설정된 채널과 동일 ($newChannel)")
                     }
+                } else {
+                    Log.d(TAG, "updateMetadata: 유효하지 않은 채널 무시 ($newChannel)")
                 }
+            } else {
+                Log.d(TAG, "updateMetadata: 빈 채널명 무시")
             }
         }
     }
@@ -238,10 +323,21 @@ class SessionStateManager(
         }
 
 
-        val finalChannel = session.bestChannel ?: session.channel
+        val finalChannel = when {
+            session.bestChannel.isNotBlank() -> {
+                Log.d(TAG, "✅ bestChannel 사용: ${session.bestChannel}")
+                session.bestChannel
+            }
+            session.channel.isNotBlank() && session.channel != "알 수 없음" -> {
+                Log.d(TAG, "✅ channel 사용: ${session.channel}")
+                session.channel
+            }
+            else -> {
+                Log.w(TAG, "⚠️ 채널 정보 없음 → 기본값 사용")
+                "알 수 없는 채널"
+            }
+        }
 
-        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-        Log.d(TAG, "✅ bestChannel 사용: $finalChannel")
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
         Log.d(TAG, "세션 저장")
         Log.d(TAG, "   제목: ${session.title}")
@@ -266,7 +362,7 @@ class SessionStateManager(
             appPackage = session.appPackage
         )
 
-        val trackType = if (checkPoint != null) "TRACK_1" else "TRACK_2"
+        val trackType = "TRACK_2"
         val eventIds = mutableListOf<String>()
 
         try {
@@ -298,6 +394,7 @@ class SessionStateManager(
         }
 
         if (checkPoint != null) {
+            Log.d(TAG, "🤖 AI 실시간 호출 (배치 전송과 별개)")
             aiAgent.requestIntervention(
                 behaviorLog = BehaviorLog(
                     appName = checkPoint.appName,
@@ -319,5 +416,16 @@ class SessionStateManager(
     private fun formatDate(timestamp: Long): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return sdf.format(Date(timestamp))
+    }
+
+
+    fun cleanup() {
+        pendingSaveRunnable?.let { handler.removeCallbacks(it) }
+        pendingSaveRunnable = null
+
+        currentSession?.let { session ->
+            Log.d(TAG, "⚠️ 서비스 종료 → 남은 세션 즉시 저장")
+            saveSession(session)
+        }
     }
 }
