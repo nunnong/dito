@@ -3,11 +3,13 @@ package com.dito.app.core.repository
 import android.util.Log
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
+import com.dito.app.core.data.common.ApiErrorResponse
 import com.dito.app.core.fcm.FcmTokenManager
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +20,8 @@ import javax.inject.Singleton
 class AuthRepository @Inject constructor(
     private val apiService: ApiService,
     private val authTokenManager: AuthTokenManager,
-    private val fcmTokenManager: FcmTokenManager
+    private val fcmTokenManager: FcmTokenManager,
+    private val json: Json
 ) {
     companion object {
         private const val TAG = "AuthRepository"
@@ -143,5 +146,44 @@ class AuthRepository @Inject constructor(
      */
     fun isLoggedIn(): Boolean {
         return authTokenManager.isLoggedIn()
+    }
+
+    /**
+     * 아이디 중복 확인
+     * @param username 확인할 아이디
+     * @return 사용 가능하면 true, 아니면 false
+     */
+    suspend fun checkUsernameAvailability(username: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.checkUsername(username)
+            val responseBody = response.body()
+
+            if (response.isSuccessful && responseBody != null) {
+                if (responseBody.error == false) {
+                    // User confirmed: `data: true` means available.
+                    val isAvailable = responseBody.data ?: false // Default to not available if data is null
+                    Result.success(isAvailable)
+                } else {
+                    // Handle cases where the server returns 200 OK but with an error flag in the body.
+                    val errorMessage = responseBody.message ?: "이미 사용 중인 아이디입니다."
+                    Result.failure(Exception(errorMessage))
+                }
+            } else {
+                // Case 3: Non-2xx responses (e.g., 400, 500)
+                val errorBody = response.errorBody()?.string()
+                var errorMessage = "아이디 확인 실패" // Default error message
+                if (errorBody != null) {
+                    try {
+                        val errorResponse = json.decodeFromString<ApiErrorResponse>(errorBody)
+                        errorMessage = errorResponse.message ?: errorMessage
+                    } catch (e: Exception) {
+                        // Ignore if parsing fails, use default message
+                    }
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

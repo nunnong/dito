@@ -4,12 +4,15 @@ import com.dito.app.core.data.AppUsageBatchRequest
 import com.dito.app.core.data.BatchUploadResponse
 import com.dito.app.core.data.MediaSessionBatchRequest
 import com.dito.app.core.data.auth.AuthResponse
+import com.dito.app.core.data.auth.CheckUsernameResponse
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 //Retrofit API 서비스
 interface ApiService {
@@ -24,6 +27,11 @@ interface ApiService {
     suspend fun signUp(
         @Body request: SignUpRequest
     ): Response<AuthResponse>
+
+    @GET("/auth/check/personal-id")
+    suspend fun checkUsername(
+        @Query("personalId") username: String
+    ): Response<CheckUsernameResponse>
 
     // ========== Events ==========
     @POST("/event/app-usage")
