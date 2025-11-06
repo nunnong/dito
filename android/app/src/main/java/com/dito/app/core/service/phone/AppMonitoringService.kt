@@ -8,6 +8,7 @@ import com.dito.app.core.data.phone.AppUsageEvent
 import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
+import com.dito.app.core.service.mission.MissionTracker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,9 @@ class AppMonitoringService : AccessibilityService() {
 
     @Inject
     lateinit var aiAgent: AIAgent
+
+    @Inject
+    lateinit var missionTracker: MissionTracker
 
     @Volatile
     private var currentApp = ""
@@ -93,7 +97,26 @@ class AppMonitoringService : AccessibilityService() {
 
             // 3초 미만 무시
             if (duration >= MIN_USAGE_TIME) {
-                // ⭐ 무조건 TRACK_2로 저장 (배치 전송용)
+
+                val durationSeconds = (duration/1000).toInt()
+
+                if(missionTracker.isTracking()){
+
+                    val adjustedDuration = if (currentApp == "com.google.android.youtube") {
+                        durationSeconds
+                    } else {
+                        durationSeconds
+                    }
+
+                    missionTracker.onAppSwitch(
+                        packageName = currentApp,
+                        appName = getAppName(currentApp),
+                        durationSeconds = adjustedDuration
+                    )
+                }
+
+
+                // 무조건 TRACK_2로 저장 (배치 전송용)
                 saveToRealm(
                     packageName = currentApp,
                     startTime = currentAppStartTime,
@@ -131,11 +154,17 @@ class AppMonitoringService : AccessibilityService() {
                         duration = duration
                     )) {
 
+                    val adjustedDuration = if (packageName == "com.google.android.youtube") {
+                        duration * 1500
+                    } else {
+                        duration
+                    }
+
 
                     val (eventIds, appName) = saveToRealmForAI(
                         packageName = packageName,
                         startTime = startTime,
-                        duration = duration
+                        duration = adjustedDuration
                     )
 
                     if (eventIds.isNotEmpty()) {
@@ -143,7 +172,7 @@ class AppMonitoringService : AccessibilityService() {
                         aiAgent.requestIntervention(
                             behaviorLog = BehaviorLog(
                                 appName = appName,
-                                durationSeconds = (duration / 1000).toInt(),
+                                durationSeconds = (adjustedDuration / 1000).toInt(),
                                 usageTimestamp = Checker.formatTimestamp(currentTime)
                             ),
                             eventIds = eventIds
