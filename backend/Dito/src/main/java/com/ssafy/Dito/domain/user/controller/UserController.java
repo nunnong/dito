@@ -2,6 +2,7 @@ package com.ssafy.Dito.domain.user.controller;
 
 import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
 import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
+import com.ssafy.Dito.domain.user.dto.response.MainRes;
 import com.ssafy.Dito.domain.user.dto.response.ProfileRes;
 import com.ssafy.Dito.domain.user.service.UserService;
 import com.ssafy.Dito.global.dto.ApiResponse;
@@ -9,9 +10,7 @@ import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.annotations.Fetch;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +28,13 @@ public class UserController {
     @GetMapping
     public ResponseEntity<SingleResult<ProfileRes>> getProfile() {
         ProfileRes res = userService.getProfile();
+        return ApiResponse.ok(res);
+    }
+
+    // 메인 페이지 조회
+    @GetMapping("/main")
+    public ResponseEntity<SingleResult<MainRes>> getMainPage() {
+        MainRes res = userService.getMainPage();
         return ApiResponse.ok(res);
     }
 
