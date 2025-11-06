@@ -10,7 +10,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.dito.app.core.service.AIAgent
-import com.dito.app.core.service.phone.SessionStateManager
+import com.dito.app.core.service.mission.MissionTracker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -23,13 +23,16 @@ class MediaSessionListenerService : NotificationListenerService() {
 
     @Inject
     lateinit var aiAgent: AIAgent
+
+    @Inject
+    lateinit var missionTracker: MissionTracker
     private lateinit var sessionManager: SessionStateManager
 
     private val activeControllers = mutableMapOf<String, MediaController>()
 
     override fun onCreate() {
         super.onCreate()
-        sessionManager = SessionStateManager(applicationContext, aiAgent)
+        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
         Log.d(TAG, "SessionStateManager 초기화 완료")
     }
 

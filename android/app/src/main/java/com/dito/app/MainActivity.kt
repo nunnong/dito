@@ -59,10 +59,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    // 항상 스플래시 화면부터 시작
+                    // Splash → Login → (로그인 성공) → Test 화면 순서
                     DitoNavGraph(
                         navController = navController,
-                        startDestination =  Route.Splash.path
+                        startDestination = Route.Splash.path
                     )
                 }
             }

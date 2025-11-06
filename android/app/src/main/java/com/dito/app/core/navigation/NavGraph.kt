@@ -2,9 +2,12 @@ package com.dito.app.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.dito.app.MainActivity
+import com.dito.app.MainScreen
 import com.dito.app.feature.splash.SplashScreen
 import com.dito.app.feature.auth.LoginScreen
 import kotlinx.coroutines.delay
@@ -34,16 +37,25 @@ fun DitoNavGraph(
         composable(Route.Login.path) {
             LoginScreen(
                 onLoginSuccess = {
-                    // TODO: 홈으로 이동 등
-                    // navController.navigate(Route.Home.path) {
-                    //     popUpTo(Route.Login.path) { inclusive = true }
-                    //     launchSingleTop = true
-                    // }
+                    // 테스트용: 로그인 성공 시 Test 화면으로 이동
+                    navController.navigate(Route.Test.path) {
+                        popUpTo(Route.Login.path) { inclusive = true }
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToSignUp = {
                     // TODO: 회원가입 라우트 추가시 열기
                     // navController.navigate(Route.SignUp.path)
                 }
+            )
+        }
+
+        // 3) 테스트 화면 (권한 설정, Realm 확인 등)
+        composable(Route.Test.path) {
+            val activity = LocalContext.current as MainActivity
+            MainScreen(
+                activity = activity,
+                onNavigateToHealth = {}
             )
         }
     }

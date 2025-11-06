@@ -1,6 +1,7 @@
 package com.dito.app.core.data
 
 import android.util.Log
+import com.dito.app.core.data.mission.MissionTrackingLog
 import com.dito.app.core.data.phone.AppUsageEvent
 import com.dito.app.core.data.phone.MediaSessionEvent
 import io.realm.kotlin.Realm
@@ -18,7 +19,8 @@ object RealmConfig {
             val config = RealmConfiguration.Builder(
                 schema = setOf(
                     AppUsageEvent::class,
-                    MediaSessionEvent::class
+                    MediaSessionEvent::class,
+                    MissionTrackingLog::class
                 )
             )
                 .name("dito.realm")                     // 파일명

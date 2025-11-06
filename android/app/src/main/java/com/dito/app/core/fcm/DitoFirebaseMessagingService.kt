@@ -11,6 +11,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.dito.app.MainActivity
 import com.dito.app.R
+import com.dito.app.core.service.mission.MissionData
+import com.dito.app.core.service.mission.MissionTracker
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,6 +23,9 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class DitoFirebaseMessagingService : FirebaseMessagingService() {
+
+    @Inject
+    lateinit var missionTracker: MissionTracker
 
     @Inject
     lateinit var fcmTokenManager: FcmTokenManager
@@ -64,11 +69,18 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         message.data.let { data ->
             Log.d(TAG, "Data payload: $data")
 
-            val interventionId = data["interventionId"]
-            val title = data["title"] ?: "Dito"
-            val body = data["body"] ?: "새로운 intervention이 도착했습니다"
+            message.data.let { data ->
+                Log.d(TAG, "Data payload: $data")
 
-            showNotification(title, body, interventionId)
+                val interventionId = data["interventionId"]
+                val title = data["title"] ?: "Dito"
+                val body = data["body"] ?: "새로운 intervention이 도착했습니다"
+
+                showNotification(title, body, interventionId)
+            }
+
+
+
         }
 
         // Notification payload 처리 (Firebase Console에서 테스트 시)
@@ -148,4 +160,43 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             Log.d(TAG, "알림 채널 생성 완료: $CHANNEL_ID")
         }
     }
+
+    private fun handleMissionMessage(data: Map<String, String>) {
+        val missionId = data["mission_id"] ?: return
+        val missionType = data["mission_type"] ?: "REST"
+        val instruction = data["instruction"] ?: "미션을 수행하세요"
+        val duration = 30 //data["duration"]?.toIntOrNull() ?: 300
+        val targetAppsStr = data["target_apps"] ?: ""
+        val targetApps = if (targetAppsStr.isNotEmpty()) {
+            targetAppsStr.split(",").map { it.trim() }
+        } else {
+            listOf("com.google.android.youtube", "com.instagram.android")
+        }
+
+        Log.i(TAG, "🎯 미션 수신: $missionId")
+        Log.d(TAG, "   타입: $missionType")
+        Log.d(TAG, "   지시: $instruction")
+        Log.d(TAG, "   시간: ${duration}초")
+        Log.d(TAG, "   타겟 앱: ${targetApps.joinToString()}")
+
+        // 미션 추적 시작
+        missionTracker.startTracking(
+            MissionData(
+                missionId = missionId,
+                missionType = missionType,
+                instruction = instruction,
+                durationSeconds = duration,
+                targetApps = targetApps
+            )
+        )
+
+        // 알림 표시
+        showNotification(
+            title = "🎯 새로운 미션!",
+            body = "$instruction (보상: ${data["coin_reward"] ?: "100"} 코인)",
+            interventionId = missionId
+        )
+    }
 }
+
+

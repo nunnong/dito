@@ -12,4 +12,7 @@ sealed class Route(val path: String) {
     data object Shop : Route("shop")
     data object Closet : Route("closet")
     data object  Missions : Route("missions")
+
+    // Test
+    data object Test : Route("test")
 }

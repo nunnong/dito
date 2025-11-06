@@ -10,4 +10,9 @@ interface AIService {
     suspend fun sendToAI(
         @Body request: AIRunRequest
     ): Response<AIRunResponse>
+
+    @POST("/ai/evaluation")
+    suspend fun evaluationMission(
+        @Body request: AIEvaluationRequest
+    ): Response<AIEvaluationResponse>
 }

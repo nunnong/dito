@@ -1,10 +1,12 @@
 package com.dito.app.core.data
 
 import android.util.Log
+import com.dito.app.core.data.mission.MissionTrackingLog
 import com.dito.app.core.data.phone.AppUsageEvent
 import com.dito.app.core.data.phone.MediaSessionEvent
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
+import io.realm.kotlin.query.Sort
 import org.mongodb.kbson.BsonObjectId
 import java.text.SimpleDateFormat
 import java.util.*
@@ -127,5 +129,34 @@ object RealmRepository {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return sdf.format(Date())
     }
+
+    fun insertMissionLog(log: MissionTrackingLog){
+        realm.writeBlocking {
+            copyToRealm(log)
+        }
+    }
+
+    fun getMissionLogs(missionId: String): List<MissionTrackingLog>{
+        return realm.query<MissionTrackingLog>(
+            "missionId == $0 AND synced == false",
+            missionId
+        )
+            .sort("sequence", Sort.ASCENDING)
+            .find()
+    }
+
+    fun markMissionLogsSynced(missionId: String) {
+        var syncedCount = 0
+        realm.writeBlocking {
+            val logs = query<MissionTrackingLog>("missionId == $0", missionId).find()
+            logs.forEach {
+                it.synced = true
+                it.syncedAt = System.currentTimeMillis()
+            }
+            syncedCount = logs.size
+        }
+        Log.d(TAG, "✅ 미션 로그 ${syncedCount}개 synced 완료")
+    }
+
 
 }
