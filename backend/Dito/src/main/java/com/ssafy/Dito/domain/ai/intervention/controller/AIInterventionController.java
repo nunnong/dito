@@ -36,7 +36,7 @@ public class AIInterventionController {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
 
-    @Value("${ai.server.url:http://localhost:8000}")
+    @Value("${ai.server.url:http://52.78.96.102:8000}")
     private String aiServerUrl;
 
     /**
