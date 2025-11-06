@@ -10,13 +10,15 @@ import com.dito.app.core.data.phone.MediaSessionEvent
 import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
+import com.dito.app.core.service.mission.MissionTracker
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class SessionStateManager(
     private val context: Context,
-    private val aiAgent: AIAgent
+    private val aiAgent: AIAgent,
+    private val missionTracker: MissionTracker
 ) {
 
     companion object {
@@ -387,6 +389,16 @@ class SessionStateManager(
             }
 
             Log.d(TAG, "✅ Realm 저장 완료 ($trackType)")
+
+            if(missionTracker.isTracking()){
+                missionTracker.onMediaEvent(
+                    packageName = session.appPackage,
+                    videoTitle = session.title,
+                    channelName = finalChannel,
+                    watchTimeSeconds = (watchTime/1000).toInt(),
+                    eventType = "VIDEO_END"
+                )
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "❌ Realm 저장 실패", e)
