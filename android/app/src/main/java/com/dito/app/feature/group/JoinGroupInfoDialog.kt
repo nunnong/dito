@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,23 +20,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.app.core.ui.component.DitoModalContainer
-import com.dito.app.core.ui.designsystem.Background
-import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
-import com.dito.app.core.ui.designsystem.DitoShapes
-import com.dito.app.core.ui.designsystem.DitoTypography
-import com.dito.app.core.ui.designsystem.OnSurfaceVariant
-import com.dito.app.core.ui.designsystem.Outline
-import com.dito.app.core.ui.designsystem.PrimaryContainer
-import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.*
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Preview(showBackground = true)
 @Composable
-fun ChallengeDialog() {
-    var period by remember { mutableStateOf("") }
-    var goal by remember { mutableStateOf("") }
-    var penalty by remember { mutableStateOf("") }
+fun JoinGroupInfoDialog() {
     var bet by remember { mutableStateOf("") }
 
     Box(
@@ -47,18 +35,21 @@ fun ChallengeDialog() {
             .padding(horizontal = Spacing.l, vertical = Spacing.xl),
         contentAlignment = Alignment.Center
     ) {
-        DitoModalContainer(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = Color.White,
-            borderColor = Color.Black,
-            shadowColor = Color.Black,
-            contentPadding = PaddingValues(vertical = Spacing.l)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .hardShadow(
+                    offsetX = 6.dp,
+                    offsetY = 6.dp,
+                    cornerRadius = 32.dp,
+                    color = Color.Black
+                )
+                .clip(DitoShapes.extraLarge)
+                .border(1.dp, Color.Black, DitoShapes.extraLarge)
+                .background(Color.White)
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = Spacing.l)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-            ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -116,13 +107,13 @@ fun ChallengeDialog() {
                 )
                 Column {
                     Text(
-                        text = "팀원들과 함께 도전해봐요!",
+                        text = "방 정보",
                         color = Color.Black,
                         style = DitoCustomTextStyles.titleDMedium
                     )
                     Spacer(Modifier.height(Spacing.xs))
                     Text(
-                        text = "1등이 되면 모든 참가자의 배팅 금액을 가져요!",
+                        text = "챌린지 내용을 확인하고, 도전에 함께하세요!",
                         color = OnSurfaceVariant,
                         style = DitoTypography.labelSmall
                     )
@@ -137,32 +128,26 @@ fun ChallengeDialog() {
                     .fillMaxWidth()
                     .padding(horizontal = Spacing.m)
             ) {
-                ChallengeInputField(
+                ChallengeInfoField(
                     title = "기간(일수)",
-                    hint = "최소 1일 이상으로 입력해주세요.",
-                    iconRes = R.drawable.period,
-                    value = period,
-                    onValueChange = { period = it }
+                    content = "7일",
+                    iconRes = R.drawable.period
                 )
 
                 Spacer(Modifier.height(Spacing.m))
 
-                ChallengeInputField(
+                ChallengeInfoField(
                     title = "목표",
-                    hint = "예 : 유튜브 하루 2시간 이하",
-                    iconRes = R.drawable.goal,
-                    value = goal,
-                    onValueChange = { goal = it }
+                    content = "유튜브 하루 2시간 이하",
+                    iconRes = R.drawable.goal
                 )
 
                 Spacer(Modifier.height(Spacing.m))
 
-                ChallengeInputField(
+                ChallengeInfoField(
                     title = "벌칙",
-                    hint = "예 : 커피 사주기",
-                    iconRes = R.drawable.penalty,
-                    value = penalty,
-                    onValueChange = { penalty = it }
+                    content = "커피 사주기",
+                    iconRes = R.drawable.penalty
                 )
 
                 Spacer(Modifier.height(Spacing.m))
@@ -188,31 +173,28 @@ fun ChallengeDialog() {
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Background)
+                        .background(Color.White)
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "챌린지 방 만들기",
+                        text = "방 입장하기",
                         color = Color.Black,
                         style = DitoCustomTextStyles.titleDMedium
                     )
                 }
             }
 
-                Spacer(Modifier.height(Spacing.xl))
-            }
+            Spacer(Modifier.height(Spacing.xl))
         }
     }
 }
 
 @Composable
-fun ChallengeInputField(
+fun ChallengeInfoField(
     title: String,
-    hint: String,
-    iconRes: Int,
-    value: String,
-    onValueChange: (String) -> Unit
+    content: String,
+    iconRes: Int
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -240,21 +222,12 @@ fun ChallengeInputField(
                 modifier = Modifier
                     .size(24.dp)
             )
-            Box(Modifier.weight(1f)) {
-                if (value.isEmpty()) {
-                    Text(
-                        text = hint,
-                        color = OnSurfaceVariant,
-                        style = DitoTypography.bodySmall
-                    )
-                }
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    textStyle = DitoTypography.bodySmall.copy(color = Color.Black),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            Spacer(modifier = Modifier.width(Spacing.xs))
+            Text(
+                text = content,
+                color = Color.Black,
+                style = DitoTypography.bodySmall
+            )
         }
     }
 }

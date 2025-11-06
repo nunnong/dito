@@ -5,6 +5,11 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.dito.app.core.data.*
+import com.dito.app.core.data.phone.AppUsageBatchRequest
+import com.dito.app.core.data.phone.AppUsageEventDto
+import com.dito.app.core.data.phone.MediaSessionBatchRequest
+import com.dito.app.core.data.phone.MediaSessionEventDto
+import com.dito.app.core.data.phone.toDto
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import dagger.assisted.Assisted

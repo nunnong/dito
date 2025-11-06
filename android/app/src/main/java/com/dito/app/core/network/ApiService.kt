@@ -1,8 +1,8 @@
 package com.dito.app.core.network
 
-import com.dito.app.core.data.AppUsageBatchRequest
-import com.dito.app.core.data.BatchUploadResponse
-import com.dito.app.core.data.MediaSessionBatchRequest
+import com.dito.app.core.data.phone.AppUsageBatchRequest
+import com.dito.app.core.data.phone.BatchUploadResponse
+import com.dito.app.core.data.phone.MediaSessionBatchRequest
 import com.dito.app.core.data.auth.AuthResponse
 import com.dito.app.core.data.auth.CheckUsernameResponse
 import com.dito.app.core.data.auth.SignInRequest

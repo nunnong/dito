@@ -1,4 +1,4 @@
-package com.dito.app.core.data
+package com.dito.app.core.data.phone
 
 import io.realm.kotlin.types.RealmObject
 import io.realm.kotlin.types.annotations.PrimaryKey
