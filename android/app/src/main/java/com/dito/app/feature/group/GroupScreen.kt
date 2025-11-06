@@ -29,7 +29,7 @@ import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnPrimary
 import com.dito.app.core.ui.designsystem.PrimaryContainer
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun GroupChallengeScreen() {
     Column(

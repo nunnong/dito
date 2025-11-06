@@ -7,23 +7,18 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,11 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,11 +40,7 @@ import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
-import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
-import com.dito.app.core.ui.designsystem.OnPrimary
-import com.dito.app.core.ui.designsystem.Primary
-import com.dito.app.core.ui.designsystem.Spacing.s
 
 @Preview(showBackground = true)
 @Composable
@@ -209,51 +197,24 @@ fun OngoingChallengeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // RACE INFO 박스 with 스트라이프 테두리
+            // RACE INFO 박스
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 32.dp)
             ) {
+                Image(
+                    painter = painterResource(R.drawable.raceinfo),
+                    contentDescription = "Race Info Background",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.Center)
+                )
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .drawBehind {
-                            // 스트라이프 테두리 그리기
-                            val stripeWidth = 20f
-                            val borderWidth = 12.dp.toPx()
-                            val cornerRadius = 12.dp.toPx()
-
-                            // 노란색 배경
-                            drawRoundRect(
-                                color = Color(0xFFFDD835),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius)
-                            )
-
-                            // 스트라이프 패턴 (검은색/노란색 대각선)
-                            var x = -size.height
-                            while (x < size.width) {
-                                // 검은색 스트라이프
-                                drawLine(
-                                    color = Color.Black,
-                                    start = Offset(x, 0f),
-                                    end = Offset(x + size.height, size.height),
-                                    strokeWidth = stripeWidth
-                                )
-                                x += stripeWidth * 2
-                            }
-
-                            // 안쪽 노란색 영역 (스트라이프를 테두리로만 보이게)
-                            drawRoundRect(
-                                color = Color(0xFFFDD835),
-                                topLeft = Offset(borderWidth, borderWidth),
-                                size = androidx.compose.ui.geometry.Size(
-                                    size.width - borderWidth * 2,
-                                    size.height - borderWidth * 2
-                                ),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius - borderWidth)
-                            )
-                        }
+                        .align(Alignment.Center)
                         .padding(20.dp)
                 ) {
                     // 헤더
@@ -262,10 +223,6 @@ fun OngoingChallengeScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "⚡",
-                            fontSize = 20.sp
-                        )
                         Text(
                             text = " RACE INFO",
                             style = DitoTypography.titleLarge,
