@@ -19,6 +19,18 @@ sealed class Route(val path: String) {
             gender: String
         ) = "signup_job/$username/$password/$nickname/$birthYear/$birthMonth/$birthDay/$gender"
     }
+    data object SignUpPermission : Route("signup_permission/{username}/{password}/{nickname}/{birthYear}/{birthMonth}/{birthDay}/{gender}/{job}") {
+        fun createRoute(
+            username: String,
+            password: String,
+            nickname: String,
+            birthYear: Int,
+            birthMonth: Int,
+            birthDay: Int,
+            gender: String,
+            job: String
+        ) = "signup_permission/$username/$password/$nickname/$birthYear/$birthMonth/$birthDay/$gender/$job"
+    }
 //    data object Tutorial : Route("tutorial")
 
     // Main

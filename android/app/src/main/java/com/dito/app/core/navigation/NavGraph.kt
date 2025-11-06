@@ -14,6 +14,7 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
 import com.dito.app.feature.auth.SignUpJobScreen
+import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.home.HomeScreen // Added import for HomeScreen
 import kotlinx.coroutines.delay
 
@@ -124,7 +125,57 @@ fun DitoNavGraph(
                 gender = gender,
                 onNavigateBack = { navController.popBackStack() },
                 onSignUpComplete = { user, pass, nick, year, month, day, gend, job ->
-                    // TODO: 나중에 권한 화면으로 이동하거나 회원가입 API 호출
+                    navController.navigate(
+                        Route.SignUpPermission.createRoute(
+                            user,
+                            pass,
+                            nick,
+                            year,
+                            month,
+                            day,
+                            gend,
+                            job
+                        )
+                    )
+                }
+            )
+        }
+
+        // 6) 회원가입 4단계: 권한 허용
+        composable(
+            route = Route.SignUpPermission.path,
+            arguments = listOf(
+                navArgument("username") { type = NavType.StringType },
+                navArgument("password") { type = NavType.StringType },
+                navArgument("nickname") { type = NavType.StringType },
+                navArgument("birthYear") { type = NavType.IntType },
+                navArgument("birthMonth") { type = NavType.IntType },
+                navArgument("birthDay") { type = NavType.IntType },
+                navArgument("gender") { type = NavType.StringType },
+                navArgument("job") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString("username") ?: ""
+            val password = backStackEntry.arguments?.getString("password") ?: ""
+            val nickname = backStackEntry.arguments?.getString("nickname") ?: ""
+            val birthYear = backStackEntry.arguments?.getInt("birthYear") ?: 1990
+            val birthMonth = backStackEntry.arguments?.getInt("birthMonth") ?: 1
+            val birthDay = backStackEntry.arguments?.getInt("birthDay") ?: 1
+            val gender = backStackEntry.arguments?.getString("gender") ?: ""
+            val job = backStackEntry.arguments?.getString("job") ?: ""
+
+            SignUpPermissionScreen(
+                username = username,
+                password = password,
+                nickname = nickname,
+                birthYear = birthYear,
+                birthMonth = birthMonth,
+                birthDay = birthDay,
+                gender = gender,
+                job = job,
+                onNavigateBack = { navController.popBackStack() },
+                onPermissionsGranted = { user, pass, nick, year, month, day, gend, jobType ->
+                    // TODO: 회원가입 API 호출
                     navController.navigate(Route.Home.path) {
                         popUpTo(Route.Splash.path) { inclusive = true }
                         launchSingleTop = true
