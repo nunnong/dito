@@ -43,7 +43,7 @@ checkpointer = MemorySaver()
 # =============================================================================
 
 SPRING_SERVER_URL = os.getenv("SPRING_SERVER_URL", "http://52.78.96.102:8080")
-SPRING_API_KEY = os.getenv("SECURITY_INTERNAL_API_KEY")
+SECURITY_INTERNAL_API_KEY = os.getenv("SECURITY_INTERNAL_API_KEY")
 
 
 # =============================================================================
@@ -144,6 +144,12 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     Returns:
         intervention_id: String ID if successful, None if failed
     """
+    # 환경 변수 유효성 검증
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        print("   Please check your .env file or environment configuration")
+        return None
+
     intervention_id = f"INT_{int(datetime.now().timestamp() * 1000)}"
 
     payload = {
@@ -156,7 +162,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     }
 
     headers = {
-        "X-API-Key": SPRING_API_KEY,
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
         "Content-Type": "application/json"
     }
 
