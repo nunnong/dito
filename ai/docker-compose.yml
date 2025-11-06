@@ -52,6 +52,8 @@ services:
       - LANGSMITH_API_KEY=${LANGSMITH_API_KEY}
       - LANGSMITH_PROJECT=${LANGSMITH_PROJECT}
       - LANGSMITH_TRACING_V2=${LANGSMITH_TRACING_V2}
+
+      - SECURITY_INTERNAL_API_KEY=${SECURITY_INTERNAL_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
