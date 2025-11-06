@@ -12,8 +12,10 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  */
 @Configuration
 @EnableMongoAuditing
-@EnableMongoRepositories(basePackages = "com.ssafy.Dito.domain.log")
+@EnableMongoRepositories(basePackages = "com.ssafy.Dito.domain")
 public class MongoConfig {
     // Auto-configuration from application.yml
     // MongoTemplate bean will be auto-created by Spring Boot
+    // Scans all MongoDB repositories under com.ssafy.Dito.domain package
+    // Includes: domain.log.*, domain.ai.evaluation.repository, etc.
 }
