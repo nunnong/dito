@@ -26,10 +26,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import com.dito.app.core.navigation.DitoNavGraph
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.dito.app.core.navigation.DitoNavGraph
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.dito.app.core.data.RealmRepository
 import com.dito.app.core.service.phone.UsageStatsHelper
@@ -74,10 +74,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    // 항상 스플래시 화면부터 시작
+                    // Splash → Login → (로그인 성공) → Test 화면 순서
                     DitoNavGraph(
                         navController = navController,
-                        startDestination =  Route.Splash.path
+                        startDestination = Route.Splash.path
                     )
                 }
             }

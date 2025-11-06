@@ -5,6 +5,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.ui.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
@@ -18,6 +19,15 @@ import com.dito.app.core.ui.designsystem.Spacing
 @Preview(showBackground = true)
 @Composable
 fun SettingTab() {
+    var showNicknameDialog by remember { mutableStateOf(false) }
+    var showNotiCountDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+
+
+
     Column(
         modifier = Modifier
             .fillMaxWidth()

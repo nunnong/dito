@@ -4,7 +4,8 @@ sealed class Route(val path: String) {
     // Auth / Onboarding
     data object Splash : Route("splash")
     data object Login : Route("login")
-    data object Signup : Route("signup")
+
+    data object SignupCredential : Route("signup_credential")
     data object SignUpProfile : Route("signup_profile/{username}/{password}") {
         fun createRoute(username: String, password: String) = "signup_profile/$username/$password"
     }
@@ -38,4 +39,7 @@ sealed class Route(val path: String) {
     data object Shop : Route("shop")
     data object Closet : Route("closet")
     data object  Missions : Route("missions")
+
+    // Test
+    data object Test : Route("test")
 }
