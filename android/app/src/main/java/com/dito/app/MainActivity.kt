@@ -37,6 +37,16 @@ import androidx.work.ExistingWorkPolicy
 import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.navigation.Route
 import com.dito.app.core.repository.AuthRepository
+<<<<<<< android/app/src/main/java/com/dito/app/MainActivity.kt
+import com.dito.app.feature.auth.LoginScreen
+import com.dito.app.feature.auth.SignUpScreen
+import com.dito.app.feature.intervention.InterventionScreen
+import com.dito.app.feature.health.HealthScreen
+import com.dito.app.core.wearable.WearableMessageService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -44,6 +54,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var wearableMessageService: WearableMessageService
 
     companion object {
         private const val TAG = "MainActivity"
@@ -165,6 +178,74 @@ fun DitoTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
+<<<<<<< android/app/src/main/java/com/dito/app/MainActivity.kt
+fun AppNavigation(activity: MainActivity, isLoggedIn: Boolean) {
+    val navController = rememberNavController()
+
+    // 시작 화면 결정: 로그인 상태에 따라 변경
+    val startDestination = if (isLoggedIn) "main" else "login"
+
+    NavHost(navController = navController, startDestination = startDestination) {
+        // 로그인 화면
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("main") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNavigateToSignUp = {
+                    navController.navigate("signup")
+                }
+            )
+        }
+
+        // 회원가입 화면
+        composable("signup") {
+            SignUpScreen(
+                onSignUpSuccess = {
+                    navController.navigate("main") {
+                        popUpTo("signup") { inclusive = true }
+                    }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 메인 화면 (기존 테스트 UI)
+        composable("main") {
+            MainScreen(
+                activity = activity,
+                onNavigateToHealth = { navController.navigate("health") }
+            )
+        }
+
+        // Intervention 상세 화면 (Deep Link 지원)
+        composable(
+            route = "intervention/{interventionId}",
+            deepLinks = listOf(navDeepLink { uriPattern = "dito://intervention/{interventionId}" })
+        ) { backStackEntry ->
+            val interventionId = backStackEntry.arguments?.getString("interventionId")
+            InterventionScreen(
+                interventionId = interventionId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // Health 화면
+        composable("health") {
+            HealthScreen()
+        }
+    }
+}
+
+@Composable
+=======
+>>>>>>> android/app/src/main/java/com/dito/app/MainActivity.kt
 fun MainScreen(
     activity: MainActivity,
     onNavigateToHealth: () -> Unit = {}
@@ -275,6 +356,27 @@ fun MainScreen(
             buttonText = "헬스 정보 보기",
             onClick = onNavigateToHealth
         )
+<<<<<<< android/app/src/main/java/com/dito/app/MainActivity.kt
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PermissionCard(
+            title = "🌬️ 호흡 운동",
+            description = "워치에서 1분 호흡 운동을 시작합니다",
+            buttonText = "워치에서 호흡하기",
+            onClick = {
+                CoroutineScope(Dispatchers.IO).launch {
+                    val result = activity.wearableMessageService.startBreathingOnWatch()
+                    result.onSuccess {
+                        Log.d("MainActivity", "✅ 워치에 호흡 운동 시작 메시지 전송 성공")
+                    }.onFailure { error ->
+                        Log.e("MainActivity", "❌ 워치에 호흡 운동 시작 메시지 전송 실패: ${error.message}")
+                    }
+                }
+            }
+        )
+=======
+>>>>>>> android/app/src/main/java/com/dito/app/MainActivity.kt
     }
 }
 
