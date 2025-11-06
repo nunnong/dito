@@ -1,12 +1,17 @@
 package com.ssafy.Dito.domain.mission.controller;
 
+import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
+import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.MissionRes;
 import com.ssafy.Dito.domain.mission.service.MissionService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
+import com.ssafy.Dito.global.dto.ListResult;
 import com.ssafy.Dito.global.dto.PageResult;
+import com.ssafy.Dito.global.dto.SingleResult;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -34,11 +39,20 @@ public class MissionController {
     }
 
     // <AI> 미션 등록
-    @PostMapping("/user")
+    @PostMapping("/ai")
     public ResponseEntity<CommonResult> createMission(
             @Valid @RequestBody MissionReq req
     ) {
         missionService.createMission(req);
         return ApiResponse.ok();
+    }
+
+    // <AI> 미션 조회
+    @GetMapping("/ai")
+    public ResponseEntity<ListResult<AiMissionRes>> getMissionForAi(
+        @RequestBody AiMissionReq req
+    ) {
+        List<AiMissionRes> res = missionService.getMissionForAi(req);
+        return ApiResponse.ok(res);
     }
 }

@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.mission.dto.request;
 
 public record MissionReq(
+        long userId,
         String missionType,
         String missionText,
         int coinReward,

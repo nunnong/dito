@@ -1,6 +1,8 @@
 package com.ssafy.Dito.domain.mission.service;
 
+import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
+import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.MissionRes;
 import com.ssafy.Dito.domain.mission.entity.Mission;
 import com.ssafy.Dito.domain.mission.repository.MissionQueryRepository;
@@ -8,6 +10,7 @@ import com.ssafy.Dito.domain.mission.repository.MissionRepository;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -24,10 +27,14 @@ public class MissionService {
     }
 
     public void createMission(MissionReq req) {
-        long userId = JwtAuthentication.getUserId();
+        long userId = req.userId();
         User user = userRepository.getById(userId);
 
         Mission mission = Mission.of(req, user);
         missionRepository.save(mission);
+    }
+
+    public List<AiMissionRes> getMissionForAi(AiMissionReq req) {
+        return missionQueryRepository.getAiMissionRes(req);
     }
 }
