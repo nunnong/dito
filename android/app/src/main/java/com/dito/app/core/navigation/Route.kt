@@ -1,7 +1,7 @@
 package com.dito.app.core.navigation
 
 sealed class Route(val path: String) {
-    // Auth
+    // Auth / Onboarding
     data object Splash : Route("splash")
     data object Login : Route("login")
     data object Signup : Route("signup")
