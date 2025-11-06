@@ -51,7 +51,7 @@ class AuthViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isLoggedIn = false,
-                        errorMessage = exception.message ?: "로그인에 실패했습니다"
+                        errorMessage = "아이디와 비밀번호를 확인해주세요."
                     )
                 }
             }
