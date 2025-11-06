@@ -274,7 +274,6 @@ public class FcmService {
                 durationSeconds,
                 targetApp,
                 1, 1, 1,  // stat changes (체력, 정신력, 집중력)
-                "ACTIVE",
                 "AI 개입"
         );
 
