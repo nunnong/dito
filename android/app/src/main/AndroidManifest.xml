@@ -16,6 +16,17 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Health Connect 권한 -->
+    <uses-permission android:name="android.permission.health.READ_STEPS"/>
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
+    <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
+    <uses-permission android:name="android.permission.health.READ_SLEEP"/>
+
+    <!-- Health Connect 앱 확인을 위한 쿼리 -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+
     <application
         android:name=".DitoApplication"
         android:networkSecurityConfig="@xml/network_security_config"
@@ -50,13 +61,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- Deep Link for Intervention -->
-            <intent-filter android:autoVerify="true">
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="dito"
-                    android:host="intervention" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="intervention"
+                    tools:ignore="AppLinkUrlError" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dito" />
+                <data android:host="intervention" />
             </intent-filter>
 
             <!-- Deep Link for Breathing Exercise (호흡 운동) -->
@@ -70,8 +89,29 @@
             </intent-filter>
         </activity>
 
+        <!-- Health Connect: 개인정보처리방침 Activity (Android 13 이하) -->
+        <activity
+            android:name=".feature.health.PermissionsRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Health Connect: 개인정보처리방침 Activity (Android 14 이상) -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".feature.health.PermissionsRationaleActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
         <service
-            android:name=".core.service.AppMonitoringService"
+            android:name=".core.service.phone.AppMonitoringService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false"
             tools:ignore="AccessibilityPolicy">
@@ -84,26 +124,12 @@
         </service>
 
         <service
-            android:name=".core.service.MediaSessionListenerService"
+            android:name=".core.service.phone.MediaSessionListenerService"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
-        </service>
-
-        <service
-            android:name=".core.service.YouTubeAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="true"
-            tools:ignore="AccessibilityPolicy">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/youtube_accessibility_service_config" />
         </service>
 
         <!-- FCM Messaging Service -->

@@ -33,6 +33,8 @@ class DitoApplication : Application(), Configuration.Provider {
         // 2. WorkManager 시작 (30분마다 배치 전송)
         EventSyncWorker.setupPeriodicSync(this)
         Log.i(TAG, "✅ WorkManager 등록 완료")
+
+        Log.i(TAG, "✅ Application 초기화 완료")
     }
 
 

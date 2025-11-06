@@ -67,3 +67,5 @@ backend/.idea/
 *.jks
 *.pem
 *.key
+/.mcp.json
+/.claude/settings.local.json

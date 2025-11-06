@@ -117,6 +117,7 @@ dependencies {
     // ========== Health Connect ==========
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
+
     // ========== Wearable Data Layer (폰-워치 통신) ==========
     implementation("com.google.android.gms:play-services-wearable:18.2.0")
 
