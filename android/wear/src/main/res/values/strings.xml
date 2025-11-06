@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dito</string>
+    <string name="breathing_title">호흡 운동</string>
+    <string name="breathing_description">1분 동안 편안하게 호흡하세요</string>
+    <string name="start">시작</string>
+    <string name="stop">중지</string>
+    <string name="inhale">들이마시기</string>
+    <string name="hold">참기</string>
+    <string name="exhale">내쉬기</string>
+    <string name="rest">휴식</string>
+    <string name="seconds_remaining">%d초 남음</string>
+</resources>
