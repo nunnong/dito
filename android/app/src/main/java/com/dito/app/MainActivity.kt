@@ -26,8 +26,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import com.dito.app.core.navigation.DitoNavGraph
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.dito.app.core.data.RealmRepository
 import com.dito.app.core.service.phone.UsageStatsHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,7 +40,6 @@ import androidx.work.ExistingWorkPolicy
 import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.navigation.Route
 import com.dito.app.core.repository.AuthRepository
-<<<<<<< android/app/src/main/java/com/dito/app/MainActivity.kt
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.auth.SignUpScreen
 import com.dito.app.feature.intervention.InterventionScreen
@@ -178,74 +180,6 @@ fun DitoTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-<<<<<<< android/app/src/main/java/com/dito/app/MainActivity.kt
-fun AppNavigation(activity: MainActivity, isLoggedIn: Boolean) {
-    val navController = rememberNavController()
-
-    // 시작 화면 결정: 로그인 상태에 따라 변경
-    val startDestination = if (isLoggedIn) "main" else "login"
-
-    NavHost(navController = navController, startDestination = startDestination) {
-        // 로그인 화면
-        composable("login") {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate("main") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                },
-                onNavigateToSignUp = {
-                    navController.navigate("signup")
-                }
-            )
-        }
-
-        // 회원가입 화면
-        composable("signup") {
-            SignUpScreen(
-                onSignUpSuccess = {
-                    navController.navigate("main") {
-                        popUpTo("signup") { inclusive = true }
-                    }
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // 메인 화면 (기존 테스트 UI)
-        composable("main") {
-            MainScreen(
-                activity = activity,
-                onNavigateToHealth = { navController.navigate("health") }
-            )
-        }
-
-        // Intervention 상세 화면 (Deep Link 지원)
-        composable(
-            route = "intervention/{interventionId}",
-            deepLinks = listOf(navDeepLink { uriPattern = "dito://intervention/{interventionId}" })
-        ) { backStackEntry ->
-            val interventionId = backStackEntry.arguments?.getString("interventionId")
-            InterventionScreen(
-                interventionId = interventionId,
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // Health 화면
-        composable("health") {
-            HealthScreen()
-        }
-    }
-}
-
-@Composable
-=======
->>>>>>> android/app/src/main/java/com/dito/app/MainActivity.kt
 fun MainScreen(
     activity: MainActivity,
     onNavigateToHealth: () -> Unit = {}
@@ -356,7 +290,6 @@ fun MainScreen(
             buttonText = "헬스 정보 보기",
             onClick = onNavigateToHealth
         )
-<<<<<<< android/app/src/main/java/com/dito/app/MainActivity.kt
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -375,8 +308,7 @@ fun MainScreen(
                 }
             }
         )
-=======
->>>>>>> android/app/src/main/java/com/dito/app/MainActivity.kt
+
     }
 }
 
