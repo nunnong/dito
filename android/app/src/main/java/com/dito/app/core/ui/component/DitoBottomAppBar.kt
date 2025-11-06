@@ -22,8 +22,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.Background
@@ -41,33 +39,38 @@ fun DitoBottomAppBar(
     selectedTab: BottomTab,
     onTabSelected: (BottomTab) -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .height(70.dp)
             .background(Background)
-            .drawBehind {
-                val strokeWidth = 1.dp.toPx()
-                val y = 0f
-                drawLine(
-                    color = Color.Black,
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = strokeWidth
+            .windowInsetsPadding(WindowInsets.navigationBars)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(70.dp)
+                .drawBehind {
+                    val strokeWidth = 1.dp.toPx()
+                    val y = 0f
+                    drawLine(
+                        color = Color.Black,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = strokeWidth
+                    )
+                }
+                .padding(horizontal = 32.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BottomTab.entries.forEach { tab ->
+                DitoBottomItem(
+                    iconRes = tab.iconRes,
+                    label = tab.label,
+                    isSelected = selectedTab == tab,
+                    onClick = { onTabSelected(tab) }
                 )
             }
-            .padding(horizontal = 32.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        BottomTab.entries.forEach { tab ->
-            DitoBottomItem(
-                iconRes = tab.iconRes,
-                label = tab.label,
-                isSelected = selectedTab == tab,
-                onClick = { onTabSelected(tab) }
-            )
         }
     }
 }
