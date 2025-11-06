@@ -7,6 +7,8 @@ import com.ssafy.Dito.domain.user.userItem.service.UserItemService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.PageResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "user", description = "유저-아이템 관련 API")
 @RequestMapping("/user/item")
 public class UserItemController {
 
     private final UserItemService userItemService;
 
-    // 유저 옷장 조회
+    @Operation(summary = "유저 옷장 조회")
     @GetMapping("/closet")
     public ResponseEntity<PageResult<ClosetRes>>getUserCloset(
         @RequestParam Type type,
@@ -35,7 +38,7 @@ public class UserItemController {
         return ApiResponse.ok(res);
     }
 
-    // 유저 아이탬 착용
+    @Operation(summary = "유저 아이템 착용")
     @PatchMapping("/equip")
     public ResponseEntity<CommonResult> equipUserItem(
         @RequestBody EquipReq req
