@@ -125,7 +125,7 @@ private fun LoadingModalBox() {
                     val baseText = "LOADING"
                     val maxDots = 3
                     var currentDots = 0
-                    while (true) {
+                    repeat(maxDots + 1) {
                         loadingText = baseText + ".".repeat(currentDots) + " ".repeat(maxDots - currentDots)
                         currentDots = (currentDots + 1) % (maxDots + 1) // Cycle 0, 1, 2, 3
                         delay(500)

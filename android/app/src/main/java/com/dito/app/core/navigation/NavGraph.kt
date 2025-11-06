@@ -8,6 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.dito.app.feature.auth.AuthViewModel
 import com.dito.app.feature.splash.SplashScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.home.HomeScreen // Added import for HomeScreen
 import kotlinx.coroutines.delay
@@ -43,13 +46,36 @@ fun DitoNavGraph(
                     }
                 },
                 onNavigateToSignUp = {
-                    // TODO: 회원가입 라우트 추가시 열기
-                    // navController.navigate(Route.SignUp.path)
+                    navController.navigate(Route.Signup.path)
                 }
             )
         }
 
-        // 3) 메인 화면 (Home) - Added new composable block for HomeScreen
+        // 3) 회원가입 1단계: 아이디/비밀번호 입력
+        composable(Route.Signup.path) {
+            SignUpCredentialsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToNext = { username, password ->
+                    navController.navigate(Route.SignUpProfile.createRoute(username, password))
+                }
+            )
+        }
+
+        // 4) 회원가입 2단계: 프로필 정보 입력 (임시 화면)
+//        composable(
+//            route = Route.SignUpProfile.path,
+//            arguments = listOf(
+//                navArgument("username") { type = NavType.StringType },
+//                navArgument("password") { type = NavType.StringType }
+//            )
+//        ) { backStackEntry ->
+//            val username = backStackEntry.arguments?.getString("username") ?: ""
+//            val password = backStackEntry.arguments?.getString("password") ?: ""
+//            // TODO: Implement SignUpProfileScreen and pass username/password
+//            Text(text = "SignUpProfile Screen: Username = $username, Password = $password")
+//        }
+
+        // 5) 메인 화면 (Home) - Added new composable block for HomeScreen
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
             HomeScreen(
