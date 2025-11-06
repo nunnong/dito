@@ -267,13 +267,14 @@ public class FcmService {
      * 개입에 대한 Mission 생성
      */
     @Transactional
-    private void createInterventionMission(User user, FcmSendRequest request) {
+    protected void createInterventionMission(User user, FcmSendRequest request) {
         String missionType = determineMissionType(request.interventionType());
         int durationSeconds = 600;  // 10분 기본값
         int coinReward = 10;
         String targetApp = determineTargetApp(request.interventionType());
 
         MissionReq missionReq = new MissionReq(
+                user.getId(),
                 missionType,
                 request.message(),  // AI 생성 메시지 (최대 100자)
                 coinReward,
