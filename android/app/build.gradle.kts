@@ -114,6 +114,12 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
 
+    // ========== Health Connect ==========
+    implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
+
+    // ========== Wearable Data Layer (폰-워치 통신) ==========
+    implementation("com.google.android.gms:play-services-wearable:18.2.0")
+
     // ========== Test ==========
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

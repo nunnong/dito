@@ -12,8 +12,13 @@ import androidx.core.app.NotificationCompat
 import com.dito.app.MainActivity
 import com.dito.app.R
 import com.google.firebase.messaging.FirebaseMessagingService
+import com.dito.app.core.wearable.WearableMessageService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -24,6 +29,11 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject
     lateinit var fcmTokenManager: FcmTokenManager
+
+    @Inject
+    lateinit var wearableMessageService: WearableMessageService
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
         private const val TAG = "DitoFCM"
@@ -65,10 +75,23 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             Log.d(TAG, "Data payload: $data")
 
             val interventionId = data["interventionId"]
+            val notificationType = data["type"]
             val title = data["title"] ?: "Dito"
             val body = data["body"] ?: "새로운 intervention이 도착했습니다"
 
-            showNotification(title, body, interventionId)
+            // 호흡 운동 타입인 경우 워치에 메시지 전송
+            if (notificationType == "breathing") {
+                serviceScope.launch {
+                    val result = wearableMessageService.startBreathingOnWatch()
+                    if (result.isSuccess) {
+                        Log.d(TAG, "워치에 호흡 운동 시작 메시지 전송 성공")
+                    } else {
+                        Log.w(TAG, "워치에 메시지 전송 실패 또는 워치 미연결")
+                    }
+                }
+            }
+
+            showNotification(title, body, interventionId, notificationType)
         }
 
         // Notification payload 처리 (Firebase Console에서 테스트 시)
@@ -77,7 +100,8 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             showNotification(
                 title = notification.title ?: "Dito",
                 body = notification.body ?: "",
-                interventionId = null
+                interventionId = null,
+                notificationType = null
             )
         }
     }
@@ -87,19 +111,37 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
      * @param title 알림 제목
      * @param body 알림 내용
      * @param interventionId Intervention ID (deep link용)
+     * @param notificationType 알림 타입 (breathing, intervention 등)
      */
-    private fun showNotification(title: String, body: String, interventionId: String?) {
+    private fun showNotification(
+        title: String,
+        body: String,
+        interventionId: String?,
+        notificationType: String?
+    ) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // Deep link intent 생성
-        val intent = if (interventionId != null) {
-            Intent(Intent.ACTION_VIEW, Uri.parse("dito://intervention/$interventionId")).apply {
-                setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        val intent = when {
+            notificationType == "breathing" -> {
+                // 호흡 운동 deep link
+                Intent(Intent.ACTION_VIEW, Uri.parse("dito://breathing")).apply {
+                    setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
             }
-        } else {
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            interventionId != null -> {
+                // Intervention deep link
+                Intent(Intent.ACTION_VIEW, Uri.parse("dito://intervention/$interventionId")).apply {
+                    setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            }
+            else -> {
+                // 기본 메인 화면
+                Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
             }
         }
 
