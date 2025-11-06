@@ -16,3 +16,8 @@ firebase:
   credentials:
     # path: ${FIREBASE_CREDENTIALS_PATH:classpath:firebase/firebase-adminsdk.json}
     credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
+
+# AI Server Configuration
+ai:
+  server:
+    url: ${AI_SERVER_URL:http://localhost:8000}

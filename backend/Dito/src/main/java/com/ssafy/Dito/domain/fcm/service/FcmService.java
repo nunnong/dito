@@ -3,6 +3,9 @@ package com.ssafy.Dito.domain.fcm.service;
 import com.google.firebase.messaging.*;
 import com.ssafy.Dito.domain.fcm.dto.FcmNotificationRequest;
 import com.ssafy.Dito.domain.fcm.dto.FcmSendRequest;
+import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
+import com.ssafy.Dito.domain.mission.entity.Mission;
+import com.ssafy.Dito.domain.mission.repository.MissionRepository;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ public class FcmService {
 
     private final FirebaseMessaging firebaseMessaging;
     private final UserRepository userRepository;
+    private final MissionRepository missionRepository;
 
     /**
      * 특정 사용자에게 FCM 알림 전송
@@ -82,10 +86,11 @@ public class FcmService {
         // personalId로 User 조회
         User user = userRepository.getByPersonalId(request.personalId());
 
-        // TECH_SPEC.md:2136-2156 형식으로 알림 생성
+        // 1. 항상 FCM 알림 전송
         Map<String, String> data = new HashMap<>();
         data.put("type", request.type());
         data.put("intervention_id", request.interventionId());
+        data.put("intervention_needed", String.valueOf(request.interventionNeeded()));
         data.put("action", "rest_suggestion");
         data.put("deep_link", "dito://intervention/" + request.interventionId());
 
@@ -97,8 +102,15 @@ public class FcmService {
                 300  // timeToLive: 5분 (TECH_SPEC.md 참조)
         );
 
-        // sendNotificationToUser 호출 (database ID 사용)
         sendNotificationToUser(user.getId(), notificationRequest);
+
+        // 2. intervention_needed=true일 때만 Mission 생성
+        if (request.interventionNeeded()) {
+            createInterventionMission(user, request);
+            log.info("Mission created for intervention {}", request.interventionId());
+        } else {
+            log.info("No mission created - intervention not needed for {}", request.interventionId());
+        }
     }
 
     /**
@@ -243,5 +255,59 @@ public class FcmService {
                 }
             }
         }
+    }
+
+    /**
+     * 개입에 대한 Mission 생성
+     */
+    @Transactional
+    private void createInterventionMission(User user, FcmSendRequest request) {
+        String missionType = determineMissionType(request.interventionType());
+        int durationSeconds = 600;  // 10분 기본값
+        int coinReward = 10;
+        String targetApp = determineTargetApp(request.interventionType());
+
+        MissionReq missionReq = new MissionReq(
+                missionType,
+                request.message(),  // AI 생성 메시지 (최대 100자)
+                coinReward,
+                durationSeconds,
+                targetApp,
+                1, 1, 1,  // stat changes (체력, 정신력, 집중력)
+                "ACTIVE",
+                "AI 개입"
+        );
+
+        Mission mission = Mission.of(missionReq, user);
+        missionRepository.save(mission);
+
+        log.info("Created mission {} for user {}", mission.getId(), user.getId());
+    }
+
+    /**
+     * 개입 유형에 따른 미션 타입 결정
+     */
+    private String determineMissionType(String interventionType) {
+        if (interventionType == null) return "REST";
+
+        return switch (interventionType) {
+            case "short-form-overuse" -> "REST";
+            case "bedtime-usage" -> "SLEEP";
+            case "focus-break" -> "FOCUS";
+            case "app-switching" -> "FOCUS";
+            default -> "REST";
+        };
+    }
+
+    /**
+     * 개입 유형에 따른 타겟 앱 결정
+     */
+    private String determineTargetApp(String interventionType) {
+        // TODO: behavior_log에서 실제 앱 이름 가져오기
+        return switch (interventionType) {
+            case "short-form-overuse" -> "YouTube Shorts";
+            case "bedtime-usage" -> "All Apps";
+            default -> "All Apps";
+        };
     }
 }
