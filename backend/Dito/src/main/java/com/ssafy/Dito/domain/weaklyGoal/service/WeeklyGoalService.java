@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.weaklyGoal.service;
 
+import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.domain.weaklyGoal.dto.request.UserWeeklyGoalReq;
@@ -31,7 +32,7 @@ public class WeeklyGoalService {
         weeklyGoalRepository.save(weeklyGoal);
     }
 
-    public UserWeeklyGoalRes getUserWeeklyGoal(UserWeeklyGoalReq req) {
+    public UserWeeklyGoalRes getUserWeeklyGoal(AiReq req) {
         return weeklyGoalQueryRepository.getUserWeeklyGoal(req.userId());
     }
 }

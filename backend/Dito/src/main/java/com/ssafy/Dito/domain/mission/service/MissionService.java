@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.mission.service;
 
+import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
@@ -34,7 +35,7 @@ public class MissionService {
         missionRepository.save(mission);
     }
 
-    public List<AiMissionRes> getMissionForAi(AiMissionReq req) {
+    public List<AiMissionRes> getMissionForAi(AiReq req) {
         return missionQueryRepository.getAiMissionRes(req);
     }
 }

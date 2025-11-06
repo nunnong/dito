@@ -30,13 +30,4 @@ public class WeeklyController {
         weeklyGoalService.createWeeklyGoal(req);
         return ApiResponse.ok();
     }
-
-    // <AI> 해당 유저 주간 목표 조회
-    @GetMapping("/user")
-    public ResponseEntity<SingleResult<UserWeeklyGoalRes>> getUserWeeklyGoal(
-        @RequestBody UserWeeklyGoalReq req
-    ){
-        UserWeeklyGoalRes res = weeklyGoalService.getUserWeeklyGoal(req);
-        return ApiResponse.ok(res);
-    }
 }

@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.mission.repository;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
@@ -52,7 +53,7 @@ public class MissionQueryRepository {
         return PageUtils.of(res, pageRequest, countQuery.fetchOne());
     }
 
-    public List<AiMissionRes> getAiMissionRes(AiMissionReq req) {
+    public List<AiMissionRes> getAiMissionRes(AiReq req) {
         return jpaQueryFactory
             .select(Projections.constructor(
                 AiMissionRes.class,
