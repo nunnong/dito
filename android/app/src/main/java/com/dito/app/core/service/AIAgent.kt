@@ -90,7 +90,7 @@ class AIAgent @Inject constructor(
         response: AIRunResponse?,
         eventIds: List<String>
     ) {
-        Log.d(TAG, "✅ AI 응답 성공: run_id=${response?.runId}, status=${response?.status}")
+        Log.d(TAG, "✅ AI 응답 성공: run_id=${response?.runId}, thread_id=${response?.threadId}, status=${response?.status}")
 
         eventIds.forEach { id ->
             RealmRepository.markAiCalled(id, success = true)

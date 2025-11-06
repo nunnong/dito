@@ -1,4 +1,4 @@
-package com.dito.app.core.data
+package com.dito.app.core.data.phone
 import kotlinx.serialization.Serializable
 
 @Serializable

@@ -1,4 +1,4 @@
-package com.dito.app.core.service
+package com.dito.app.core.service.phone
 
 import android.app.Notification
 import android.media.MediaMetadata
@@ -9,6 +9,8 @@ import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.dito.app.core.service.AIAgent
+import com.dito.app.core.service.phone.SessionStateManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -23,7 +25,6 @@ class MediaSessionListenerService : NotificationListenerService() {
     lateinit var aiAgent: AIAgent
     private lateinit var sessionManager: SessionStateManager
 
-    // 앱별 MediaController 저장 -> 여러 앱 동시 실행 대비
     private val activeControllers = mutableMapOf<String, MediaController>()
 
     override fun onCreate() {
@@ -32,7 +33,6 @@ class MediaSessionListenerService : NotificationListenerService() {
         Log.d(TAG, "SessionStateManager 초기화 완료")
     }
 
-    // 알림 생성 시 호출됨 -> YouTube 재생, 상태 변경 등
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
 
@@ -44,7 +44,6 @@ class MediaSessionListenerService : NotificationListenerService() {
 
             if (!isMediaApp(packageName)) return
 
-            // MediaSession 토큰 추출 (API 33 이상 대응)
             val mediaToken: MediaSession.Token? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 notification.extras.getParcelable(
                     Notification.EXTRA_MEDIA_SESSION,
@@ -60,7 +59,6 @@ class MediaSessionListenerService : NotificationListenerService() {
                 return
             }
 
-            // MediaController 생성 및 콜백 등록
             val controller = MediaController(this, mediaToken)
 
             activeControllers[packageName]?.unregisterCallback(mediaCallback)
@@ -113,12 +111,29 @@ class MediaSessionListenerService : NotificationListenerService() {
         }
     }
 
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        try {
+
+            sessionManager.cleanup()
+
+            activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
+            activeControllers.clear()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ onDestroy 처리 실패", e)
+        }
+
+        Log.i(TAG, "🛑 MediaSessionListenerService 종료")
+    }
+
     private fun isMediaApp(packageName: String): Boolean {
         return packageName in listOf(
-            "com.google.android.youtube",           // YouTube
-            "com.google.android.youtube.music",     // YouTube Music
-            "com.samsung.android.app.music",        // 삼성 뮤직
-            "com.android.chrome"                    // Chrome (YouTube 웹)
+            "com.google.android.youtube",
+            "com.google.android.youtube.music",
+            "com.samsung.android.app.music",
+            "com.android.chrome"
         )
     }
 
@@ -162,7 +177,6 @@ class MediaSessionListenerService : NotificationListenerService() {
         }
     }
 
-    // 재생 상태 변경 감지
     private val mediaCallback = object : MediaController.Callback() {
 
         override fun onPlaybackStateChanged(state: PlaybackState?) {
