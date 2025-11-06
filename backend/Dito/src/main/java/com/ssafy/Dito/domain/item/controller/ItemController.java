@@ -7,6 +7,8 @@ import com.ssafy.Dito.domain.item.service.ItemService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.PageResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "item", description = "아이템 관련 API")
 @RequestMapping("/item")
 public class ItemController {
 
     private final ItemService itemService;
 
-    //상점 아이탬 조회
+    @Operation(summary = "상점 아이탬 조회(페이지네이션)")
     @GetMapping("/shop")
     public ResponseEntity<PageResult<ShopItemRes>> getShopCostume(
         @RequestParam Type type,
@@ -34,7 +37,7 @@ public class ItemController {
         return ApiResponse.ok(res);
     }
 
-    // 상점 아이탬 구매
+    @Operation(summary = "상점 아이탬 구매")
     @PostMapping("shop/purchase")
     public ResponseEntity<CommonResult> purchaseShopItem(
         @RequestBody PurchaseItemReq req

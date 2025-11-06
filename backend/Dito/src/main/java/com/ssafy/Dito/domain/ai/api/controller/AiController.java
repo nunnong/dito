@@ -16,6 +16,8 @@ import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.ListResult;
 import com.ssafy.Dito.global.dto.SingleResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "AI - api", description = "AI 전용 API")
 @RequestMapping("/api/ai")
 public class AiController {
 
@@ -36,7 +39,7 @@ public class AiController {
     private final UserService userService;
     private final WeeklyGoalService weeklyGoalService;
 
-    // <AI> 미션 등록
+    @Operation(summary = "미션 등록")
     @PostMapping("/mission")
     public ResponseEntity<CommonResult> createMission(
         @Valid @RequestBody MissionReq req
@@ -45,7 +48,7 @@ public class AiController {
         return ApiResponse.ok();
     }
 
-    // <AI> 미션 조회
+    @Operation(summary = "미션 조회")
     @GetMapping("/mission")
     public ResponseEntity<ListResult<AiMissionRes>> getMissionForAi(
         @RequestBody AiReq req
@@ -54,7 +57,7 @@ public class AiController {
         return ApiResponse.ok(res);
     }
 
-    // <AI> 미션 결과 반영
+    @Operation(summary = "미션 결과 반영")
     @PostMapping("/mission/result")
     public ResponseEntity<CommonResult> createMissionResult(
         @Valid @RequestBody MissionResultReq req) {
@@ -62,7 +65,7 @@ public class AiController {
         return ApiResponse.ok();
     }
 
-    // <AI> 해당 유저 주간 목표 조회
+    @Operation(summary = "주간 목표 조회")
     @GetMapping("/weekly-goal")
     public ResponseEntity<SingleResult<UserWeeklyGoalRes>> getUserWeeklyGoal(
         @RequestBody AiReq req
@@ -71,7 +74,7 @@ public class AiController {
         return ApiResponse.ok(res);
     }
 
-    // <AI> 유저 정보 조회
+    @Operation(summary = "유저 정보 조회")
     @GetMapping("/user")
     public ResponseEntity<SingleResult<UserInfoRes>> getUserInfo(
         @RequestBody AiReq req
