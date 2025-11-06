@@ -50,13 +50,12 @@ public class EvaluationController {
     @Operation(
             summary = "미션 평가 요청",
             description = "사용자의 미션 수행 결과를 AI 기반으로 평가합니다. " +
-                    "행동 로그를 분석하여 미션 성공 여부, 점수, 피드백을 생성하고 " +
-                    "미션 상태를 업데이트합니다."
+                    "요청 즉시 pending 상태로 응답하며, 실제 평가는 비동기로 처리됩니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
-                    description = "평가 성공",
+                    description = "평가 요청 접수 성공",
                     content = @Content(
                             schema = @Schema(implementation = EvaluationResponse.class),
                             examples = @ExampleObject(
@@ -64,23 +63,7 @@ public class EvaluationController {
                                     {
                                       "run_id": "eval_550e8400-e29b-41d4-a716-446655440001",
                                       "thread_id": "thread_660e8400-e29b-41d4-a716-446655440000",
-                                      "status": "completed",
-                                      "evaluation_result": {
-                                        "score": 75,
-                                        "success": true,
-                                        "feedback": "미션 수행 중 Instagram을 2분 동안 사용했지만, 대부분의 시간 동안 휴식을 취했습니다.",
-                                        "violations": [
-                                          {
-                                            "app_name": "Instagram",
-                                            "duration_seconds": 125,
-                                            "timestamp": "2025-11-05T14:30:15+09:00"
-                                          }
-                                        ],
-                                        "recommendations": [
-                                          "휴식 시간에는 스마트폰을 다른 방에 두세요",
-                                          "알림을 일시적으로 끄는 것도 도움이 됩니다"
-                                        ]
-                                      }
+                                      "status": "pending"
                                     }
                                     """
                             )
@@ -194,10 +177,10 @@ public class EvaluationController {
 
         EvaluationResponse response = evaluationService.evaluateMission(request);
 
-        log.info("Evaluation completed - runId: {}, score: {}, success: {}",
+        log.info("Evaluation request accepted - runId: {}, threadId: {}, status: {}",
                 response.runId(),
-                response.evaluationResult().score(),
-                response.evaluationResult().success());
+                response.threadId(),
+                response.status());
 
         return ApiResponse.ok(response);
     }

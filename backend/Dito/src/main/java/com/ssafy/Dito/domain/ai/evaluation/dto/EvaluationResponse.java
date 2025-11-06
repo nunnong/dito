@@ -2,12 +2,11 @@ package com.ssafy.Dito.domain.ai.evaluation.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 /**
  * 미션 평가 응답 DTO
+ * 평가 요청 즉시 반환되는 응답 (평가 결과는 나중에 조회)
  */
 @Schema(description = "미션 평가 응답")
 public record EvaluationResponse(
@@ -21,15 +20,9 @@ public record EvaluationResponse(
         @NotBlank(message = "Thread ID는 필수입니다")
         String threadId,
 
-        @Schema(description = "평가 상태 (pending, running, completed, failed)", example = "completed")
+        @Schema(description = "평가 상태 (pending, running, completed, failed)", example = "pending")
         @JsonProperty("status")
         @NotBlank(message = "평가 상태는 필수입니다")
-        String status,
-
-        @Schema(description = "평가 결과 (AI가 생성)")
-        @JsonProperty("evaluation_result")
-        @NotNull(message = "평가 결과는 필수입니다")
-        @Valid
-        EvaluationResult evaluationResult
+        String status
 ) {
 }
