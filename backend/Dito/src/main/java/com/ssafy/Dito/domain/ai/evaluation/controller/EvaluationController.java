@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/ai")
 @RequiredArgsConstructor
-@Tag(name = "AI Evaluation", description = "미션 평가 API")
+@Tag(name = "에이전트서버로 보냄", description = "AI 에이전트 서버 통신 API")
 public class EvaluationController {
 
     private final EvaluationService evaluationService;

@@ -30,7 +30,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/ai")
 @RequiredArgsConstructor
-@Tag(name = "AI Intervention API", description = "AI 개입 API (Phase 1: AI Integration)")
+@Tag(name = "에이전트서버로 보냄", description = "AI 에이전트 서버 통신 API")
 public class AIInterventionController {
 
     private final UserRepository userRepository;
