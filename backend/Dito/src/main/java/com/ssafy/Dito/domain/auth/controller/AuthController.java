@@ -7,6 +7,8 @@ import com.ssafy.Dito.domain.auth.dto.request.SignUpReq;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +22,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "auth", description = "인증 관련 API")
 public class AuthController {
 
     private final AuthService authService;
 
-    // 회원가입
+
+    @Operation(summary = "회원가입", description = "회원가입합니다.")
     @PostMapping("/auth/sign-up")
     public ResponseEntity<CommonResult> signUp(
             @Valid @RequestBody SignUpReq req) {
@@ -32,7 +36,7 @@ public class AuthController {
         return ApiResponse.ok();
     }
 
-    // 개인 아이디 중복 확인
+    @Operation(summary = "아이디 중복 확인", description = "아이디가 중복되는지 확인합니다.")
     @GetMapping("/auth/check/personal-id")
     public ResponseEntity<SingleResult<Boolean>> checkPersonalId(
             @Valid @RequestParam String personalId) {
@@ -40,7 +44,7 @@ public class AuthController {
         return ApiResponse.ok(exists);
     }
 
-    // 로그인
+    @Operation(summary = "로그인", description = "로그인합니다.")
     @PostMapping("/auth/sign-in")
     public ResponseEntity<SingleResult<SignInRes>> signIn(
             @Valid @RequestBody SignInReq req){
@@ -48,7 +52,7 @@ public class AuthController {
         return ApiResponse.ok(res);
     }
 
-    // 로그아웃
+    @Operation(summary = "로그아웃", description = "로그아웃합니다.")
     @PostMapping("/logout")
     public ResponseEntity<CommonResult> logout(
             @RequestHeader("Authorization") String accessToken
@@ -57,7 +61,7 @@ public class AuthController {
         return ApiResponse.ok();
     }
 
-    // 토큰 재발급
+    @Operation(summary = "토큰 재발급", description = "액세스 토큰과 리프레시 토큰을 재발급합니다.")
     @PostMapping("/auth/refresh")
     public ResponseEntity<SingleResult<SignInRes>> refresh(
             @RequestHeader("refreshToken") String refreshToken
@@ -66,7 +70,7 @@ public class AuthController {
         return ApiResponse.ok(res);
     }
 
-    // 회원 탈퇴
+    @Operation(summary = "회원 탈퇴", description = "회원을 탈퇴합니다.")
     @DeleteMapping("/sign-out")
     public ResponseEntity<CommonResult> deleteUser(
             @RequestHeader("Authorization") String accessToken
