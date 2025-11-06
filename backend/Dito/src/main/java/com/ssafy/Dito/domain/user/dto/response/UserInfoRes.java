@@ -8,6 +8,8 @@ public record UserInfoRes(
     StatusRes statusRes
 ) {
     @QueryProjection
-    public UserInfoRes {
+    public UserInfoRes(ProfileRes profile, StatusRes statusRes) {
+        this.profile = profile;
+        this.statusRes = statusRes;
     }
 }

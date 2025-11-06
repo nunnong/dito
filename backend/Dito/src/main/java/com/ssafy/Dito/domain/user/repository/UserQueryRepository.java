@@ -7,6 +7,7 @@ import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
 import com.ssafy.Dito.domain.item.entity.QItem;
 import com.ssafy.Dito.domain.item.entity.Type;
+import com.ssafy.Dito.domain.status.dto.response.QStatusRes;
 import com.ssafy.Dito.domain.status.entity.QStatus;
 import com.ssafy.Dito.domain.user.dto.response.MainRes;
 import com.ssafy.Dito.domain.user.dto.response.ProfileRes;
@@ -103,32 +104,31 @@ public class UserQueryRepository {
     public UserInfoRes getUserInfoForAi(AiReq req) {
         long userId = req.userId();
 
-        UserInfoRes res = jpaQueryFactory
-            .select(Projections.constructor(
-                UserInfoRes.class,
-                user.id,
-                user.personalId,
-                user.nickname,
-                user.birth,
-                user.gender,
-                user.job,
-                user.coinBalance,
-                user.frequency,
-                user.lastLoginAt,
-                user.createdAt,
-                user.fcmToken,
-                status.selfCareStat,
-                status.focusStat,
-                status.sleepStat
+        return jpaQueryFactory
+            .select(new QUserInfoRes(
+                new QProfileRes(
+                    user.id,
+                    user.personalId,
+                    user.nickname,
+                    user.birth,
+                    user.gender,
+                    user.job,
+                    user.coinBalance,
+                    user.frequency,
+                    user.lastLoginAt,
+                    user.createdAt,
+                    user.fcmToken
+                ),
+                new QStatusRes(
+                    status.selfCareStat,
+                    status.focusStat,
+                    status.sleepStat,
+                    status.totalStat
+                )
             ))
             .from(user)
             .join(status).on(status.user.id.eq(user.id))
             .where(user.id.eq(userId))
             .fetchOne();
-
-        if (res == null) {
-            throw new NotFoundUserException();
-        }
-        return res;
     }
 }

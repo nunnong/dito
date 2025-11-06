@@ -46,8 +46,7 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/actuator/**",
                                 "/fcm/send",  // API Key 인증 (permitAll로 필터에서 처리)
-                                "/weekly-goal/user",
-                                "/api/ai"
+                                "/api/ai/**"
                         ).permitAll()
                         .anyRequest().authenticated()  // 나머지 API는 JWT 인증 필요
                 )
