@@ -13,5 +13,9 @@ data class SignUpRequest(
     val username: String,
     val password: String,
     val nickname: String? = null,
+    val birth: String,
+    val gender: String,
+    val job: String,
+    val frequency: String? = null,
     val fcmToken: String? = null
 )

@@ -428,15 +428,15 @@ private fun GenderFieldSection(
         ) {
             GenderButton(
                 text = "남성",
-                isSelected = selectedGender == "남성",
-                onClick = { onGenderSelect("남성") },
+                isSelected = selectedGender == "MALE",
+                onClick = { onGenderSelect("MALE") },
                 modifier = Modifier.weight(1f)
             )
 
             GenderButton(
                 text = "여성",
-                isSelected = selectedGender == "여성",
-                onClick = { onGenderSelect("여성") },
+                isSelected = selectedGender == "FEMALE",
+                onClick = { onGenderSelect("FEMALE") },
                 modifier = Modifier.weight(1f)
             )
         }

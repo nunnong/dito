@@ -89,6 +89,10 @@ class AuthRepository @Inject constructor(
                 username = username,
                 password = password,
                 nickname = nickname,
+                birth = "1970-01-01",
+                gender = "MALE",
+                job = "STUDENT",
+                frequency = null,
                 fcmToken = fcmToken
             )
 

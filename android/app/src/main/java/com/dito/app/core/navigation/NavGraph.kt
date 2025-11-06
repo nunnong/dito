@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
+import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.home.HomeScreen // Added import for HomeScreen
 import kotlinx.coroutines.delay
 
@@ -76,17 +77,63 @@ fun DitoNavGraph(
                 username = username,
                 password = password,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToNext = { username, password, nickname, birthYear, birthMonth, birthDay, gender ->
-                    // TODO: Here you might want to use these parameters to finalize sign-up or pass them to the Home screen
+                onNavigateToNext = { user, pass, nickname, birthYear, birthMonth, birthDay, gender ->
+                    navController.navigate(
+                        Route.SignUpJob.createRoute(
+                            user,
+                            pass,
+                            nickname,
+                            birthYear,
+                            birthMonth,
+                            birthDay,
+                            gender
+                        )
+                    )
+                }
+            )
+        }
+
+        // 5) 회원가입 3단계: 직업 선택
+        composable(
+            route = Route.SignUpJob.path,
+            arguments = listOf(
+                navArgument("username") { type = NavType.StringType },
+                navArgument("password") { type = NavType.StringType },
+                navArgument("nickname") { type = NavType.StringType },
+                navArgument("birthYear") { type = NavType.IntType },
+                navArgument("birthMonth") { type = NavType.IntType },
+                navArgument("birthDay") { type = NavType.IntType },
+                navArgument("gender") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val username = backStackEntry.arguments?.getString("username") ?: ""
+            val password = backStackEntry.arguments?.getString("password") ?: ""
+            val nickname = backStackEntry.arguments?.getString("nickname") ?: ""
+            val birthYear = backStackEntry.arguments?.getInt("birthYear") ?: 1990
+            val birthMonth = backStackEntry.arguments?.getInt("birthMonth") ?: 1
+            val birthDay = backStackEntry.arguments?.getInt("birthDay") ?: 1
+            val gender = backStackEntry.arguments?.getString("gender") ?: ""
+
+            SignUpJobScreen(
+                username = username,
+                password = password,
+                nickname = nickname,
+                birthYear = birthYear,
+                birthMonth = birthMonth,
+                birthDay = birthDay,
+                gender = gender,
+                onNavigateBack = { navController.popBackStack() },
+                onSignUpComplete = { user, pass, nick, year, month, day, gend, job ->
+                    // TODO: 나중에 권한 화면으로 이동하거나 회원가입 API 호출
                     navController.navigate(Route.Home.path) {
-                        popUpTo(Route.Login.path) { inclusive = true }
+                        popUpTo(Route.Splash.path) { inclusive = true }
                         launchSingleTop = true
                     }
                 }
-            ) // Assuming SignUpProfileScreen exists
+            )
         }
 
-        // 5) 메인 화면 (Home) - Added new composable block for HomeScreen
+        // 6) 메인 화면 (Home) - Added new composable block for HomeScreen
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
             HomeScreen(
