@@ -3,4 +3,5 @@ PLAN*.md
 .gitignore
 TECH*.md
 .mcp.json
-.claude
+CLAUDE.md
+SKILL.md
