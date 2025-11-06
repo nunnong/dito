@@ -4,8 +4,10 @@
 - 데이터베이스 시뮬레이션 함수
 """
 
+import os
 from datetime import datetime, timedelta
 
+import httpx
 from langchain_anthropic import ChatAnthropic
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -34,6 +36,14 @@ strategy_adjuster = llm.with_structured_output(StrategyAdjustment)
 
 # Checkpointer (상태 영속성)
 checkpointer = MemorySaver()
+
+
+# =============================================================================
+# Spring 서버 연동 설정 (Spring Server Integration)
+# =============================================================================
+
+SPRING_SERVER_URL = os.getenv("SPRING_SERVER_URL", "http://52.78.96.102:8080")
+SPRING_API_KEY = os.getenv("SECURITY_INTERNAL_API_KEY")
 
 
 # =============================================================================
@@ -74,6 +84,31 @@ def get_time_slot_from_timestamp(timestamp_str: str) -> str:
         return "night"
 
 
+def truncate_message(message: str, max_length: int = 100) -> str:
+    """메시지를 최대 길이로 잘라냄
+
+    Args:
+        message: 원본 메시지
+        max_length: 최대 길이 (기본값: 100자)
+
+    Returns:
+        잘라낸 메시지 (한글 기준)
+    """
+    if len(message) <= max_length:
+        return message
+
+    # 100자로 자르되, 마침표나 느낌표가 있으면 그 앞에서 자름
+    truncated = message[:max_length]
+
+    # 문장 부호 찾기 (뒤에서부터)
+    for i in range(len(truncated) - 1, max(0, len(truncated) - 20), -1):
+        if truncated[i] in ['.', '!', '?', '。', '!', '?']:
+            return truncated[:i+1]
+
+    # 문장 부호가 없으면 그냥 100자에서 자르고 '...' 추가 (단, 97자까지만)
+    return message[:97] + "..."
+
+
 # =============================================================================
 # 데이터베이스 시뮬레이션 함수 (Database Simulation Functions)
 # =============================================================================
@@ -103,11 +138,45 @@ def simulate_post_intervention_usage(user_id: int, intervention_id: int) -> dict
     }
 
 
-def save_intervention_to_db(state: InterventionState) -> int:
-    """실제 환경에서는 missions 테이블에 저장
-    MVP에서는 시뮬레이션하여 ID 반환
+def send_fcm_notification(state: InterventionState) -> str | None:
+    """Send FCM notification request to Spring server
+
+    Returns:
+        intervention_id: String ID if successful, None if failed
     """
-    print(f"[DB] Saving intervention for user {state['user_id']}")
-    print(f"     Type: {state['intervention_type']}")
-    print(f"     Message: {state['nudge_message']}")
-    return 12345  # 시뮬레이션 intervention_id
+    intervention_id = f"INT_{int(datetime.now().timestamp() * 1000)}"
+
+    payload = {
+        "user_id": state["user_id"],  # personalId (문자열)
+        "message": state["nudge_message"],
+        "intervention_id": intervention_id,
+        "intervention_needed": state["intervention_needed"],
+        "intervention_type": state.get("intervention_type", "none"),
+        "type": "intervention"
+    }
+
+    headers = {
+        "X-API-Key": SPRING_API_KEY,
+        "Content-Type": "application/json"
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{SPRING_SERVER_URL}/fcm/send",
+                json=payload,
+                headers=headers
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("success"):
+                print(f"✅ FCM notification sent: {intervention_id}")
+                return intervention_id
+            else:
+                print(f"❌ FCM failed: {result.get('error')}")
+                return None
+
+    except httpx.HTTPError as e:
+        print(f"❌ HTTP error: {e}")
+        return None

@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 class InterventionState(TypedDict):
     """실시간 개입 에이전트의 상태"""
     # 필수 입력 필드 (초기 상태에서 제공되어야 함)
-    user_id: int
+    user_id: str  # personalId (로그인 ID)
     behavior_log: NotRequired[dict]  # app_usage_logs 데이터
 
     # Optional - 워크플로우 중 생성되는 필드
@@ -47,7 +47,7 @@ class EvaluationState(TypedDict):
     """지연된 평가 에이전트의 상태"""
     # 필수 입력 필드 (초기 상태에서 제공되어야 함)
     intervention_id: int
-    user_id: int
+    user_id: str  # personalId (로그인 ID)
     intervention_type: str
 
     # Optional - 효과 측정 (워크플로우 중 생성)
