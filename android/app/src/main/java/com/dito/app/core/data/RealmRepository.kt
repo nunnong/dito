@@ -17,7 +17,8 @@ object RealmRepository {
     // Track 2 전용 쿼리 (배치 전송용)
     fun getUnsyncedAppEvents(): List<AppUsageEvent> {
         return realm.query<AppUsageEvent>(
-            "synced == false"
+            "synced == false AND eventType == $0",
+            "APP_CLOSE"
         ).find()
     }
 

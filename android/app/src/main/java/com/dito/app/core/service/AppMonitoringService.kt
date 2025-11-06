@@ -105,10 +105,10 @@ class AppMonitoringService : AccessibilityService() {
         }
     }
 
-    // 10초 후에도 여전히 동일 앱이면 AI 호출
+    // 20초 후에도 여전히 동일 앱이면 AI 호출
     private fun scheduleAICheck(packageName: String, startTime: Long) {
         aiCheckJob = CoroutineScope(Dispatchers.IO).launch {
-            Log.d(TAG, "[$packageName] 감시 타이머 시작 (10초)")
+            Log.d(TAG, "[$packageName] 감시 타이머 시작 (20초)")
 
             delay(Checker.TEST_CHECKER_MS)
 
