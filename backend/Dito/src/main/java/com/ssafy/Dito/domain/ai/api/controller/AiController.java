@@ -63,7 +63,7 @@ public class AiController {
     }
 
     // <AI> 해당 유저 주간 목표 조회
-    @GetMapping("/user")
+    @GetMapping("/weekly-goal")
     public ResponseEntity<SingleResult<UserWeeklyGoalRes>> getUserWeeklyGoal(
         @RequestBody AiReq req
     ){
