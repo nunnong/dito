@@ -31,7 +31,33 @@ public class ItemService {
     @Transactional(readOnly = true)
     public Page<ShopItemRes> getShopCostume(Type type, long pageNumber) {
         long userId = JwtAuthentication.getUserId();
-        return itemQueryRepository.getItemPage(userId, type, pageNumber);
+        Page<ShopItemRes> page = itemQueryRepository.getItemPage(userId, type, pageNumber);
+
+        // 이미지 URL에 _3 추가
+        return page.map(shopItemRes -> {
+            var modifiedItems = shopItemRes.items().stream()
+                .map(item -> new ItemRes(
+                    item.ItemId(),
+                    item.name(),
+                    item.price(),
+                    addSuffixToImageUrl(item.imageUrl(), "_3"),
+                    item.onSale(),
+                    item.isPurchased()
+                ))
+                .toList();
+            return new ShopItemRes(shopItemRes.coin_balance(), modifiedItems);
+        });
+    }
+
+    private String addSuffixToImageUrl(String url, String suffix) {
+        if (url == null || url.isEmpty()) {
+            return url;
+        }
+        int lastDotIndex = url.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            return url;
+        }
+        return url.substring(0, lastDotIndex) + suffix + url.substring(lastDotIndex);
     }
 
     @Transactional
