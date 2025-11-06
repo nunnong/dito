@@ -17,6 +17,7 @@ public record FcmSendRequest(
         String message,
 
         @NotBlank(message = "interventionId는 필수입니다")
+        @JsonProperty("intervention_id")
         String interventionId,
 
         @NotNull(message = "intervention_needed는 필수입니다")

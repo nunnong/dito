@@ -102,9 +102,15 @@ public class FcmService {
                 300  // timeToLive: 5분 (TECH_SPEC.md 참조)
         );
 
-        sendNotificationToUser(user.getId(), notificationRequest);
+        // FCM 전송 (실패해도 Mission 생성에 영향 없음)
+        try {
+            sendNotificationToUser(user.getId(), notificationRequest);
+        } catch (Exception e) {
+            log.error("FCM send failed for intervention {}, but will still create mission if needed: {}",
+                    request.interventionId(), e.getMessage());
+        }
 
-        // 2. intervention_needed=true일 때만 Mission 생성
+        // 2. intervention_needed=true일 때만 Mission 생성 (FCM 전송 결과와 무관)
         if (request.interventionNeeded()) {
             createInterventionMission(user, request);
             log.info("Mission created for intervention {}", request.interventionId());
