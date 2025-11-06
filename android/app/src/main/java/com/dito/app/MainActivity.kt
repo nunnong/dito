@@ -13,6 +13,7 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +38,7 @@ import androidx.work.ExistingWorkPolicy
 import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.navigation.Route
 import com.dito.app.core.repository.AuthRepository
+import com.dito.app.feature.group.GroupLeaderScreen
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -51,6 +53,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         setContent {
             DitoTheme {
@@ -58,12 +61,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    // 항상 스플래시 화면부터 시작
-                    DitoNavGraph(
-                        navController = navController,
-                        startDestination =  Route.Splash.path
-                    )
+                    GroupLeaderScreen()
                 }
             }
         }

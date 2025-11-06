@@ -34,10 +34,11 @@ fun GroupMemberScreen(
                 .padding(innerPadding)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.race),
+                painter = painterResource(id = R.drawable.race2),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
+
             )
 
             Column(
