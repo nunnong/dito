@@ -141,8 +141,14 @@ def simulate_post_intervention_usage(user_id: int, intervention_id: int) -> dict
 def send_fcm_notification(state: InterventionState) -> str | None:
     """Send FCM notification request to Spring server
 
+    역할:
+    1. 개입 필요시: 미션 생성 API 호출 (/api/ai/missions)
+    2. mission_id 획득
+    3. 새로운 FCM 형식으로 전송 (/api/fcm/send)
+    4. personalId 사용 (user_id 대신)
+
     Returns:
-        intervention_id: String ID if successful, None if failed
+        mission_id: String ID if successful, None if failed
     """
     # 환경 변수 유효성 검증
     if not SECURITY_INTERNAL_API_KEY:
@@ -150,16 +156,77 @@ def send_fcm_notification(state: InterventionState) -> str | None:
         print("   Please check your .env file or environment configuration")
         return None
 
-    intervention_id = f"INT_{int(datetime.now().timestamp() * 1000)}"
+    mission_id = None
+    mission_data = {}
 
-    payload = {
-        "user_id": state["user_id"],  # personalId (문자열)
-        "message": state["nudge_message"],
-        "intervention_id": intervention_id,
-        "intervention_needed": state["intervention_needed"],
-        "intervention_type": state.get("intervention_type", "none"),
-        "type": "intervention"
+    # Step 1: 개입이 필요한 경우 미션 생성
+    if state.get("intervention_needed", False):
+        print("     📝 미션 생성 중...")
+
+        # 미션 생성 API 페이로드
+        mission_payload = {
+            "user_id": state["user_id"],  # personalId
+            "mission_type": state.get("nudge_type", "REST"),  # REST or MEDITATION
+            "instruction": state["nudge_message"],
+            "coin_reward": 10,
+            "duration_seconds": state.get("duration_seconds", 300),
+            "target_app": "All Apps",
+            "health_change": 1,
+            "mental_change": 1,
+            "focus_change": 1,
+            "created_by": "AI Intervention"
+        }
+
+        headers = {
+            "X-API-Key": SECURITY_INTERNAL_API_KEY,
+            "Content-Type": "application/json"
+        }
+
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
+                    f"{SPRING_SERVER_URL}/api/ai/missions",
+                    json=mission_payload,
+                    headers=headers
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                mission_id = result.get("mission_id")
+                if mission_id:
+                    print(f"     ✅ 미션 생성 완료: ID={mission_id}")
+                    mission_data = {
+                        "mission_id": str(mission_id),
+                        "mission_type": state.get("nudge_type", "REST"),
+                        "duration": str(state.get("duration_seconds", 300)),
+                        "coin_reward": "10",
+                        "instruction": state["nudge_message"]
+                    }
+                else:
+                    print("     ⚠️ 미션 생성 응답에 mission_id 없음")
+
+        except httpx.HTTPError as e:
+            print(f"     ❌ 미션 생성 실패: {e}")
+            # 미션 생성 실패해도 FCM은 전송 (상태 메시지로)
+
+    # Step 2: FCM 전송 (새로운 형식)
+    print("     📱 FCM 알림 전송 중...")
+
+    # FCM 페이로드 구성
+    fcm_payload = {
+        "personalId": str(state["user_id"]),  # personalId로 변경
+        "notification": {
+            "title": "디토",
+            "body": state["nudge_message"]
+        },
+        "data": {
+            "type": "INTERVENTION" if state.get("intervention_needed") else "STATUS"
+        }
     }
+
+    # 미션 데이터가 있으면 추가
+    if mission_data:
+        fcm_payload["data"].update(mission_data)
 
     headers = {
         "X-API-Key": SECURITY_INTERNAL_API_KEY,
@@ -169,20 +236,32 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     try:
         with httpx.Client(timeout=10.0) as client:
             response = client.post(
-                f"{SPRING_SERVER_URL}/fcm/send",
-                json=payload,
+                f"{SPRING_SERVER_URL}/api/fcm/send",  # 새로운 엔드포인트
+                json=fcm_payload,
                 headers=headers
             )
             response.raise_for_status()
             result = response.json()
 
             if result.get("success"):
-                print(f"✅ FCM notification sent: {intervention_id}")
-                return intervention_id
+                if mission_id:
+                    print(f"     ✅ FCM 전송 완료: mission_id={mission_id}")
+                    return str(mission_id)
+                else:
+                    print(f"     ✅ FCM 상태 메시지 전송 완료")
+                    return "STATUS_CHECK"
             else:
-                print(f"❌ FCM failed: {result.get('error')}")
+                print(f"     ❌ FCM 전송 실패: {result.get('error')}")
                 return None
 
     except httpx.HTTPError as e:
-        print(f"❌ HTTP error: {e}")
+        print(f"     ❌ FCM HTTP 오류: {e}")
+        # 디버깅을 위한 상세 정보 출력
+        if hasattr(e, 'response') and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
         return None

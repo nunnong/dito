@@ -32,7 +32,8 @@ class InterventionState(TypedDict):
 
     # Optional - 넛지 생성
     nudge_message: NotRequired[str]
-    nudge_type: NotRequired[str]  # "rest-suggestion", "sleep-reminder", "focus-mode" 등
+    nudge_type: NotRequired[str]  # "REST" or "MEDITATION"
+    duration_seconds: NotRequired[int]  # 미션 실행 시간 (초)
 
     # Optional - 개입 실행
     intervention_time: NotRequired[str]
@@ -114,8 +115,12 @@ class NudgeMessage(BaseModel):
     message: str = Field(
         description="사용자에게 전달할 메시지"
     )
-    nudge_type: str = Field(
-        description="넛지 유형 (예: 'rest-suggestion', 'sleep-reminder')"
+    nudge_type: Literal["REST", "MEDITATION"] = Field(
+        description="넛지 유형 (REST: 휴식, MEDITATION: 명상)"
+    )
+    duration_seconds: int = Field(
+        gt=0,
+        description="미션 실행 시간 (초)"
     )
 
 
