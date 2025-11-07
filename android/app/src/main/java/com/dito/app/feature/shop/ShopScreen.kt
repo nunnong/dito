@@ -32,7 +32,8 @@ import com.dito.app.core.ui.designsystem.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onNavigateHome: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(ShopTab.COSTUME) }
     var userCoins by remember { mutableStateOf(100) }
@@ -44,7 +45,11 @@ fun ShopScreen(
         bottomBar = {
             DitoBottomAppBar(
                 selectedTab = BottomTab.HOME, // Default to HOME tab
-                onTabSelected = { /* TODO: Handle tab selection for ShopScreen */ }
+                onTabSelected = { tab ->
+                    if (tab == BottomTab.HOME) {
+                        onNavigateHome()
+                    }
+                }
             )
         }
     ) { innerPadding -> // Get innerPadding
@@ -343,5 +348,5 @@ data class ShopItem(
 @Preview(showBackground = true)
 @Composable
 fun ShopScreenPreview() {
-    ShopScreen()
+    ShopScreen(onBackClick = {}, onNavigateHome = {})
 }

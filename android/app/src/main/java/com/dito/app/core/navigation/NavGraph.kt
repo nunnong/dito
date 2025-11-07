@@ -220,6 +220,12 @@ fun DitoNavGraph(
             ShopScreen(
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onNavigateHome = {
+                    navController.navigate(Route.Home.path) {
+                        popUpTo(navController.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
                 }
             )
         }
