@@ -163,14 +163,19 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     if state.get("intervention_needed", False):
         print("     📝 미션 생성 중...")
 
+        # behavior_log에서 target_app 추출
+        target_app = "All Apps"  # 기본값
+        if "behavior_log" in state and state["behavior_log"]:
+            target_app = state["behavior_log"].get("app_name", "All Apps")
+
         # 미션 생성 API 페이로드
         mission_payload = {
             "user_id": state["user_id"],  # personalId
-            "mission_type": state.get("nudge_type", "REST"),  # REST or MEDITATION
+            "mission_type": state.get("nudge_type", "REST"),  # LLM이 선택한 타입
             "instruction": state["nudge_message"],
             "coin_reward": 10,
-            "duration_seconds": state.get("duration_seconds", 300),
-            "target_app": "All Apps",
+            "duration_seconds": state.get("duration_seconds", 300),  # LLM이 선택한 시간
+            "target_app": target_app,  # behavior_log에서 추출
             "health_change": 1,
             "mental_change": 1,
             "focus_change": 1,

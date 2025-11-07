@@ -111,127 +111,78 @@ def generate_nudge(state: InterventionState) -> dict:
     """3단계: 넛지 메시지 생성 - Always executed
 
     역할:
-    1. intervention_type → nudge_type 매핑 (REST/MEDITATION)
-    2. urgency_level → duration_seconds 결정
-    3. nudge_type별 차별화된 메시지 생성
+    LLM이 상황에 따라 적절한 넛지를 생성:
+    1. nudge_type (REST/MEDITATION) 선택
+    2. duration_seconds 결정
+    3. 공감적인 메시지 생성
     """
     print("\n[3/4] 넛지 메시지 생성 중...")
-
-    # Step 1: intervention_type을 기반으로 nudge_type 결정
-    nudge_type = "REST"  # 기본값
-    duration_seconds = 300  # 기본값 5분
 
     if state.get("intervention_needed", False):
         intervention_type = state.get("intervention_type", "none")
         urgency_level = state.get("urgency_level", "medium")
 
-        # Intervention type → nudge_type 매핑
-        #if intervention_type in ["bedtime-usage", "focus-break"]:
-        #    nudge_type = "MEDITATION"
-        #else:  # short-form-overuse, app-switching
-        #    nudge_type = "REST"
-        import random
+        print(f"     개입 유형: {intervention_type}, 긴급도: {urgency_level}")
 
-        nudge_type = "MEDITATION" if random.randint(0,1) == 1 else 0 # 지금은 확률적으로 임시로 테스팅을 위해서 준다.
-
-        # Step 2: nudge_type과 urgency_level에 따른 duration 결정
-        if nudge_type == "REST":
-            duration_map = {
-                "high": 10,    #  - 긴급 휴식
-                "medium": 30,  #  - 일반 휴식
-                "low": 40      #  - 여유 휴식
-            }
-        else:  # MEDITATION
-            duration_map = {
-                "high": 10,    # - 짧은 명상
-                "medium": 20,  # - 일반 명상
-                "low": 30      # - 긴 명상
-            }
-
-        duration_seconds = duration_map.get(urgency_level, 300)
-
-        print(f"     개입 유형: {intervention_type} → 넛지 타입: {nudge_type}")
-        print(f"     긴급도: {urgency_level} → 지속 시간: {duration_seconds}초 ({duration_seconds//60}분)")
-
-        # Step 3: nudge_type에 따른 차별화된 프롬프트 생성
-        if nudge_type == "REST":
-            # REST 타입: 휴식 관련 메시지
-            nudge_prompt = f"""
-사용자에게 전달할 **휴식** 넛지 메시지를 생성하세요.
+        # LLM이 nudge_type과 duration_seconds를 결정하도록 프롬프트 작성
+        nudge_prompt = f"""
+사용자에게 전달할 넛지 메시지를 생성하세요.
 
 상황:
 - 행동 패턴: {state["behavior_pattern"]}
 - 개입 유형: {state["intervention_type"]}
 - 긴급도: {state["urgency_level"]}
-- 휴식 시간: {duration_seconds//60}분
 
-메시지 프레임: "[인식] → [휴식 제안] → [보상]"
+당신의 역할:
+1. **넛지 타입 선택**: REST (휴식) 또는 MEDITATION (명상) 중 하나
+2. **미션 시간 결정**: 10초~900초 (적절한 시간 선택)
+3. **공감적 메시지 생성**: 최대 100자 이내
+
+선택 가이드:
+- **REST 추천**: 숏폼 과다 사용, 앱 전환 과다 → 디지털 디톡스 휴식
+  - short-form-overuse: 600초(10분)
+  - app-switching: 600초(10분)
+
+- **MEDITATION 추천**: 취침 전 사용, 집중 후 휴식 → 명상/마음챙김
+  - bedtime-usage: 300초(5분)
+  - focus-break: 300초(5분)
+
+긴급도별 시간 조정:
+- high: 10~30초 (긴급, 짧은 개입)
+- medium: 300~600초 (일반, 5~10분)
+- low: 600~900초 (여유, 10~15분)
+
+메시지 프레임: "[인식] → [제안] → [보상]"
+예시: "30분째 시청 중이에요 → 10분 휴식 어때요? → 성공 시 +10 코인!"
 
 요구사항:
-1. **최대 100자 이내 (한글 기준)**
+1. 최대 100자 이내
 2. 친근하고 공감적인 톤
-3. {duration_seconds//60}분간 휴식하도록 구체적 제안
-4. 디지털 디톡스 강조
-5. +10 코인 보상 언급
-
-**예시**:
-- "30분째 시청 중이에요. {duration_seconds//60}분 휴식 어때요? 성공 시 +10 코인!"
-- "잠시 화면을 내려놓고 {duration_seconds//60}분 쉬어보세요. +10 코인 보상!"
-"""
-        else:  # MEDITATION
-            # MEDITATION 타입: 명상/마음챙김 메시지
-            nudge_prompt = f"""
-사용자에게 전달할 **명상/마음챙김** 넛지 메시지를 생성하세요.
-
-상황:
-- 행동 패턴: {state["behavior_pattern"]}
-- 개입 유형: {state["intervention_type"]}
-- 긴급도: {state["urgency_level"]}
-- 명상 시간: {duration_seconds//60}분
-
-메시지 프레임: "[인식] → [명상 제안] → [보상]"
-
-요구사항:
-1. **최대 100자 이내 (한글 기준)**
-2. 차분하고 편안한 톤
-3. {duration_seconds//60}분간 명상/호흡/마음챙김 제안
-4. 마음의 안정과 집중력 회복 강조
-5. +10 코인 보상 언급
-
-**예시**:
-- "잠시 눈을 감고 {duration_seconds//60}분간 명상해보세요. +10 코인 보상!"
-- "{duration_seconds//60}분 명상으로 마음을 편안하게. 성공 시 +10 코인!"
-- "심호흡하며 {duration_seconds//60}분 쉬어보세요. +10 코인이 기다려요!"
+3. +10 코인 보상 언급
 """
 
-        # 넛지 타입과 지속 시간을 포함한 구조화된 출력 요청을 위해
-        # LLM 호출 전에 설정값 저장 (LLM이 이 값을 반영하도록)
-        from langchain_core.messages import AIMessage
-
-        # LLM 호출
-        messages = [
-            SystemMessage(content=SYSTEM_MSG_NUDGE_GENERATOR),
-            HumanMessage(content=nudge_prompt),
-            # LLM이 nudge_type과 duration을 인지하도록 힌트 추가
-            AIMessage(content=f"넛지 타입을 {nudge_type}로, 지속시간을 {duration_seconds}초로 설정하겠습니다.")
-        ]
-
-        # 구조화된 출력 스키마를 임시로 수정하여 올바른 값 반환하도록
-        # (실제로는 LLM이 NudgeMessage 스키마에 맞게 반환해야 함)
+        # LLM 호출 - NudgeMessage 구조화 출력 (message, nudge_type, duration_seconds)
         try:
-            nudge = nudge_generator.invoke(messages[:-1])  # AIMessage 제외
+            nudge = nudge_generator.invoke(
+                [
+                    SystemMessage(content=SYSTEM_MSG_NUDGE_GENERATOR),
+                    HumanMessage(content=nudge_prompt),
+                ]
+            )
         except Exception as e:
             print(f"⚠️ LLM 호출 실패, 기본값 사용: {e}")
             # 실패 시 기본 메시지 생성
             from agent.schemas import NudgeMessage
             nudge = NudgeMessage(
-                message=f"{duration_seconds//60}분간 {'휴식' if nudge_type == 'REST' else '명상'}이 필요해요. +10 코인!",
-                nudge_type=nudge_type,
-                duration_seconds=duration_seconds
+                message="잠시 휴식이 필요해요. 성공 시 +10 코인!",
+                nudge_type="REST",
+                duration_seconds=300
             )
 
     else:
         # 개입 불필요 시 상태 메시지 생성
+        print(f"     개입 불필요 - 상태 메시지 생성")
+
         nudge_prompt = get_status_nudge_prompt(
             state["behavior_pattern"],
             state.get("pattern_type", "normal"),
@@ -239,24 +190,13 @@ def generate_nudge(state: InterventionState) -> dict:
             state.get("severity_score", 0)
         )
 
-        # 개입 불필요 시 기본값 사용
-        nudge_type = "REST"
-        duration_seconds = 0
-
         try:
-            # 상태 메시지용 LLM 호출
-            from agent.schemas import NudgeMessage
-            nudge_temp = nudge_generator.invoke(
+            # 상태 메시지용 LLM 호출 - LLM이 모든 필드 생성
+            nudge = nudge_generator.invoke(
                 [
                     SystemMessage(content=SYSTEM_MSG_NUDGE_GENERATOR),
                     HumanMessage(content=nudge_prompt),
                 ]
-            )
-            # 상태 메시지는 미션이 없으므로 duration을 0으로 설정
-            nudge = NudgeMessage(
-                message=nudge_temp.message,
-                nudge_type="REST",  # 기본값
-                duration_seconds=1  # 스키마 제약상 양수여야 하므로 1로 설정
             )
         except Exception as e:
             print(f"⚠️ 상태 메시지 생성 실패: {e}")
@@ -264,7 +204,7 @@ def generate_nudge(state: InterventionState) -> dict:
             nudge = NudgeMessage(
                 message="잘하고 있어요! 건강한 디지털 습관을 유지하세요.",
                 nudge_type="REST",
-                duration_seconds=1
+                duration_seconds=1  # 스키마 제약상 양수
             )
 
     # 메시지 길이 검증 및 자르기 (최대 100자)
@@ -276,9 +216,10 @@ def generate_nudge(state: InterventionState) -> dict:
     else:
         print(f"     메시지 ({len(nudge.message)}자): {nudge.message}")
 
-    print(f"     최종 넛지 타입: {nudge.nudge_type}")
-    print(f"     최종 지속 시간: {nudge.duration_seconds}초")
+    print(f"     LLM 선택 넛지 타입: {nudge.nudge_type}")
+    print(f"     LLM 선택 지속 시간: {nudge.duration_seconds}초 ({nudge.duration_seconds//60}분 {nudge.duration_seconds%60}초)")
 
+    # LLM이 결정한 값을 그대로 반환
     return {
         "nudge_message": truncated_message,
         "nudge_type": nudge.nudge_type,
@@ -306,15 +247,19 @@ def send_intervention(state: InterventionState) -> dict:
     eval_scheduled_time = None
 
     if state.get("intervention_needed", False):
-        if state["urgency_level"] == "high":
-            delay_minutes = 30
-        elif state["urgency_level"] == "medium":
-            delay_minutes = 45
-        else:
-            delay_minutes = 60
+        # intervention_type에 따라 평가 지연 시간 결정
+        intervention_type = state.get("intervention_type", "none")
+        delay_map = {
+            "short-form-overuse": 60,  # 숏폼 과다: 60분 후 평가 (긴 행동 패턴)
+            "bedtime-usage": 30,        # 취침 전 사용: 30분 후 평가 (짧은 개입)
+            "focus-break": 45,          # 집중 후 휴식: 45분 후 평가 (중간)
+            "app-switching": 60,        # 앱 전환 과다: 60분 후 평가 (긴 행동 패턴)
+            "none": 45                  # 기본값: 45분
+        }
+        delay_minutes = delay_map.get(intervention_type, 45)
 
         eval_scheduled_time = schedule_evaluation(intervention_time, delay_minutes)
-        print(f"     평가 예정: {eval_scheduled_time} ({delay_minutes}분 후)")
+        print(f"     평가 예정: {eval_scheduled_time} ({delay_minutes}분 후, 개입 유형: {intervention_type})")
     else:
         print(f"     평가 스케줄 안 함 (개입 불필요)")
 
