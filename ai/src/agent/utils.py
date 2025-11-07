@@ -50,6 +50,7 @@ SECURITY_INTERNAL_API_KEY = os.getenv("SECURITY_INTERNAL_API_KEY")
 # 시간 유틸리티 함수 (Time Utility Functions)
 # =============================================================================
 
+
 def get_current_timestamp() -> str:
     """현재 시간을 ISO 포맷으로 반환"""
     return datetime.now().isoformat()
@@ -102,8 +103,8 @@ def truncate_message(message: str, max_length: int = 100) -> str:
 
     # 문장 부호 찾기 (뒤에서부터)
     for i in range(len(truncated) - 1, max(0, len(truncated) - 20), -1):
-        if truncated[i] in ['.', '!', '?', '。', '!', '?']:
-            return truncated[:i+1]
+        if truncated[i] in [".", "!", "?", "。", "!", "?"]:
+            return truncated[: i + 1]
 
     # 문장 부호가 없으면 그냥 100자에서 자르고 '...' 추가 (단, 97자까지만)
     return message[:97] + "..."
@@ -112,6 +113,7 @@ def truncate_message(message: str, max_length: int = 100) -> str:
 # =============================================================================
 # 데이터베이스 시뮬레이션 함수 (Database Simulation Functions)
 # =============================================================================
+
 
 def simulate_behavior_log(user_id: int) -> dict:
     """실제 환경에서는 app_usage_logs 테이블에서 가져옴
@@ -179,20 +181,20 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             "health_change": 1,
             "mental_change": 1,
             "focus_change": 1,
-            "created_by": "AI Intervention"
+            "created_by": "AI Intervention",
         }
 
         headers = {
             "X-API-Key": SECURITY_INTERNAL_API_KEY,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         try:
             with httpx.Client(timeout=10.0) as client:
                 response = client.post(
-                    f"{SPRING_SERVER_URL}/api/ai/missions",
+                    f"{SPRING_SERVER_URL}/api/ai/mission",
                     json=mission_payload,
-                    headers=headers
+                    headers=headers,
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -214,7 +216,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     fcm_payload = {
         "user_id": state["user_id"],
         "title": "디토",
-        "message": state["nudge_message"]
+        "message": state["nudge_message"],
     }
 
     # mission_id가 있으면 추가 (백엔드가 Mission 테이블에서 나머지 정보 조회)
@@ -223,7 +225,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
 
     headers = {
         "X-API-Key": SECURITY_INTERNAL_API_KEY,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
     try:
@@ -231,7 +233,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             response = client.post(
                 f"{SPRING_SERVER_URL}/api/fcm/send",  # 새로운 엔드포인트
                 json=fcm_payload,
-                headers=headers
+                headers=headers,
             )
             response.raise_for_status()
             result = response.json()
@@ -250,7 +252,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     except httpx.HTTPError as e:
         print(f"     ❌ FCM HTTP 오류: {e}")
         # 디버깅을 위한 상세 정보 출력
-        if hasattr(e, 'response') and e.response:
+        if hasattr(e, "response") and e.response:
             print(f"        응답 코드: {e.response.status_code}")
             try:
                 error_detail = e.response.json()
