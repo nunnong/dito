@@ -3,7 +3,6 @@ package com.ssafy.Dito.domain.user.repository;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
 import com.ssafy.Dito.domain.item.entity.QItem;
 import com.ssafy.Dito.domain.item.entity.Type;
@@ -101,9 +100,7 @@ public class UserQueryRepository {
         return res;
     }
 
-    public UserInfoRes getUserInfoForAi(AiReq req) {
-        long userId = req.userId();
-
+    public UserInfoRes getUserInfoForAi(String personalId) {
         return jpaQueryFactory
             .select(new QUserInfoRes(
                 new QProfileRes(
@@ -128,7 +125,7 @@ public class UserQueryRepository {
             ))
             .from(user)
             .join(status).on(status.user.id.eq(user.id))
-            .where(user.id.eq(userId))
+            .where(user.personalId.eq(personalId))
             .fetchOne();
     }
 }

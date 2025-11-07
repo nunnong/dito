@@ -1,6 +1,5 @@
 package com.ssafy.Dito.domain.user.service;
 
-import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
 import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
 import com.ssafy.Dito.domain.user.dto.response.MainRes;
@@ -59,7 +58,7 @@ public class UserService {
         return userQueryRepository.getMainPage(userId);
     }
 
-    public UserInfoRes getUserInfoForAi(AiReq req) {
-        return userQueryRepository.getUserInfoForAi(req);
+    public UserInfoRes getUserInfoForAi(String personalId) {
+        return userQueryRepository.getUserInfoForAi(personalId);
     }
 }

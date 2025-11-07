@@ -23,6 +23,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -75,11 +76,11 @@ public class AiController {
     }
 
     @Operation(summary = "유저 정보 조회")
-    @GetMapping("/user")
+    @GetMapping("/{personalId}")
     public ResponseEntity<SingleResult<UserInfoRes>> getUserInfo(
-        @RequestBody AiReq req
+        @PathVariable String personalId
     ) {
-        UserInfoRes res = userService.getUserInfoForAi(req);
+        UserInfoRes res = userService.getUserInfoForAi(personalId);
         return ApiResponse.ok(res);
     }
 
