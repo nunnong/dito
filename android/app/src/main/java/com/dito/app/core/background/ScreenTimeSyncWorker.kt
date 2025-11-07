@@ -4,29 +4,24 @@ import android.content.Context
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
-import com.dito.app.core.data.screentime.MongoDBDirectClient
 import com.dito.app.core.data.screentime.ScreenTimeRepository
 import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
-import com.dito.app.core.data.screentime.toSnapshotMongo
-import com.dito.app.core.data.screentime.toSummaryMongo
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import com.dito.app.core.util.ScreenTimeCollector
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 /**
- * 스크린타임 동기화 Worker (하이브리드 방식)
+ * 스크린타임 동기화 Worker
  *
- * 5분마다 실행:
- * 1. 로컬 Realm에 즉시 저장
- * 2. MongoDB Atlas에 직접 저장 (빠른 저장)
- * 3. Backend API 호출 (검증 & Summary 생성)
+ * 15분마다 실행:
+ * 1. 로컬 Realm에 즉시 저장 (오프라인 대비)
+ * 2. Backend API 호출 → MongoDB에 저장
  */
 @HiltWorker
 class ScreenTimeSyncWorker @AssistedInject constructor(
@@ -117,52 +112,27 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
 
             Log.d(TAG, "📊 오늘 스크린타임: ${todayScreenTime}분 (그룹 ID: $groupId)")
 
-            // === 하이브리드 동기화 시작 ===
-
-            // 1단계: 로컬 Realm 저장 (즉시)
+            // 1단계: 로컬 Realm 저장 (오프라인 대비)
             val localId = ScreenTimeRepository.saveScreenTimeLocal(
                 groupId = groupId,
                 userId = userId,
                 date = today,
                 totalMinutes = todayScreenTime
             )
-            Log.d(TAG, "✅ [1/3] 로컬 저장 완료: $localId")
+            Log.d(TAG, "✅ [1/2] 로컬 저장 완료: $localId")
 
-            // 2단계: MongoDB Atlas 직접 저장 (병렬)
-            val mongoSuccess = async {
-                saveToMongoDirectly(groupId, userId, today, todayScreenTime)
-            }
-
-            // 3단계: Backend API 호출 (병렬)
-            val apiSuccess = async {
-                uploadToBackendAPI(groupId, today, todayScreenTime)
-            }
-
-            val mongoResult = mongoSuccess.await()
-            val apiResult = apiSuccess.await()
+            // 2단계: Backend API 호출 (MongoDB에 저장됨)
+            val apiSuccess = uploadToBackendAPI(groupId, today, todayScreenTime)
 
             // 결과 처리
-            when {
-                mongoResult && apiResult -> {
-                    ScreenTimeRepository.markAsSynced(listOf(localId))
-                    Log.d(TAG, "✅ [2/3] MongoDB 직접 저장 성공")
-                    Log.d(TAG, "✅ [3/3] Backend API 전송 성공")
-                    Log.i(TAG, "========== 전체 동기화 성공 ==========")
-                    Result.success()
-                }
-                mongoResult && !apiResult -> {
-                    Log.w(TAG, "⚠️ Backend API 실패 (MongoDB 저장 성공)")
-                    Result.retry()
-                }
-                !mongoResult && apiResult -> {
-                    ScreenTimeRepository.markAsSynced(listOf(localId))
-                    Log.w(TAG, "⚠️ MongoDB 실패 (Backend 저장 성공)")
-                    Result.success()
-                }
-                else -> {
-                    Log.e(TAG, "❌ MongoDB & Backend 모두 실패 → 재시도 예정")
-                    Result.retry()
-                }
+            if (apiSuccess) {
+                ScreenTimeRepository.markAsSynced(listOf(localId))
+                Log.d(TAG, "✅ [2/2] Backend API 전송 성공 → MongoDB 저장 완료")
+                Log.i(TAG, "========== 동기화 성공 ==========")
+                Result.success()
+            } else {
+                Log.e(TAG, "❌ Backend API 실패 → 재시도 예정")
+                Result.retry()
             }
 
         } catch (e: Exception) {
@@ -172,44 +142,7 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
     }
 
     /**
-     * MongoDB Atlas에 직접 저장
-     */
-    private suspend fun saveToMongoDirectly(
-        groupId: Long,
-        userId: Long,
-        date: String,
-        totalMinutes: Int
-    ): Boolean {
-        return try {
-            val logs = ScreenTimeRepository.getUnsyncedLogs()
-            if (logs.isEmpty()) {
-                Log.d(TAG, "MongoDB 저장할 로그 없음")
-                return true
-            }
-
-            var successCount = 0
-            logs.forEach { log ->
-                // Summary upsert
-                val summarySuccess = MongoDBDirectClient.upsertSummary(log.toSummaryMongo())
-                // Snapshot insert
-                val snapshotSuccess = MongoDBDirectClient.insertSnapshot(log.toSnapshotMongo())
-
-                if (summarySuccess && snapshotSuccess) {
-                    successCount++
-                }
-            }
-
-            Log.d(TAG, "MongoDB 직접 저장: $successCount/${logs.size}건 성공")
-            successCount > 0
-
-        } catch (e: Exception) {
-            Log.e(TAG, "MongoDB 직접 저장 중 예외", e)
-            false
-        }
-    }
-
-    /**
-     * Backend API로 전송
+     * Backend API로 전송 (Backend가 MongoDB에 저장)
      */
     private suspend fun uploadToBackendAPI(groupId: Long, date: String, totalMinutes: Int): Boolean {
         return try {

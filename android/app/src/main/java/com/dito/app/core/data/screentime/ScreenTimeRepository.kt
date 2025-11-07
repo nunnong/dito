@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 
 /**
  * 스크린타임 로컬 저장 Repository
- * Realm을 사용한 임시 저장 및 MongoDB 동기화 관리
+ * Realm을 사용한 임시 저장 및 Backend API 동기화 관리
  */
 object ScreenTimeRepository {
 
