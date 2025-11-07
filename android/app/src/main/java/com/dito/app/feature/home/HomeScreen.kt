@@ -24,7 +24,8 @@ import com.dito.app.core.ui.designsystem.*
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
-    onCartClick: () -> Unit
+    onCartClick: () -> Unit,
+    onClosetClick: () -> Unit,
 ) {
     var weeklyGoal by remember { mutableStateOf("") }
 
@@ -88,7 +89,7 @@ fun HomeScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.closet),
                                 contentDescription = "Closet",
-                                modifier = Modifier.size(20.dp), // image 56 크기
+                                modifier = Modifier.size(20.dp).clickable { onClosetClick() },
                                 contentScale = ContentScale.Fit
                             )
                         }
@@ -134,7 +135,7 @@ fun HomeScreen(
                             ) {
                                 // 연필 아이콘 (Vector들로 구성)
                                 Image(
-                                    painter = painterResource(id = R.drawable.pencil), // 임시, 연필 아이콘으로 교체 필요
+                                    painter = painterResource(id = R.drawable.pencil),
                                     contentDescription = "Edit",
                                     modifier = Modifier.size(20.dp),
                                     contentScale = ContentScale.Fit
@@ -341,5 +342,5 @@ private fun ProgressBarItem(label: String, progress: Float) {
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    HomeScreen(onLogout = {}, onCartClick = {})
+    HomeScreen(onLogout = {}, onCartClick = {}, onClosetClick = {})
 }
