@@ -39,6 +39,7 @@ fun ShopScreen(
     val ownedItemIds = remember { mutableStateOf(setOf("item_1")) }
 
     var showDialog by remember { mutableStateOf(false) }
+    var showInsufficientCoinsDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ShopItem?>(null) }
 
     if (showDialog) {
@@ -56,6 +57,14 @@ fun ShopScreen(
             onDismiss = {
                 showDialog = false
                 selectedItem = null
+            }
+        )
+    }
+
+    if (showInsufficientCoinsDialog) {
+        ShopInsufficientCoinsDialog(
+            onDismiss = {
+                showInsufficientCoinsDialog = false
             }
         )
     }
@@ -91,8 +100,12 @@ fun ShopScreen(
                 ownedItemIds = ownedItemIds.value,
                 userCoins = userCoins,
                 onPurchase = { item ->
-                    selectedItem = item
-                    showDialog = true
+                    if (userCoins >= item.price) {
+                        selectedItem = item
+                        showDialog = true
+                    } else {
+                        showInsufficientCoinsDialog = true
+                    }
                 },
                 contentPadding = innerPadding
             )
@@ -298,7 +311,7 @@ private fun ShopItemCard(
                     .fillMaxWidth()
                     .height(28.dp)
                     .background(Color.Black, CircleShape)
-                    .clickable(enabled = canAfford) { onPurchase() },
+                    .clickable { onPurchase() },
                 contentAlignment = Alignment.Center
             ) {
                 Row(
