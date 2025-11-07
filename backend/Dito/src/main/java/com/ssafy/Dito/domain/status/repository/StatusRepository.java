@@ -14,4 +14,10 @@ public interface StatusRepository extends JpaRepository<Status, Integer> {
     default Status getById(long id) {
         return findById(id).orElseThrow(NotFoundUserStatusException::new);
     }
+
+    Optional<Status> findByUser_Id(Long userId);
+
+    default Status getByUserId(Long userId) {
+        return findByUser_Id(userId).orElseThrow(NotFoundUserStatusException::new);
+    }
 }

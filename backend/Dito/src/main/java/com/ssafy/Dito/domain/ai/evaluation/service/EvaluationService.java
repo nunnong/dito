@@ -7,12 +7,16 @@ import com.ssafy.Dito.domain.ai.evaluation.dto.EvaluationResponse;
 import com.ssafy.Dito.domain.ai.evaluation.repository.EvaluationRepository;
 import com.ssafy.Dito.domain.mission.entity.Mission;
 import com.ssafy.Dito.domain.mission.repository.MissionRepository;
+import com.ssafy.Dito.domain.missionResult.dto.request.MissionResultReq;
+import com.ssafy.Dito.domain.missionResult.entity.Result;
+import com.ssafy.Dito.domain.missionResult.service.MissionResultService;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.global.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,14 +33,16 @@ public class EvaluationService {
     private final EvaluationRepository evaluationRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final MissionResultService missionResultService;
 
     /**
-     * Evaluate mission - returns immediately with pending status
-     * Actual evaluation will be processed asynchronously
+     * Evaluate mission based on behavior logs and target apps
+     * Evaluates mission performance, updates mission_result, user coins, and stats
      *
      * @param request EvaluationRequest containing mission and behavior data
      * @return EvaluationResponse with run_id, thread_id, and status
      */
+    @Transactional
     public EvaluationResponse evaluateMission(EvaluationRequest request) {
         log.info("Evaluation request - userId: {}, missionId: {}",
                 request.userId(), request.missionId());
@@ -50,7 +56,7 @@ public class EvaluationService {
         Mission mission = missionRepository.getById(missionId);
 
         // Check if mission is already completed
-        if (mission.getStatus().equals("COMPLETED")) {
+        if (mission.getStatus().name().equals("COMPLETED")) {
             log.warn("Mission already completed - missionId: {}", missionId);
             throw new BadRequestException("이미 완료된 미션입니다: " + request.missionId());
         }
@@ -58,11 +64,34 @@ public class EvaluationService {
         // Step 3: Validate behavior logs
         validateBehaviorLogs(request.behaviorLogs());
 
-        // Step 4: Generate run_id and thread_id
+        // Step 4: Evaluate mission by checking if target apps were used
+        List<String> targetApps = request.missionInfo().targetApps();
+        boolean hasViolation = request.behaviorLogs().stream()
+                .filter(behaviorLog -> "APP_USAGE".equals(behaviorLog.logType()))
+                .anyMatch(behaviorLog -> {
+                    String appName = behaviorLog.appName();
+                    String packageName = behaviorLog.packageName();
+                    // Check both app_name and package_name against target_apps
+                    boolean matches = targetApps.contains(appName) || targetApps.contains(packageName);
+                    if (matches) {
+                        log.info("Violation detected - app: {}, package: {}", appName, packageName);
+                    }
+                    return matches;
+                });
+
+        Result evaluationResult = hasViolation ? Result.FAILURE : Result.SUCCESS;
+        log.info("Mission evaluation completed - missionId: {}, result: {}", missionId, evaluationResult);
+
+        // Step 5: Create mission result (updates mission status, coins, and stats)
+        MissionResultReq missionResultReq = new MissionResultReq(missionId, evaluationResult);
+        missionResultService.createMissionResult(missionResultReq);
+        log.info("Mission result created - missionId: {}, result: {}", missionId, evaluationResult);
+
+        // Step 6: Generate run_id and thread_id for response
         String runId = UUID.randomUUID().toString();
         String threadId = UUID.randomUUID().toString();
 
-        // Step 5: Save initial evaluation document to MongoDB (pending status)
+        // Step 7: Save evaluation document to MongoDB
         String evaluationId = UUID.randomUUID().toString();
         EvaluationDocument document = EvaluationDocument.of(
                 evaluationId,
@@ -71,24 +100,21 @@ public class EvaluationService {
                 runId,
                 threadId,
                 request.missionInfo().type(),
-                null,  // score - to be updated later
-                null,  // success - to be updated later
-                null,  // feedback - to be updated later
-                null,  // violations - to be updated later
-                null,  // recommendations - to be updated later
-                "pending"  // status
+                hasViolation ? 0 : 100,  // score
+                !hasViolation,  // success
+                hasViolation ? "목표 앱 사용이 감지되었습니다" : "미션을 성공적으로 완료했습니다",  // feedback
+                null,  // violations
+                null,  // recommendations
+                "completed"  // status
         );
         evaluationRepository.save(document);
-        log.info("Evaluation initiated - evaluationId: {}, runId: {}", evaluationId, runId);
+        log.info("Evaluation document saved - evaluationId: {}, runId: {}", evaluationId, runId);
 
-        // TODO: Step 6: Call AI server asynchronously (to be implemented)
-        // Future implementation: async AI server call, then update MongoDB and Mission status
+        log.info("Evaluation completed - runId: {}, threadId: {}, result: {}",
+                runId, threadId, evaluationResult);
 
-        log.info("Evaluation response returned - runId: {}, threadId: {}, status: pending",
-                runId, threadId);
-
-        // Step 7: Return response immediately
-        return new EvaluationResponse(runId, threadId, "pending");
+        // Step 8: Return response
+        return new EvaluationResponse(runId, threadId, "completed");
     }
 
     /**
