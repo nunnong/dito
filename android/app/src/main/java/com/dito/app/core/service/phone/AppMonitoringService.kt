@@ -34,6 +34,8 @@ class AppMonitoringService : AccessibilityService() {
     @Inject
     lateinit var missionTracker: MissionTracker
 
+    private lateinit var sessionManager: SessionStateManager
+
     @Volatile
     private var currentApp = ""
     private var currentAppStartTime = 0L
@@ -44,6 +46,7 @@ class AppMonitoringService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
         Log.d(TAG, "✅ AccessibilityService 연결됨")
     }
 
@@ -91,6 +94,12 @@ class AppMonitoringService : AccessibilityService() {
         Log.v(TAG, "📱 앱 전환: $currentApp → $newApp")
 
         aiCheckJob?.cancel()
+
+        // YouTube를 떠나는 경우 → MediaSession 세션 강제 저장
+        if (currentApp == "com.google.android.youtube" && ::sessionManager.isInitialized) {
+            Log.d(TAG, "📺 YouTube → 다른 앱 전환 감지 → 미디어 세션 강제 저장")
+            sessionManager.forceFlushCurrentSession()
+        }
 
         if (currentApp.isNotEmpty() && currentAppStartTime > 0) {
             val duration = timestamp - currentAppStartTime

@@ -75,15 +75,15 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // ========== 테스트용 코드 시작 ==========
-                    SettingTab()
+//                    SettingTab()
                     // ========== 테스트용 코드 끝 ==========
 
                     // 원래 네비게이션 (테스트 끝나면 위 3줄 삭제하고 아래 주석 해제)
-                    // val navController = rememberNavController()
-                    // DitoNavGraph(
-                    //     navController = navController,
-                    //     startDestination = Route.Splash.path
-                    // )
+                     val navController = rememberNavController()
+                     DitoNavGraph(
+                         navController = navController,
+                         startDestination = Route.Splash.path
+                     )
                 }
             }
         }

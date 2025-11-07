@@ -26,6 +26,7 @@ class SessionStateManager(
         private const val MIN_WATCH_TIME = 5000L
         private const val SESSION_UPDATE_THRESHOLD = 5000L
         private const val SAVE_DELAY = 500L
+        private const val METADATA_WAIT_DELAY = 1000L // 채널명 대기 시간 (1초)
     }
 
     private var currentSession: ActiveSession? = null
@@ -33,6 +34,8 @@ class SessionStateManager(
     private var lastSessionTime: Long = 0L
     private val handler = Handler(Looper.getMainLooper())
     private var pendingSaveRunnable: Runnable? = null
+    private var pendingSessionSaveRunnable: Runnable? = null // 영상 전환 시 이전 세션 저장 대기
+    private var sessionToSave: ActiveSession? = null // 저장 대기 중인 이전 세션
 
     data class ActiveSession(
         var title: String,
@@ -249,11 +252,30 @@ class SessionStateManager(
                 Log.d(TAG, "⚠️ updateMetadata에서 제목 변경 감지!")
                 Log.d(TAG, "   이전: ${session.title}")
                 Log.d(TAG, "   새로운: $newTitle")
-                Log.d(TAG, "   → 다른 영상으로 간주, 기존 세션 즉시 저장")
+                Log.d(TAG, "   새 채널: $newChannel")
+                Log.d(TAG, "   이전 세션 현재 상태:")
+                Log.d(TAG, "     - channel: ${session.channel}")
+                Log.d(TAG, "     - bestChannel: ${session.bestChannel}")
+                Log.d(TAG, "   → ${METADATA_WAIT_DELAY}ms 대기 후 이전 세션 저장")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
+                // 이전 대기 작업 취소
+                pendingSessionSaveRunnable?.let { handler.removeCallbacks(it) }
 
-                saveSession(session)
+                // 이전 세션 저장 (채널명 대기) - 복사본 생성
+                sessionToSave = session.copy()
+                pendingSessionSaveRunnable = Runnable {
+                    sessionToSave?.let { oldSession ->
+                        Log.d(TAG, "⏰ 대기 완료 → 이전 세션 저장")
+                        Log.d(TAG, "   제목: ${oldSession.title}")
+                        Log.d(TAG, "   최종 channel: ${oldSession.channel}")
+                        Log.d(TAG, "   최종 bestChannel: ${oldSession.bestChannel}")
+                        saveSession(oldSession)
+                    }
+                    sessionToSave = null
+                    pendingSessionSaveRunnable = null
+                }
+                handler.postDelayed(pendingSessionSaveRunnable!!, METADATA_WAIT_DELAY)
 
 
                 val isValidChannel = newChannel.isNotBlank() &&
@@ -292,6 +314,7 @@ class SessionStateManager(
                         newChannel != "youtube"
 
                 if (isValidChannel) {
+                    // 현재 세션 채널 업데이트
                     if (session.bestChannel.isBlank()) {
                         // 처음으로 유효한 채널명 받음
                         Log.d(TAG, "updateMetadata에서 채널 업데이트: ${session.channel} → $newChannel")
@@ -435,9 +458,56 @@ class SessionStateManager(
         pendingSaveRunnable?.let { handler.removeCallbacks(it) }
         pendingSaveRunnable = null
 
+        pendingSessionSaveRunnable?.let { handler.removeCallbacks(it) }
+        pendingSessionSaveRunnable = null
+
         currentSession?.let { session ->
             Log.d(TAG, "⚠️ 서비스 종료 → 남은 세션 즉시 저장")
             saveSession(session)
+        }
+    }
+
+    /**
+     * 앱 전환 시 현재 세션을 강제로 저장
+     * (일시정지 후 앱 전환 등의 경우를 처리)
+     */
+    fun forceFlushCurrentSession() {
+        currentSession?.let { session ->
+            val currentTime = System.currentTimeMillis()
+            val totalTime = currentTime - session.startTime
+            val watchTime = totalTime - session.totalPauseTime
+
+            // 최소 시청 시간 체크 (5초 미만 무시)
+            if (watchTime < MIN_WATCH_TIME) {
+                Log.d(TAG, "🔄 강제 플러시: 시청 시간 너무 짧음 (${watchTime / 1000}초) - 저장 생략")
+                currentSession = null
+                lastSessionTitle = ""
+                lastSessionTime = 0L
+                return
+            }
+
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🔄 강제 플러시 → 앱 전환으로 인한 즉시 저장")
+            Log.d(TAG, "   제목: ${session.title}")
+            Log.d(TAG, "   채널: ${session.channel}")
+            Log.d(TAG, "   bestChannel: ${session.bestChannel}")
+            Log.d(TAG, "   시청 시간: ${watchTime / 1000}초")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
+            // 대기 중인 작업 모두 취소
+            pendingSaveRunnable?.let { handler.removeCallbacks(it) }
+            pendingSaveRunnable = null
+
+            pendingSessionSaveRunnable?.let { handler.removeCallbacks(it) }
+            pendingSessionSaveRunnable = null
+
+            // 즉시 저장
+            saveSession(session)
+            currentSession = null
+            lastSessionTitle = ""
+            lastSessionTime = 0L
+        } ?: run {
+            Log.d(TAG, "🔄 강제 플러시: 저장할 세션 없음")
         }
     }
 }
