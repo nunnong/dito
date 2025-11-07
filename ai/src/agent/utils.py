@@ -139,13 +139,14 @@ def simulate_post_intervention_usage(user_id: int, intervention_id: int) -> dict
 
 
 def send_fcm_notification(state: InterventionState) -> str | None:
-    """Send FCM notification request to Spring server
+    """Send FCM notification request to Spring server using simplified API
 
     역할:
     1. 개입 필요시: 미션 생성 API 호출 (/api/ai/missions)
     2. mission_id 획득
-    3. 새로운 FCM 형식으로 전송 (/api/fcm/send)
-    4. personalId 사용 (user_id 대신)
+    3. 간소화된 FCM 형식으로 전송 (/api/fcm/send)
+       - 백엔드가 mission_id로부터 자동으로 미션 데이터 조회 및 enrichment
+       - AI는 user_id, title, message, mission_id만 전달
 
     Returns:
         mission_id: String ID if successful, None if failed
@@ -157,7 +158,6 @@ def send_fcm_notification(state: InterventionState) -> str | None:
         return None
 
     mission_id = None
-    mission_data = {}
 
     # Step 1: 개입이 필요한 경우 미션 생성
     if state.get("intervention_needed", False):
@@ -195,13 +195,6 @@ def send_fcm_notification(state: InterventionState) -> str | None:
                 mission_id = result.get("mission_id")
                 if mission_id:
                     print(f"     ✅ 미션 생성 완료: ID={mission_id}")
-                    mission_data = {
-                        "mission_id": str(mission_id),
-                        "mission_type": state.get("nudge_type", "REST"),
-                        "duration": str(state.get("duration_seconds", 300)),
-                        "coin_reward": "10",
-                        "instruction": state["nudge_message"]
-                    }
                 else:
                     print("     ⚠️ 미션 생성 응답에 mission_id 없음")
 
@@ -209,24 +202,19 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             print(f"     ❌ 미션 생성 실패: {e}")
             # 미션 생성 실패해도 FCM은 전송 (상태 메시지로)
 
-    # Step 2: FCM 전송 (새로운 형식)
+    # Step 2: FCM 전송 (간소화된 형식)
     print("     📱 FCM 알림 전송 중...")
 
-    # FCM 페이로드 구성
+    # FCM 페이로드 구성 (백엔드가 mission_id로부터 자동 enrichment)
     fcm_payload = {
-        "personalId": str(state["user_id"]),  # personalId로 변경
-        "notification": {
-            "title": "디토",
-            "body": state["nudge_message"]
-        },
-        "data": {
-            "type": "INTERVENTION" if state.get("intervention_needed") else "STATUS"
-        }
+        "user_id": state["user_id"],
+        "title": "디토",
+        "message": state["nudge_message"]
     }
 
-    # 미션 데이터가 있으면 추가
-    if mission_data:
-        fcm_payload["data"].update(mission_data)
+    # mission_id가 있으면 추가 (백엔드가 Mission 테이블에서 나머지 정보 조회)
+    if mission_id is not None:
+        fcm_payload["mission_id"] = mission_id
 
     headers = {
         "X-API-Key": SECURITY_INTERNAL_API_KEY,
