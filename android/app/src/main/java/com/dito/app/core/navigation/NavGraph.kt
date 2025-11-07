@@ -209,15 +209,33 @@ fun DitoNavGraph(
                     }
                 },
                 onNavigateToShop = {
-                    navController.navigate(Route.Shop.path)
+                    // Shop 화면은 MainScreen 내부에서 처리됨
+                },
+                initialShowShop = false,
+                onBackFromShop = {
+                    // Shop에서 뒤로가기 시 처리 (필요시)
                 }
             )
         }
 
-        // ShopScreen Composable
+        // ShopScreen Composable - MainScreen을 통해 표시
         composable(Route.Shop.path) {
-            ShopScreen(
-                onBackClick = {
+            val authViewModel: AuthViewModel = hiltViewModel()
+            MainScreen(
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate(Route.Login.path) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToShop = {
+                    // 이미 Shop 화면
+                },
+                initialShowShop = true,
+                onBackFromShop = {
                     navController.popBackStack()
                 }
             )

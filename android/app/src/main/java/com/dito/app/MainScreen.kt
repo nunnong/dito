@@ -10,13 +10,24 @@ import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.feature.group.GroupChallengeScreen
 import com.dito.app.feature.home.HomeScreen
+import com.dito.app.feature.shop.ShopScreen
 
 @Composable
 fun MainScreen(
     onLogout: () -> Unit = {},
-    onNavigateToShop: () -> Unit = {}
+    onNavigateToShop: () -> Unit = {},
+    initialShowShop: Boolean = false,
+    onBackFromShop: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
+    var showShop by remember { mutableStateOf(initialShowShop) }
+
+    // selectedTab이 변경되면 showShop을 false로 설정
+    LaunchedEffect(selectedTab) {
+        if (showShop) {
+            showShop = false
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -31,14 +42,26 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (selectedTab) {
-                BottomTab.GROUP -> GroupChallengeScreen()
-                BottomTab.HOME -> HomeScreen(
-                    onLogout = onLogout,
-                    onCartClick = onNavigateToShop
+            if (showShop) {
+                ShopScreen(
+                    onBackClick = {
+                        showShop = false
+                        onBackFromShop()
+                    }
                 )
-                BottomTab.SETTINGS -> {
-                    // TODO: SettingsScreen 구현
+            } else {
+                when (selectedTab) {
+                    BottomTab.GROUP -> GroupChallengeScreen()
+                    BottomTab.HOME -> HomeScreen(
+                        onLogout = onLogout,
+                        onCartClick = {
+                            showShop = true
+                            onNavigateToShop()
+                        }
+                    )
+                    BottomTab.SETTINGS -> {
+                        // TODO: SettingsScreen 구현
+                    }
                 }
             }
         }
