@@ -69,30 +69,21 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         message.data.let { data ->
             Log.d(TAG, "Data payload: $data")
 
-            when(data["type"]) {
-                "INTERVENTION" -> {
-                    // 개입이 필요한 경우 - 미션이 있음
-                    if (data["mission_id"] != null) {
-                        handleMissionMessage(data)
-                    }
-                }
-                "STATUS" -> {
-                    // 상태 메시지인 경우 - 미션 없이 알림만
-                    val body = data["instruction"] ?:
-                    message.notification?.body ?:
-                    "잘하고 있어요! 건강한 디지털 습관을 유지하세요."
-                    showNotification(
-                        title = message.notification?.title ?: "디토",
-                        body = body,
-                        interventionId = null
-                    )
-                }
-                else -> {
-                    // 기본 처리 (이전 버전 호환성)
-                    val title = data["title"] ?: message.notification?.title ?: "디토"
-                    val body = data["body"] ?: message.notification?.body ?: ""
-                    showNotification(title, body, null)
-                }
+            // mission_id 존재 여부로 미션/일반 알림 구분 (AI 팀 FCM 구조에 맞춤)
+            if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
+                // 미션 알림 - 미션 추적 시작
+                Log.d(TAG, "미션 알림 감지: mission_id=${data["mission_id"]}")
+                handleMissionMessage(data)
+            } else {
+                // 일반 알림 - 격려 메시지
+                Log.d(TAG, "일반 알림 감지 (mission_id 없음)")
+                val title = data["title"] ?: message.notification?.title ?: "디토"
+                val body = data["message"] ?: message.notification?.body ?: "잘하고 있어요! 건강한 디지털 습관을 유지하세요."
+                showNotification(
+                    title = title,
+                    body = body,
+                    interventionId = null
+                )
             }
         }
 
@@ -179,8 +170,8 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
     private fun handleMissionMessage(data: Map<String, String>) {
         val missionId = data["mission_id"] ?: return
         val missionType = data["mission_type"] ?: "REST"
-        val instruction = data["instruction"] ?: "미션을 수행하세요"
-        val duration = data["duration"]?.toIntOrNull() ?: 300  // 서버에서 받은 값 사용
+        val instruction = data["message"] ?: "미션을 수행하세요"  // AI 팀: instruction → message
+        val duration = data["duration_seconds"]?.toIntOrNull() ?: 300  // AI 팀: duration → duration_seconds
         val coinReward = data["coin_reward"] ?: "10"
 
         // 타겟 앱 설정 (현재는 하드코딩, 추후 서버에서 받도록 수정 가능)
