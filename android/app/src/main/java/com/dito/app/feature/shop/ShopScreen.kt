@@ -184,14 +184,14 @@ private fun CoinDisplay(coins: Int) {
             .border(2.dp, Color.Black, CircleShape)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.Center // Center the group
     ) {
         Text(
             text = coins.toString(),
-            style = DitoCustomTextStyles.titleDLarge,
+            style = DitoCustomTextStyles.titleDLarge, // 22sp
             color = Color.Black
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(4.dp)) // Small space between text and image
         Image(
             painter = painterResource(id = R.drawable.lemon),
             contentDescription = "Coin",
