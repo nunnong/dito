@@ -141,11 +141,11 @@ def simulate_post_intervention_usage(user_id: int, intervention_id: int) -> dict
 
 
 def send_fcm_notification(state: InterventionState) -> str | None:
-    """Send FCM notification request to Spring server using simplified API
+    """Send FCM notification request to Spring server (FCM 테스트용 - 무조건 미션 생성)
 
     역할:
     1. personalId로 DB user_id 조회 (/api/user/{personalId})
-    2. 개입 필요시: DB user_id로 미션 생성 API 호출 /api/mission)
+    2. DB user_id로 미션 생성 API 호출 (/api/mission) - 무조건 실행
     3. mission_id 획득
     4. 간소화된 FCM 형식으로 전송 (/api/fcm/send)
        - 백엔드가 mission_id로부터 자동으로 미션 데이터 조회 및 enrichment
@@ -200,48 +200,47 @@ def send_fcm_notification(state: InterventionState) -> str | None:
 
     mission_id = None
 
-    # Step 1: 개입이 필요한 경우 미션 생성 (DB user_id 사용)
-    if state.get("intervention_needed", False):
-        print("     📝 미션 생성 중...")
+    # Step 1: 미션 생성 (무조건 실행 - FCM 테스트용)
+    print("     📝 미션 생성 중... (무조건 실행)")
 
-        # behavior_log에서 target_app 추출
-        target_app = "All Apps"  # 기본값
-        if "behavior_log" in state and state["behavior_log"]:
-            target_app = state["behavior_log"].get("app_name", "All Apps")
+    # behavior_log에서 target_app 추출
+    target_app = "All Apps"  # 기본값
+    if "behavior_log" in state and state["behavior_log"]:
+        target_app = state["behavior_log"].get("app_name", "All Apps")
 
-        # 미션 생성 API 페이로드 (DB user_id 사용)
-        mission_payload = {
-            "user_id": db_user_id,  # DB의 실제 user ID
-            "mission_type": state.get("nudge_type", "REST"),  # LLM이 선택한 타입
-            "mission_text": state["nudge_message"],
-            "coin_reward": 10,
-            "duration_seconds": state.get("duration_seconds", 300),  # LLM이 선택한 시간
-            "target_app": target_app,  # behavior_log에서 추출
-            "stat_change_self_care": 1,
-            "stat_change_focus": 1,
-            "stat_change_sleep": 1,
-            "prompt": "AI Intervention",
-        }
+    # 미션 생성 API 페이로드 (DB user_id 사용)
+    mission_payload = {
+        "user_id": db_user_id,  # DB의 실제 user ID
+        "mission_type": state.get("nudge_type", "REST"),  # LLM이 선택한 타입
+        "mission_text": state["nudge_message"],
+        "coin_reward": 10,
+        "duration_seconds": state.get("duration_seconds", 300),  # LLM이 선택한 시간
+        "target_app": target_app,  # behavior_log에서 추출
+        "stat_change_self_care": 1,
+        "stat_change_focus": 1,
+        "stat_change_sleep": 1,
+        "prompt": "AI Intervention",
+    }
 
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(
-                    f"{SPRING_SERVER_URL}/api/mission",
-                    json=mission_payload,
-                    headers=headers,
-                )
-                response.raise_for_status()
-                result = response.json()
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{SPRING_SERVER_URL}/api/mission",
+                json=mission_payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            result = response.json()
 
-                mission_id = result.get("mission_id")
-                if mission_id:
-                    print(f"     ✅ 미션 생성 완료: ID={mission_id}")
-                else:
-                    print("     ⚠️ 미션 생성 응답에 mission_id 없음")
+            mission_id = result.get("mission_id")
+            if mission_id:
+                print(f"     ✅ 미션 생성 완료: ID={mission_id}")
+            else:
+                print("     ⚠️ 미션 생성 응답에 mission_id 없음")
 
-        except httpx.HTTPError as e:
-            print(f"     ❌ 미션 생성 실패: {e}")
-            # 미션 생성 실패해도 FCM은 전송 (상태 메시지로)
+    except httpx.HTTPError as e:
+        print(f"     ❌ 미션 생성 실패: {e}")
+        # 미션 생성 실패해도 FCM은 전송 (상태 메시지로)
 
     # Step 2: FCM 전송 (간소화된 형식, personalId 사용)
     print("     📱 FCM 알림 전송 중...")
@@ -273,8 +272,8 @@ def send_fcm_notification(state: InterventionState) -> str | None:
                     print(f"     ✅ FCM 전송 완료: mission_id={mission_id}")
                     return str(mission_id)
                 else:
-                    print(f"     ✅ FCM 상태 메시지 전송 완료")
-                    return "STATUS_CHECK"
+                    print("     ⚠️ FCM 전송 성공했으나 mission_id 없음")
+                    return None
             else:
                 print(f"     ❌ FCM 전송 실패: {result.get('error')}")
                 return None

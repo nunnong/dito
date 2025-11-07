@@ -34,8 +34,8 @@ INTERVENTION_GUIDELINES = """
 # 시스템 메시지 상수 (System Message Constants)
 # =============================================================================
 
-SYSTEM_MSG_BEHAVIOR_ANALYZER = "당신은 디지털 웰빙 전문가입니다."
-SYSTEM_MSG_INTERVENTION_DECIDER = "당신은 디지털 웰빙 개입 전문가입니다."
+# SYSTEM_MSG_BEHAVIOR_ANALYZER = "당신은 디지털 웰빙 전문가입니다."
+# SYSTEM_MSG_INTERVENTION_DECIDER = "당신은 디지털 웰빙 개입 전문가입니다."
 SYSTEM_MSG_NUDGE_GENERATOR = "당신은 디지털 웰빙 코치입니다."
 SYSTEM_MSG_EFFECTIVENESS_ANALYZER = "당신은 디지털 웰빙 효과성 평가 전문가입니다."
 SYSTEM_MSG_STRATEGY_ADJUSTER = "당신은 디지털 웰빙 전략 최적화 전문가입니다."
@@ -46,17 +46,15 @@ SYSTEM_MSG_STRATEGY_ADJUSTER = "당신은 디지털 웰빙 전략 최적화 전�
 # =============================================================================
 
 EFFECTIVENESS_THRESHOLD_HIGH = 0.7  # 0.7 이상: 효과적, 조정 불필요
-EFFECTIVENESS_THRESHOLD_LOW = 0.4   # 0.4 미만: 비효과적, 전략 조정 필요
+EFFECTIVENESS_THRESHOLD_LOW = 0.4  # 0.4 미만: 비효과적, 전략 조정 필요
 
 
 # =============================================================================
 # 프롬프트 템플릿 함수 (Prompt Template Functions)
 # =============================================================================
 
-def get_behavior_analysis_prompt(
-    behavior_log: dict,
-    time_slot: str
-) -> str:
+
+def get_behavior_analysis_prompt(behavior_log: dict, time_slot: str) -> str:
     """행동 패턴 분석 프롬프트 생성
 
     Args:
@@ -67,27 +65,22 @@ def get_behavior_analysis_prompt(
         분석 프롬프트 문자열
     """
     return f"""
+당신은 디지털 사용패턴 분석 전문가입니다.
 사용자의 앱 사용 데이터를 분석하여 패턴을 파악하세요.
 
 사용 데이터:
-- 앱: {behavior_log.get('app_name', 'Unknown')}
-- 사용 시간: {behavior_log.get('duration_seconds', 0)}초
-- 사용 시점: {behavior_log.get('usage_timestamp', 'Unknown')}
+- 앱: {behavior_log.get("app_name", "Unknown")}
+- 사용 시간: {behavior_log.get("duration_seconds", 0)}초
+- 사용 시점: {behavior_log.get("usage_timestamp", "Unknown")}
 - 시간대: {time_slot}
-- 최근 앱 전환 횟수: {behavior_log.get('recent_app_switches', 0)}회
-
-중재 이론 가이드라인:
-{INTERVENTION_GUIDELINES}
+- 최근 앱 전환 횟수: {behavior_log.get("recent_app_switches", 0)}회
 
 패턴 유형을 판단하고, 트리거 이벤트를 명확히 식별하세요.
 심각도 점수(0-10)와 주요 지표들을 포함하세요.
 """
 
 
-def get_intervention_decision_prompt(
-    behavior_pattern: str,
-    trigger_event: str
-) -> str:
+def get_intervention_decision_prompt(behavior_pattern: str, trigger_event: str) -> str:
     """개입 필요성 판단 프롬프트 생성
 
     Args:
@@ -98,6 +91,7 @@ def get_intervention_decision_prompt(
         개입 판단 프롬프트 문자열
     """
     return f"""
+당신은 디지털 웰빙 개입 전문가입니다.
 사용자의 행동 패턴을 분석한 결과입니다:
 
 행동 패턴: {behavior_pattern}
@@ -106,14 +100,12 @@ def get_intervention_decision_prompt(
 중재 이론 가이드라인:
 {INTERVENTION_GUIDELINES}
 
-개입이 필요한지 판단하고, 필요하다면 적절한 개입 유형과 긴급도를 결정하세요.
+개입이 필요한지 판단하시오.
 """
 
 
 def get_nudge_generation_prompt(
-    behavior_pattern: str,
-    intervention_type: str,
-    urgency_level: str
+    behavior_pattern: str, intervention_type: str, urgency_level: str
 ) -> str:
     """넛지 메시지 생성 프롬프트
 
@@ -149,9 +141,7 @@ def get_nudge_generation_prompt(
 
 
 def get_effectiveness_analysis_prompt(
-    intervention_type: str,
-    pre_usage: dict,
-    post_usage: dict
+    intervention_type: str, pre_usage: dict, post_usage: dict
 ) -> str:
     """효과성 분석 프롬프트 생성
 
@@ -169,12 +159,12 @@ def get_effectiveness_analysis_prompt(
 개입 유형: {intervention_type}
 
 개입 전 사용 패턴:
-- 사용 시간: {pre_usage['duration_seconds']}초
-- 앱 전환: {pre_usage['app_switches']}회
-- 세션 수: {pre_usage['sessions']}회
+- 사용 시간: {pre_usage["duration_seconds"]}초
+- 앱 전환: {pre_usage["app_switches"]}회
+- 세션 수: {pre_usage["sessions"]}회
 
 개입 후 사용 패턴:
-- 사용 시간: {post_usage['duration_after_intervention']}초
+- 사용 시간: {post_usage["duration_after_intervention"]}초
 
 평가 기준:
 1. 사용 시간 감소 정도
@@ -186,9 +176,7 @@ def get_effectiveness_analysis_prompt(
 
 
 def get_adjustment_decision_prompt(
-    intervention_type: str,
-    effectiveness_score: float,
-    behavior_change_detected: bool
+    intervention_type: str, effectiveness_score: float, behavior_change_detected: bool
 ) -> str:
     """전략 조정 판단 프롬프트 생성
 
@@ -217,10 +205,7 @@ def get_adjustment_decision_prompt(
 
 
 def get_status_nudge_prompt(
-    behavior_pattern: str,
-    pattern_type: str,
-    trigger_event: str,
-    severity_score: int
+    behavior_pattern: str, pattern_type: str, trigger_event: str, severity_score: int
 ) -> str:
     """Generate prompt for status message when intervention NOT needed
 
