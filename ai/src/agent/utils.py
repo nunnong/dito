@@ -144,9 +144,10 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     """Send FCM notification request to Spring server using simplified API
 
     역할:
-    1. 개입 필요시: 미션 생성 API 호출 (/api/ai/missions)
-    2. mission_id 획득
-    3. 간소화된 FCM 형식으로 전송 (/api/fcm/send)
+    1. personalId로 DB user_id 조회 (/api/user/{personalId})
+    2. 개입 필요시: DB user_id로 미션 생성 API 호출 (/api/ai/mission)
+    3. mission_id 획득
+    4. 간소화된 FCM 형식으로 전송 (/api/fcm/send)
        - 백엔드가 mission_id로부터 자동으로 미션 데이터 조회 및 enrichment
        - AI는 user_id, title, message, mission_id만 전달
 
@@ -159,9 +160,45 @@ def send_fcm_notification(state: InterventionState) -> str | None:
         print("   Please check your .env file or environment configuration")
         return None
 
+    # Step 0: personalId로 DB user_id 조회
+    personal_id = state["user_id"]  # 입력으로 받은 personalId
+    print(f"     🔍 DB user_id 조회 중... (personalId={personal_id})")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f"{SPRING_SERVER_URL}/api/user/{personal_id}",
+                headers=headers,
+            )
+            response.raise_for_status()
+            user_data = response.json()
+
+            db_user_id = user_data.get("id")  # DB의 실제 user ID
+            if not db_user_id:
+                print("     ❌ DB user_id 조회 실패: 응답에 id 없음")
+                return None
+
+            print(f"     ✅ DB user_id 조회 완료: {db_user_id}")
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ DB user_id 조회 실패: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return None
+
     mission_id = None
 
-    # Step 1: 개입이 필요한 경우 미션 생성
+    # Step 1: 개입이 필요한 경우 미션 생성 (DB user_id 사용)
     if state.get("intervention_needed", False):
         print("     📝 미션 생성 중...")
 
@@ -170,9 +207,9 @@ def send_fcm_notification(state: InterventionState) -> str | None:
         if "behavior_log" in state and state["behavior_log"]:
             target_app = state["behavior_log"].get("app_name", "All Apps")
 
-        # 미션 생성 API 페이로드
+        # 미션 생성 API 페이로드 (DB user_id 사용)
         mission_payload = {
-            "user_id": state["user_id"],  # personalId
+            "user_id": db_user_id,  # DB의 실제 user ID
             "mission_type": state.get("nudge_type", "REST"),  # LLM이 선택한 타입
             "instruction": state["nudge_message"],
             "coin_reward": 10,
@@ -182,11 +219,6 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             "mental_change": 1,
             "focus_change": 1,
             "created_by": "AI Intervention",
-        }
-
-        headers = {
-            "X-API-Key": SECURITY_INTERNAL_API_KEY,
-            "Content-Type": "application/json",
         }
 
         try:
@@ -209,12 +241,13 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             print(f"     ❌ 미션 생성 실패: {e}")
             # 미션 생성 실패해도 FCM은 전송 (상태 메시지로)
 
-    # Step 2: FCM 전송 (간소화된 형식)
+    # Step 2: FCM 전송 (간소화된 형식, personalId 사용)
     print("     📱 FCM 알림 전송 중...")
 
     # FCM 페이로드 구성 (백엔드가 mission_id로부터 자동 enrichment)
+    # FCM은 personalId를 사용 (디바이스 토큰 조회용)
     fcm_payload = {
-        "user_id": state["user_id"],
+        "user_id": personal_id,  # FCM은 personalId 사용
         "title": "디토",
         "message": state["nudge_message"],
     }
@@ -222,11 +255,6 @@ def send_fcm_notification(state: InterventionState) -> str | None:
     # mission_id가 있으면 추가 (백엔드가 Mission 테이블에서 나머지 정보 조회)
     if mission_id is not None:
         fcm_payload["mission_id"] = mission_id
-
-    headers = {
-        "X-API-Key": SECURITY_INTERNAL_API_KEY,
-        "Content-Type": "application/json",
-    }
 
     try:
         with httpx.Client(timeout=10.0) as client:
