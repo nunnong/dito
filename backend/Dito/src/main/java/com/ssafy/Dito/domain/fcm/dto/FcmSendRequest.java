@@ -41,14 +41,9 @@ public record FcmSendRequest(
         @Schema(description = "FCM 메시지 본문", example = "잠시 휴식을 취해보는 건 어떨까요?")
         String message,
 
-<<<<<<< Updated upstream
-        @NotBlank(message = "interventionId는 필수입니다")
-        String interventionId,
-=======
         @JsonProperty("mission_id")
         @Schema(description = "AI 서버가 생성한 미션 ID (선택)", example = "42")
         Long missionId,
->>>>>>> Stashed changes
 
         @NotBlank(message = "type은 필수입니다")
         @Schema(description = "메시지 타입", example = "intervention")

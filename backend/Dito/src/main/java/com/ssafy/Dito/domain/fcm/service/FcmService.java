@@ -82,25 +82,6 @@ public class FcmService {
         // personalId로 User 조회
         User user = userRepository.getByPersonalId(request.personalId());
 
-<<<<<<< Updated upstream
-        // TECH_SPEC.md:2136-2156 형식으로 알림 생성
-        Map<String, String> data = new HashMap<>();
-        data.put("type", request.type());
-        data.put("intervention_id", request.interventionId());
-        data.put("action", "rest_suggestion");
-        data.put("deep_link", "dito://intervention/" + request.interventionId());
-
-        FcmNotificationRequest notificationRequest = new FcmNotificationRequest(
-                "디토",  // title
-                request.message(),  // body (AI가 보낸 메시지)
-                data,
-                "high",  // priority
-                300  // timeToLive: 5분 (TECH_SPEC.md 참조)
-        );
-
-        // sendNotificationToUser 호출 (database ID 사용)
-        sendNotificationToUser(user.getId(), notificationRequest);
-=======
         if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
             log.warn("User {} has no FCM token. Skipping notification.", user.getPersonalId());
             return;
@@ -200,7 +181,6 @@ public class FcmService {
                 .build();
 
         return firebaseMessaging.send(message);
->>>>>>> Stashed changes
     }
 
     /**
@@ -346,8 +326,4 @@ public class FcmService {
             }
         }
     }
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 }
