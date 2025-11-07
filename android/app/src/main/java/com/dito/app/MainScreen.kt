@@ -14,7 +14,8 @@ import com.dito.app.feature.home.HomeScreen
 @Composable
 fun MainScreen(
     onLogout: () -> Unit = {},
-    onNavigateToShop: () -> Unit = {}
+    onNavigateToShop: () -> Unit = {},
+    onNavigateToCloset: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
 
@@ -35,7 +36,8 @@ fun MainScreen(
                 BottomTab.GROUP -> GroupChallengeScreen()
                 BottomTab.HOME -> HomeScreen(
                     onLogout = onLogout,
-                    onCartClick = onNavigateToShop
+                    onCartClick = onNavigateToShop,
+                    onClosetClick = onNavigateToCloset
                 )
                 BottomTab.SETTINGS -> {
                     // TODO: SettingsScreen 구현

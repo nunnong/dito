@@ -17,6 +17,7 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
+import com.dito.app.feature.closet.ClosetScreen
 import com.dito.app.feature.shop.ShopScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
@@ -210,11 +211,14 @@ fun DitoNavGraph(
                 },
                 onNavigateToShop = {
                     navController.navigate(Route.Shop.path)
+                },
+                onNavigateToCloset = {
+                    navController.navigate(Route.Closet.path)
                 }
             )
         }
 
-        // ShopScreen Composable
+        // 7) 상점
         composable(Route.Shop.path) {
             ShopScreen(
                 onBackClick = {
@@ -223,7 +227,16 @@ fun DitoNavGraph(
             )
         }
 
-        // 7) 테스트 화면 (권한 설정, Realm 확인 등)
+        // 8) 옷장
+        composable(Route.Closet.path){
+            ClosetScreen (
+                onBackClick = { 
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // 테스트 화면 (권한 설정, Realm 확인 등)
         composable(Route.Test.path) {
             val activity = LocalContext.current as MainActivity
             MainScreen(
