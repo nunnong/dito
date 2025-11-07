@@ -8,6 +8,8 @@ import com.ssafy.Dito.domain.user.service.UserService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,26 +21,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "user", description = "유저 관련 API")
 @RequestMapping("/user")
 public class UserController {
 
     private final UserService userService;
 
-    // 프로필 조회
+    @Operation(summary = "내 프로필 조회")
     @GetMapping
     public ResponseEntity<SingleResult<ProfileRes>> getProfile() {
         ProfileRes res = userService.getProfile();
         return ApiResponse.ok(res);
     }
 
-    // 메인 페이지 조회
+    @Operation(summary = "메인 페이지 조회")
     @GetMapping("/main")
     public ResponseEntity<SingleResult<MainRes>> getMainPage() {
         MainRes res = userService.getMainPage();
         return ApiResponse.ok(res);
     }
 
-    // 닉네임 수정
+    @Operation(summary = "닉네임 수정")
     @PatchMapping
     public ResponseEntity<CommonResult> updateNickname(
         @Valid @RequestBody NicknameReq req
@@ -47,7 +50,7 @@ public class UserController {
         return ApiResponse.ok();
     }
 
-    // 미션 빈도 수정
+    @Operation(summary = "미션 빈도 수정")
     @PatchMapping("/frequency")
     public ResponseEntity<CommonResult> updateFrequency(
         @RequestBody FrequencyReq req
