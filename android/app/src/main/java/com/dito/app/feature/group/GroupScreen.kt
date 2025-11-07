@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,8 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.dito.app.R
-import com.dito.app.core.ui.component.BottomTab
-import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnPrimary
@@ -46,26 +43,16 @@ fun GroupScreen(
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableStateOf(BottomTab.GROUP) }
 
-    Scaffold(
-        bottomBar = {
-            DitoBottomAppBar(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(PrimaryContainer)
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-                .padding(vertical = 44.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryContainer)
+            .verticalScroll(rememberScrollState())
+            .padding(vertical = 44.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
 
             Image(
                 painter = painterResource(id = R.drawable.groupchallenge),
@@ -170,12 +157,33 @@ fun GroupScreen(
                 }
             }
         }
-    }
+
+    var showChallengeDialog by remember { mutableStateOf(false) }
+    var currentGroupName by remember { mutableStateOf("") }
 
     if (uiState.showCreateDialog) {
-        CreateGroupNameDialog(onDismiss = {
-            viewModel.onDialogClose()
-        })
+        CreateGroupNameDialog(
+            onDismiss = {
+                viewModel.onDialogClose()
+            },
+            onNavigateNext = { groupName ->
+                currentGroupName = groupName
+                viewModel.onDialogClose()
+                showChallengeDialog = true
+            }
+        )
+    }
+
+    if (showChallengeDialog) {
+        CreateChallengeDialog(
+            groupName = currentGroupName,
+            onDismiss = {
+                showChallengeDialog = false
+            },
+            onCreateChallenge = { name, goal, penalty, period, bet ->
+                showChallengeDialog = false
+            }
+        )
     }
 
     if (uiState.showJoinDialog) {

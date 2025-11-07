@@ -26,7 +26,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.dito.app.core.navigation.DitoNavGraph
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.dito.app.core.data.RealmRepository
 import com.dito.app.core.service.phone.UsageStatsHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,11 +38,12 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.ExistingWorkPolicy
 import com.dito.app.core.background.EventSyncWorker
+import com.dito.app.core.navigation.Route
 import com.dito.app.core.repository.AuthRepository
+import com.dito.app.feature.auth.LoginScreen
+import com.dito.app.feature.intervention.InterventionScreen
+import com.dito.app.feature.health.HealthScreen
 import com.dito.app.core.wearable.WearableMessageService
-import com.dito.app.feature.group.ChallengeResultScreen
-import com.dito.app.feature.group.GroupChallengeScreen
-import com.dito.app.feature.settings.SettingTab
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,17 +73,11 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    // 테스트용: SettingTab 바로 표시
-                    SettingTab()
-
-                    // GroupChallengeScreen (주석 처리)
-//                    GroupChallengeScreen(navController = navController)
-
-                    // 원래 네비게이션 (주석 처리)
-//                    DitoNavGraph(
-//                        navController = navController,
-//                        startDestination = Route.Splash.path
-//                    )
+                    // Splash → Login → (로그인 성공) → Test 화면 순서
+                    DitoNavGraph(
+                        navController = navController,
+                        startDestination = Route.Splash.path
+                    )
                 }
             }
         }
@@ -308,7 +307,6 @@ fun MainScreen(
                 }
             }
         )
-
     }
 }
 
