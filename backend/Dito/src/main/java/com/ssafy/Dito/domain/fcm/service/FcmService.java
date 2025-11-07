@@ -72,16 +72,17 @@ public class FcmService {
     }
 
     /**
-     * AI 서버에서 요청하는 개입 알림 전송
-     * TECH_SPEC.md:882 - POST /fcm/send 구현
-     * TECH_SPEC.md:2136-2156 - FCM 푸시 알림 구조
+     * AI 서버에서 요청하는 개입 알림 전송 (V2)
+     * - 미션 생성 로직 제거 (AI 서버가 직접 /api/ai/missions 호출)
+     * - fcm_type에 따라 notification/data/mixed 메시지 전송
      *
-     * @param request AI 서버 요청 (personalId, message, interventionId, type)
+     * @param request AI 서버 요청 (personalId, message, missionId, type, fcmType, title, data)
      */
     public void sendInterventionNotification(FcmSendRequest request) {
         // personalId로 User 조회
         User user = userRepository.getByPersonalId(request.personalId());
 
+<<<<<<< Updated upstream
         // TECH_SPEC.md:2136-2156 형식으로 알림 생성
         Map<String, String> data = new HashMap<>();
         data.put("type", request.type());
@@ -99,6 +100,107 @@ public class FcmService {
 
         // sendNotificationToUser 호출 (database ID 사용)
         sendNotificationToUser(user.getId(), notificationRequest);
+=======
+        if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
+            log.warn("User {} has no FCM token. Skipping notification.", user.getPersonalId());
+            return;
+        }
+
+        // FCM 메시지 타입에 따라 분기
+        try {
+            String response;
+            switch (request.fcmType()) {
+                case FcmSendRequest.TYPE_NOTIFICATION -> response = sendNotificationOnly(user, request);
+                case FcmSendRequest.TYPE_DATA -> response = sendDataOnly(user, request);
+                case FcmSendRequest.TYPE_MIXED -> response = sendMixedMessage(user, request);
+                default -> throw new IllegalArgumentException("Invalid fcm_type: " + request.fcmType());
+            }
+
+            log.info("FCM sent successfully - user: {}, missionId: {}, fcmType: {}, response: {}",
+                    request.personalId(), request.missionId(), request.fcmType(), response);
+
+        } catch (FirebaseMessagingException e) {
+            log.error("FCM send failed - user: {}, missionId: {}, error: {}",
+                    request.personalId(), request.missionId(), e.getMessage(), e);
+            handleMessagingException(e, user);
+            throw new RuntimeException("FCM 전송 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Notification 타입 FCM 전송 (시스템 트레이 알림)
+     */
+    private String sendNotificationOnly(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .setNotification(Notification.builder()
+                        .setTitle(request.title())
+                        .setBody(request.message())
+                        .build())
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setTtl(300 * 1000L)  // 5분 TTL
+                        .setNotification(AndroidNotification.builder()
+                                .setClickAction("FLUTTER_NOTIFICATION_CLICK")
+                                .build())
+                        .build())
+                .build();
+
+        return firebaseMessaging.send(message);
+    }
+
+    /**
+     * Data 타입 FCM 전송 (백그라운드 처리)
+     */
+    private String sendDataOnly(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        Map<String, String> data = new HashMap<>(request.data() != null ? request.data() : Map.of());
+        data.put("type", request.type());
+        data.put("message", request.message());
+        if (request.missionId() != null) {
+            data.put("mission_id", String.valueOf(request.missionId()));
+        }
+
+        Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .putAllData(data)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setTtl(300 * 1000L)  // 5분 TTL
+                        .build())
+                .build();
+
+        return firebaseMessaging.send(message);
+    }
+
+    /**
+     * Mixed 타입 FCM 전송 (알림 + 데이터)
+     */
+    private String sendMixedMessage(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        Map<String, String> data = new HashMap<>(request.data() != null ? request.data() : Map.of());
+        data.put("type", request.type());
+        if (request.missionId() != null) {
+            data.put("mission_id", String.valueOf(request.missionId()));
+            data.put("deep_link", "dito://mission/" + request.missionId());
+        }
+
+        Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .setNotification(Notification.builder()
+                        .setTitle(request.title())
+                        .setBody(request.message())
+                        .build())
+                .putAllData(data)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setTtl(300 * 1000L)  // 5분 TTL
+                        .setNotification(AndroidNotification.builder()
+                                .setClickAction("FLUTTER_NOTIFICATION_CLICK")
+                                .build())
+                        .build())
+                .build();
+
+        return firebaseMessaging.send(message);
+>>>>>>> Stashed changes
     }
 
     /**
@@ -244,4 +346,8 @@ public class FcmService {
             }
         }
     }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 }
