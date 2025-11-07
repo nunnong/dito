@@ -16,6 +16,7 @@ public class SwaggerConfig {
     public OpenAPI openAPI() {
         // JWT 보안 스키마 정의
         String jwt = "JWT";
+        String apiKey = "X-API-Key";
 
         SecurityRequirement jwtRequirement = new SecurityRequirement().addList(jwt);
 
@@ -25,7 +26,12 @@ public class SwaggerConfig {
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
-                        .description("JWT Bearer 토큰 인증 - /auth/login에서 받은 accessToken을 입력하세요"));
+                        .description("JWT Bearer 토큰 인증 - /auth/login에서 받은 accessToken을 입력하세요"))
+                .addSecuritySchemes(apiKey, new SecurityScheme()
+                        .name(apiKey)
+                        .type(SecurityScheme.Type.APIKEY)
+                        .in(SecurityScheme.In.HEADER)
+                        .description("AI 서버 전용 API Key 인증 - X-API-Key 헤더에 API Key를 입력하세요"));
 
         return new OpenAPI()
                 .addServersItem(new Server().url("/").description("Default Server URL"))

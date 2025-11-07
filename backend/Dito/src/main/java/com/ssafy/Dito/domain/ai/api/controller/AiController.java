@@ -17,6 +17,7 @@ import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.ListResult;
 import com.ssafy.Dito.global.dto.SingleResult;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "AI - api", description = "AI 전용 API")
+@SecurityRequirement(name = "X-API-Key")
 @RequestMapping("/api/ai")
 public class AiController {
 
