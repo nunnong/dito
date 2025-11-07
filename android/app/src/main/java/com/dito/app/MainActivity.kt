@@ -41,7 +41,6 @@ import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.navigation.Route
 import com.dito.app.core.repository.AuthRepository
 import com.dito.app.feature.auth.LoginScreen
-import com.dito.app.feature.auth.SignUpScreen
 import com.dito.app.feature.intervention.InterventionScreen
 import com.dito.app.feature.health.HealthScreen
 import com.dito.app.core.wearable.WearableMessageService
@@ -308,7 +307,6 @@ fun MainScreen(
                 }
             }
         )
-
     }
 }
 
