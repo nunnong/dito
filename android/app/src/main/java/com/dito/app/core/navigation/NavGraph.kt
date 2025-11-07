@@ -18,6 +18,7 @@ import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
 import com.dito.app.feature.home.HomeScreen
+import com.dito.app.feature.shop.ShopScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
@@ -207,6 +208,18 @@ fun DitoNavGraph(
                         }
                         launchSingleTop = true
                     }
+                },
+                onCartClick = {
+                    navController.navigate(Route.Shop.path)
+                }
+            )
+        }
+
+        // ShopScreen Composable
+        composable(Route.Shop.path) {
+            ShopScreen(
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }

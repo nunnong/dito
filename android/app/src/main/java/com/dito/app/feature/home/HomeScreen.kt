@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -24,7 +25,8 @@ import com.dito.app.core.ui.designsystem.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onCartClick: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
     var weeklyGoal by remember { mutableStateOf("") }
@@ -92,7 +94,7 @@ fun HomeScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.cart),
                                 contentDescription = "Cart",
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(24.dp).clickable { onCartClick() },
                                 contentScale = ContentScale.Fit
                             )
                             Image(
@@ -352,5 +354,5 @@ private fun ProgressBarItem(label: String, progress: Float) {
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    HomeScreen(onLogout = {})
+    HomeScreen(onLogout = {}, onCartClick = {})
 }
