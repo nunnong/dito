@@ -64,18 +64,43 @@ object Checker {
         val t = (title ?: "").trim()
         val c = (channel ?: "").trim()
 
-        if (t.isEmpty()) return false
-        if (Patterns.WEB_URL.matcher(t).find()) return false // URL 텍스트 제외
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "isVideoContent 검증:")
+        Log.d(TAG, "  title: '$t' (길이: ${t.length})")
+        Log.d(TAG, "  channel: '$c' (길이: ${c.length})")
+
+        if (t.isEmpty()) {
+            Log.d(TAG, "  ❌ 제목 비어있음")
+            return false
+        }
+        if (Patterns.WEB_URL.matcher(t).find()) {
+            Log.d(TAG, "  ❌ URL 텍스트 제외")
+            return false
+        }
 
         // 광고/노이즈 필터링
         val noise = listOf("광고", "AD").any {
             t.contains(it, ignoreCase = true)
         }
-        if (noise) return false
+        if (noise) {
+            Log.d(TAG, "  ❌ 광고/노이즈 필터링")
+            return false
+        }
 
         // 채널명 존재 + 제목 최소 길이
-        if (c.isNotEmpty() && t.length >= 4) return true
-        return t.length >= 8
+        if (c.isNotEmpty() && t.length >= 4) {
+            Log.d(TAG, "  ✅ 유효 (채널명 있음 + 제목 충분)")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+            return true
+        }
+        val result = t.length >= 8
+        if (result) {
+            Log.d(TAG, "  ✅ 유효 (제목 길이 충분)")
+        } else {
+            Log.d(TAG, "  ❌ 제목 너무 짧음 (최소 8자 필요)")
+        }
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+        return result
     }
 
 
@@ -148,6 +173,13 @@ object Checker {
         timestamp: Long,
         appPackage: String
     ): CheckPoint? {
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "checkMediaSession 호출됨:")
+        Log.d(TAG, "  title: '$title'")
+        Log.d(TAG, "  channel: '$channel'")
+        Log.d(TAG, "  watchTime: ${watchTime / 1000}초")
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
         // 시청 시간 체크
         if (watchTime < TEST_CHECKER_MS) {
             Log.d(TAG, "시청 시간 너무 짧음 (${watchTime / 1000}초) → AI 호출 불필요")

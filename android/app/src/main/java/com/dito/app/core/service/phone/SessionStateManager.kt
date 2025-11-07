@@ -387,6 +387,15 @@ class SessionStateManager(
                     else -> "알 수 없는 채널"
                 }
 
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(TAG, "checkMediaSession 호출 직전 값 확인:")
+                Log.d(TAG, "  title: '${session.title}'")
+                Log.d(TAG, "  finalChannel: '$finalChannel'")
+                Log.d(TAG, "  session.bestChannel: '${session.bestChannel}'")
+                Log.d(TAG, "  session.channel: '${session.channel}'")
+                Log.d(TAG, "  watchTime: $adjustedWatchTime")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
                 val checkPoint = Checker.checkMediaSession(
                     title = session.title,
                     channel = finalChannel,
