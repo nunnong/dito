@@ -18,8 +18,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.app.core.ui.component.BottomTab
-import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.designsystem.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,25 +26,15 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onCartClick: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
     var weeklyGoal by remember { mutableStateOf("") }
 
-    Scaffold(
-        bottomBar = {
-            DitoBottomAppBar(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
             // Frame 156: 메인 노란색 카드 (359x589)
             Column(
                 modifier = Modifier
@@ -280,7 +268,6 @@ fun HomeScreen(
             }
         }
     }
-}
 
 @Composable
 private fun ProgressBarItem(label: String, progress: Float) {

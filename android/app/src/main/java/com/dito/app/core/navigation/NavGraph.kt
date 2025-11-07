@@ -17,7 +17,6 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
-import com.dito.app.feature.home.HomeScreen
 import com.dito.app.feature.shop.ShopScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
@@ -196,10 +195,10 @@ fun DitoNavGraph(
             )
         }
 
-        // 6) 메인 화면 (Home) - Added new composable block for HomeScreen
+        // 6) 메인 화면 (Home)
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
-            HomeScreen(
+            MainScreen(
                 onLogout = {
                     authViewModel.signOut()
                     navController.navigate(Route.Login.path) {
@@ -209,7 +208,7 @@ fun DitoNavGraph(
                         launchSingleTop = true
                     }
                 },
-                onCartClick = {
+                onNavigateToShop = {
                     navController.navigate(Route.Shop.path)
                 }
             )
@@ -220,12 +219,6 @@ fun DitoNavGraph(
             ShopScreen(
                 onBackClick = {
                     navController.popBackStack()
-                },
-                onNavigateHome = {
-                    navController.navigate(Route.Home.path) {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
                 }
             )
         }
