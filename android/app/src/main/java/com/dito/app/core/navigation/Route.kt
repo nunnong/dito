@@ -32,14 +32,35 @@ sealed class Route(val path: String) {
             job: String
         ) = "signup_permission/$username/$password/$nickname/$birthYear/$birthMonth/$birthDay/$gender/$job"
     }
-//    data object Tutorial : Route("tutorial")
 
     // Main
     data object Home : Route("home")
-    data object Shop : Route("shop")
-    data object Closet : Route("closet")
-    data object  Missions : Route("missions")
 
     // Test
     data object Test : Route("test")
+
+    // Group
+    data object GroupRoot : Route("group")
+    data object GroupName : Route("group_name")
+    data object GroupCreateInfo : Route("group_info")
+    data object GroupWaitingRoomOwner : Route("waiting_room_owner")
+    data object GroupEnterInviteCode : Route("enter_invite_code")
+    data object GroupIdentifyRoomInfo : Route("identify_room_info")
+    data object GroupWaitingRoomGuest : Route("waiting_room_guest")
+    data object GroupOngoingChallenge : Route("ongoing_challenge")
+    data object GroupChallengeReport : Route("challenge_report")
+
+    // Setting
+    data object SettingRoot : Route("setting")
+    data object SettingEditNickname : Route("edit_nickname")
+    data object SettingEditNotiCount : Route("edit_noti_count")
+    data object SettingPrivacyPolicy : Route("privacy_policy")
+    data object SettingTermsOfService : Route("terms_of_service")
+    
+
+
+
+
+
+
 }

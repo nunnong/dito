@@ -212,14 +212,8 @@ fun DitoNavGraph(
             )
         }
 
-        
-        // 테스트 화면 (권한 설정, Realm 확인 등)
-        composable(Route.Test.path) {
-            val activity = LocalContext.current as MainActivity
-            MainScreen(
-                activity = activity,
-                onNavigateToHealth = {}
-            )
-        }
+
+
+
     }
 }

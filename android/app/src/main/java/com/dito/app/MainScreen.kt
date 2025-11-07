@@ -58,7 +58,7 @@ fun MainScreen(
             composable("closet") {
                 ClosetScreen(onBackClick = { innerNavController.popBackStack() })
             }
-            composable("group") { GroupChallengeScreen() }
+            composable("group") {  }
         }
     }
 }

@@ -41,8 +41,8 @@ import com.dito.app.core.ui.designsystem.OnPrimary
 import com.dito.app.core.ui.designsystem.PrimaryContainer
 
 @Composable
-fun GroupChallengeScreen(
-    navController: NavController,
+fun GroupScreen(
+    navController: NavController? = null,
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
