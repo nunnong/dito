@@ -11,17 +11,24 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,6 +44,8 @@ fun SignUpCredentialsScreen(
     viewModel: SignUpViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val confirmFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(uiState.navigateToNext) {
         if (uiState.navigateToNext) {
@@ -45,15 +54,19 @@ fun SignUpCredentialsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    Scaffold(
+        containerColor = Color.White
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp)
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
         // 상단 헤더 - 뒤로가기 버튼 + 제목
         Row(
             modifier = Modifier
@@ -119,7 +132,9 @@ fun SignUpCredentialsScreen(
                 placeholder = "비밀번호와 동일하게 입력",
                 errorMessage = uiState.passwordConfirmErrorMessage,
                 isPassword = true,
-                iconRes = R.drawable.lock_open // lock_open 아이콘
+                iconRes = R.drawable.lock_open, // lock_open 아이콘
+                imeAction = ImeAction.Next,
+                onImeAction = { focusManager.clearFocus() }
             )
         }
 
@@ -138,6 +153,7 @@ fun SignUpCredentialsScreen(
             onClick = viewModel::onNextClicked,
             modifier = Modifier.padding(vertical = 48.dp, horizontal = 4.dp)
         )
+        }
     }
 }
 
@@ -154,7 +170,9 @@ private fun SignUpFieldSection(
     showDuplicateCheck: Boolean = false,
     onDuplicateCheck: () -> Unit = {},
     iconRes: Int,
-    isCheckButtonEnabled: Boolean = true
+    isCheckButtonEnabled: Boolean = true,
+    imeAction: ImeAction = ImeAction.Next,
+    onImeAction: (() -> Unit)? = null
 ) {
             Column(
                 modifier = Modifier
@@ -178,6 +196,8 @@ private fun SignUpFieldSection(
             hasError = errorMessage.isNotEmpty(),
             hasSuccess = successMessage.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
+            imeAction = imeAction,
+            onImeAction = onImeAction,
             trailingContent = {
                 if (showDuplicateCheck) {
                     Box(modifier = Modifier) { // Add padding for the button
@@ -218,8 +238,11 @@ private fun SignUpTextField(
     hasError: Boolean = false,
     hasSuccess: Boolean = false,
     modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Next,
+    onImeAction: (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null
 ) {
+    val localFocusManager = LocalFocusManager.current
     val borderColor = when {
         hasError -> Error
         hasSuccess -> Color(0xFF4CAF50)
@@ -250,18 +273,25 @@ private fun SignUpTextField(
                 .padding(start = 16.dp), // Added padding here
             contentAlignment = Alignment.CenterStart
         ) {
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = Color.Black,
-                    letterSpacing = 0.5.sp
-                ),
-                visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = Color.Black,
+                letterSpacing = 0.5.sp
+            ),
+            visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (isPassword) KeyboardType.Password else KeyboardType.Text,
+                imeAction = imeAction
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { onImeAction?.invoke() ?: run { localFocusManager.moveFocus(FocusDirection.Down) } },
+                onDone = { onImeAction?.invoke() ?: run { localFocusManager.clearFocus() } }
             )
+        )
 
             // 플레이스홀더
             if (value.isEmpty()) {
