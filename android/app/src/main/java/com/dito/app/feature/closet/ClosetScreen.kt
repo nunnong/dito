@@ -30,7 +30,7 @@ import com.dito.app.core.ui.designsystem.*
 fun ClosetScreen(
     onBackClick: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf(ClosetTab.BACKGROUND) }
+    var selectedTab by remember { mutableStateOf(ClosetTab.COSTUME) }
     var appliedCostumeId by remember { mutableStateOf<String?>("costume_1") }
     var appliedBackgroundId by remember { mutableStateOf<String?>("background_1") }
 

@@ -208,33 +208,10 @@ fun DitoNavGraph(
                         }
                         launchSingleTop = true
                     }
-                },
-                onNavigateToShop = {
-                    navController.navigate(Route.Shop.path)
-                },
-                onNavigateToCloset = {
-                    navController.navigate(Route.Closet.path)
                 }
             )
         }
 
-        // 7) 상점
-        composable(Route.Shop.path) {
-            ShopScreen(
-                onBackClick = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // 8) 옷장
-        composable(Route.Closet.path){
-            ClosetScreen (
-                onBackClick = { 
-                    navController.popBackStack()
-                }
-            )
-        }
         
         // 테스트 화면 (권한 설정, Realm 확인 등)
         composable(Route.Test.path) {
