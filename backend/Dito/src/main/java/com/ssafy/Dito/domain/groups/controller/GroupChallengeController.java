@@ -7,6 +7,8 @@ import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
 import com.ssafy.Dito.domain.groups.service.GroupChallengeService;
+import com.ssafy.Dito.domain.screentime.dto.response.GroupRankingRes;
+import com.ssafy.Dito.domain.screentime.service.ScreenTimeService;
 import com.ssafy.Dito.global.dto.ApiResponse;
 import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupChallengeController {
 
     private final GroupChallengeService groupChallengeService;
+    private final ScreenTimeService screenTimeService;
 
     @Operation(
         summary = "그룹 챌린지 생성",
@@ -268,5 +271,48 @@ public class GroupChallengeController {
     ) {
         GroupParticipantsRes response = groupChallengeService.getParticipants(groupId);
         return ApiResponse.of(HttpStatus.OK, "참여자 목록 조회 성공", response);
+    }
+
+    @Operation(
+        summary = "그룹 챌린지 랭킹 조회",
+        description = "그룹 챌린지의 스크린타임 기반 랭킹을 조회합니다.\n\n" +
+            "- 챌린지 기간 내 스크린타임 총합 기준\n" +
+            "- 스크린타임이 적은 순으로 정렬 (1위 = 가장 적게 사용)\n" +
+            "- 일평균 스크린타임 포함"
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "랭킹 조회 성공",
+            content = @Content(schema = @Schema(implementation = GroupRankingRes.class))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "그룹을 찾을 수 없음",
+            content = @Content(
+                schema = @Schema(implementation = CommonResult.class),
+                examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    value = """
+                    {
+                      "error": true,
+                      "message": "그룹 챌린지를 찾을 수 없습니다"
+                    }
+                    """
+                )
+            )
+        )
+    })
+    @GetMapping("/{group_id}/ranking")
+    public ResponseEntity<SingleResult<GroupRankingRes>> getGroupRanking(
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "그룹 챌린지 ID",
+            required = true,
+            example = "1"
+        )
+        @PathVariable("group_id") Long groupId
+    ) {
+        Long currentUserId = JwtAuthentication.getUserId();
+        GroupRankingRes response = screenTimeService.getGroupRanking(groupId, currentUserId);
+        return ApiResponse.of(HttpStatus.OK, "랭킹 조회 성공", response);
     }
 }
