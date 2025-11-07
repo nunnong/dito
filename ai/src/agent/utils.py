@@ -178,7 +178,9 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             response.raise_for_status()
             user_data = response.json()
 
-            db_user_id = user_data.get("data", {}).get("profile", {}).get("userId")  # DB의 실제 user ID
+            db_user_id = (
+                user_data.get("data", {}).get("profile", {}).get("userId")
+            )  # DB의 실제 user ID
             if not db_user_id:
                 print("     ❌ DB user_id 조회 실패: 응답에 id 없음")
                 return None
@@ -211,14 +213,14 @@ def send_fcm_notification(state: InterventionState) -> str | None:
         mission_payload = {
             "user_id": db_user_id,  # DB의 실제 user ID
             "mission_type": state.get("nudge_type", "REST"),  # LLM이 선택한 타입
-            "instruction": state["nudge_message"],
+            "mission_text": state["nudge_message"],
             "coin_reward": 10,
             "duration_seconds": state.get("duration_seconds", 300),  # LLM이 선택한 시간
             "target_app": target_app,  # behavior_log에서 추출
-            "health_change": 1,
-            "mental_change": 1,
-            "focus_change": 1,
-            "created_by": "AI Intervention",
+            "stat_change_self_care": 1,
+            "stat_change_focus": 1,
+            "stat_change_sleep": 1,
+            "prompt": "AI Intervention",
         }
 
         try:
