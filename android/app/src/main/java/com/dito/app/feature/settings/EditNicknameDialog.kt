@@ -3,6 +3,7 @@ package com.dito.app.feature.settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
@@ -29,7 +30,7 @@ import com.dito.app.core.ui.designsystem.hardShadow
 
 @Preview(showBackground = true)
 @Composable
-fun ChangeNickName() {
+fun ChangeNickName(onDismiss: () -> Unit = {}) {
     var nickName by remember { mutableStateOf("") }
 
     Box(
@@ -62,6 +63,7 @@ fun ChangeNickName() {
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopStart)
+                            .clickable{onDismiss()}
                     )
                 }
 
@@ -115,6 +117,7 @@ fun ChangeNickName() {
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopEnd)
+                            .clickable{nickName = ""}
 
                     )
                 }
@@ -133,6 +136,10 @@ fun ChangeNickName() {
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
                         .background(Color.White)
+                        .clickable{
+                            //닉네임 변경 api 호출 추가해야 함
+                            onDismiss()
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

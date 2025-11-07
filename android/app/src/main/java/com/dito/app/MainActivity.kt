@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import com.dito.app.feature.settings.SettingTab
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -73,12 +74,16 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController()
-                    // Splash → Login → (로그인 성공) → Test 화면 순서
-                    DitoNavGraph(
-                        navController = navController,
-                        startDestination = Route.Splash.path
-                    )
+                    // ========== 테스트용 코드 시작 ==========
+                    SettingTab()
+                    // ========== 테스트용 코드 끝 ==========
+
+                    // 원래 네비게이션 (테스트 끝나면 위 3줄 삭제하고 아래 주석 해제)
+                    // val navController = rememberNavController()
+                    // DitoNavGraph(
+                    //     navController = navController,
+                    //     startDestination = Route.Splash.path
+                    // )
                 }
             }
         }

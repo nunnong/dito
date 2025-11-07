@@ -65,32 +65,47 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         Log.d(TAG, "FCM 메시지 수신: from=${message.from}")
 
-        // Data payload 처리 (서버에서 data 필드로 전송)
+        // Data payload 처리
         message.data.let { data ->
             Log.d(TAG, "Data payload: $data")
 
-            message.data.let { data ->
-                Log.d(TAG, "Data payload: $data")
-
-                val interventionId = data["interventionId"]
-                val title = data["title"] ?: "Dito"
-                val body = data["body"] ?: "새로운 intervention이 도착했습니다"
-
-                showNotification(title, body, interventionId)
+            when(data["type"]) {
+                "INTERVENTION" -> {
+                    // 개입이 필요한 경우 - 미션이 있음
+                    if (data["mission_id"] != null) {
+                        handleMissionMessage(data)
+                    }
+                }
+                "STATUS" -> {
+                    // 상태 메시지인 경우 - 미션 없이 알림만
+                    val body = data["instruction"] ?:
+                    message.notification?.body ?:
+                    "잘하고 있어요! 건강한 디지털 습관을 유지하세요."
+                    showNotification(
+                        title = message.notification?.title ?: "디토",
+                        body = body,
+                        interventionId = null
+                    )
+                }
+                else -> {
+                    // 기본 처리 (이전 버전 호환성)
+                    val title = data["title"] ?: message.notification?.title ?: "디토"
+                    val body = data["body"] ?: message.notification?.body ?: ""
+                    showNotification(title, body, null)
+                }
             }
-
-
-
         }
 
-        // Notification payload 처리 (Firebase Console에서 테스트 시)
-        message.notification?.let { notification ->
-            Log.d(TAG, "Notification payload: title=${notification.title}")
-            showNotification(
-                title = notification.title ?: "Dito",
-                body = notification.body ?: "",
-                interventionId = null
-            )
+        // Notification payload 처리 (Firebase Console 테스트용)
+        if (message.data.isEmpty() && message.notification != null) {
+            message.notification?.let { notification ->
+                Log.d(TAG, "Notification only payload: title=${notification.title}")
+                showNotification(
+                    title = notification.title ?: "디토",
+                    body = notification.body ?: "",
+                    interventionId = null
+                )
+            }
         }
     }
 
@@ -165,18 +180,23 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         val missionId = data["mission_id"] ?: return
         val missionType = data["mission_type"] ?: "REST"
         val instruction = data["instruction"] ?: "미션을 수행하세요"
-        val duration = 30 //data["duration"]?.toIntOrNull() ?: 300
-        val targetAppsStr = data["target_apps"] ?: ""
-        val targetApps = if (targetAppsStr.isNotEmpty()) {
-            targetAppsStr.split(",").map { it.trim() }
-        } else {
-            listOf("com.google.android.youtube", "com.instagram.android")
+        val duration = data["duration"]?.toIntOrNull() ?: 300  // 서버에서 받은 값 사용
+        val coinReward = data["coin_reward"] ?: "10"
+
+        // 타겟 앱 설정 (현재는 하드코딩, 추후 서버에서 받도록 수정 가능)
+        val targetApps = when(missionType) {
+            "REST" -> listOf("com.google.android.youtube",
+                "com.instagram.android",
+                "com.zhiliaoapp.musically")  // TikTok 추가
+            "MEDITATION" -> emptyList()  // 명상은 특정 앱 차단 불필요
+            else -> listOf("com.google.android.youtube", "com.instagram.android")
         }
 
         Log.i(TAG, "🎯 미션 수신: $missionId")
         Log.d(TAG, "   타입: $missionType")
         Log.d(TAG, "   지시: $instruction")
         Log.d(TAG, "   시간: ${duration}초")
+        Log.d(TAG, "   보상: ${coinReward} 코인")
         Log.d(TAG, "   타겟 앱: ${targetApps.joinToString()}")
 
         // 미션 추적 시작
@@ -186,14 +206,25 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 missionType = missionType,
                 instruction = instruction,
                 durationSeconds = duration,
-                targetApps = targetApps
+                targetApps = targetApps,
+                coinReward = coinReward.toIntOrNull() ?: 10  // MissionData에 추가 필요
             )
         )
 
         // 알림 표시
+        val notificationBody = when(missionType) {
+            "REST" -> "$instruction (${duration/60}분간 휴식, 보상: ${coinReward} 코인)"
+            "MEDITATION" -> "$instruction (${duration/60}분 명상, 보상: ${coinReward} 코인)"
+            else -> "$instruction (보상: ${coinReward} 코인)"
+        }
+
         showNotification(
-            title = "🎯 새로운 미션!",
-            body = "$instruction (보상: ${data["coin_reward"] ?: "100"} 코인)",
+            title = when(missionType) {
+                "REST" -> "💆 휴식이 필요해요!"
+                "MEDITATION" -> "🧘 명상 시간입니다"
+                else -> "🎯 새로운 미션!"
+            },
+            body = notificationBody,
             interventionId = missionId
         )
     }
