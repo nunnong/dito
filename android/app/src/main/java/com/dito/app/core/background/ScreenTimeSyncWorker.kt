@@ -8,6 +8,7 @@ import com.dito.app.core.data.screentime.ScreenTimeRepository
 import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
+import com.dito.app.core.storage.GroupPreferenceManager
 import com.dito.app.core.util.ScreenTimeCollector
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -182,9 +183,7 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
      * 활성 그룹 ID 가져오기
      */
     private fun getActiveGroupId(): Long? {
-        val sharedPref = applicationContext.getSharedPreferences("dito_prefs", Context.MODE_PRIVATE)
-        val groupId = sharedPref.getLong("active_group_id", -1L)
-        return if (groupId > 0) groupId else null
+        return GroupPreferenceManager.getActiveGroupId(applicationContext)
     }
 
     /**
