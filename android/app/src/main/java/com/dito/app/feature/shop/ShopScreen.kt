@@ -23,16 +23,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.app.core.ui.component.BottomTab
-import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.designsystem.*
 
 /** 상점 화면 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
-    onBackClick: () -> Unit = {},
-    onNavigateHome: () -> Unit = {}
+    onBackClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(ShopTab.COSTUME) }
     var userCoins by remember { mutableStateOf(100) }
@@ -69,24 +66,11 @@ fun ShopScreen(
         )
     }
 
-    Scaffold(
-        bottomBar = {
-            DitoBottomAppBar(
-                selectedTab = BottomTab.HOME,
-                onTabSelected = { tab ->
-                    if (tab == BottomTab.HOME) {
-                        onNavigateHome()
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .padding(top = innerPadding.calculateTopPadding())
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
             ShopHeader(onBackClick = onBackClick)
 
             TabAndCoinSection(
@@ -106,10 +90,8 @@ fun ShopScreen(
                     } else {
                         showInsufficientCoinsDialog = true
                     }
-                },
-                contentPadding = innerPadding
+                }
             )
-        }
     }
 }
 
@@ -219,8 +201,7 @@ private fun ItemGrid(
     selectedTab: ShopTab,
     ownedItemIds: Set<String>,
     userCoins: Int,
-    onPurchase: (ShopItem) -> Unit,
-    contentPadding: PaddingValues
+    onPurchase: (ShopItem) -> Unit
 ) {
     val items = remember(selectedTab) {
         List(12) { index ->
@@ -240,7 +221,7 @@ private fun ItemGrid(
             start = 16.dp,
             end = 16.dp,
             top = 10.dp,
-            bottom = contentPadding.calculateBottomPadding() + 10.dp
+            bottom = 10.dp
         ),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -351,5 +332,5 @@ data class ShopItem(
 @Preview(showBackground = true)
 @Composable
 fun ShopScreenPreview() {
-    ShopScreen(onBackClick = {}, onNavigateHome = {})
+    ShopScreen(onBackClick = {})
 }
