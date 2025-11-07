@@ -1,0 +1,24 @@
+/build
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+.gradle/
+local.properties
+
+# Captures
+/captures
+.externalNativeBuild
+.cxx
+
+# Realm
+*.realm
+*.realm.lock
+*.realm.management
+
+# Firebase (나중에 추가 시)
+google-services.json
+
+# OS
+.DS_Store
+Thumbs.db
