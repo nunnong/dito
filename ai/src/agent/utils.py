@@ -145,7 +145,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
 
     역할:
     1. personalId로 DB user_id 조회 (/api/user/{personalId})
-    2. 개입 필요시: DB user_id로 미션 생성 API 호출 (/api/ai/mission)
+    2. 개입 필요시: DB user_id로 미션 생성 API 호출 /api/mission)
     3. mission_id 획득
     4. 간소화된 FCM 형식으로 전송 (/api/fcm/send)
        - 백엔드가 mission_id로부터 자동으로 미션 데이터 조회 및 enrichment
@@ -178,7 +178,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             response.raise_for_status()
             user_data = response.json()
 
-            db_user_id = user_data.get("id")  # DB의 실제 user ID
+            db_user_id = user_data.get("data", {}).get("profile", {}).get("userId")  # DB의 실제 user ID
             if not db_user_id:
                 print("     ❌ DB user_id 조회 실패: 응답에 id 없음")
                 return None
@@ -224,7 +224,7 @@ def send_fcm_notification(state: InterventionState) -> str | None:
         try:
             with httpx.Client(timeout=10.0) as client:
                 response = client.post(
-                    f"{SPRING_SERVER_URL}/api/ai/mission",
+                    f"{SPRING_SERVER_URL}/api/mission",
                     json=mission_payload,
                     headers=headers,
                 )
