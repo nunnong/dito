@@ -18,6 +18,7 @@ import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
 import com.dito.app.feature.home.HomeScreen
+import com.dito.app.feature.shop.ShopScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
@@ -47,8 +48,13 @@ fun DitoNavGraph(
             LoginScreen(
                 onLoginSuccess = {
                     // 테스트용: 로그인 성공 시 Test 화면으로 이동
-                    navController.navigate(Route.Test.path) {
-                        popUpTo(Route.Login.path) { inclusive = true }
+//                    navController.navigate(Route.Test.path) {
+//                        popUpTo(Route.Login.path) { inclusive = true }
+//                        launchSingleTop = true
+//                    }
+                    // 로그인 성공 시 Home 화면으로 이동
+                    navController.navigate(Route.Home.path){
+                        popUpTo(Route.Login.path){ inclusive = true }
                         launchSingleTop = true
                     }
                 },
@@ -200,6 +206,24 @@ fun DitoNavGraph(
                         popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
+                        launchSingleTop = true
+                    }
+                },
+                onCartClick = {
+                    navController.navigate(Route.Shop.path)
+                }
+            )
+        }
+
+        // ShopScreen Composable
+        composable(Route.Shop.path) {
+            ShopScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onNavigateHome = {
+                    navController.navigate(Route.Home.path) {
+                        popUpTo(navController.graph.startDestinationId)
                         launchSingleTop = true
                     }
                 }
