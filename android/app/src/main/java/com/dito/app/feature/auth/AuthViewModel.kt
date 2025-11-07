@@ -60,12 +60,21 @@ class AuthViewModel @Inject constructor(
 
     /**
      * 회원가입
+     * 참고: 실제 회원가입은 SignUpPermissionViewModel에서 처리됨
+     * 이 메서드는 레거시 호환성을 위해 유지
      */
-    fun signUp(username: String, password: String, nickname: String? = null) {
+    fun signUp(
+        username: String,
+        password: String,
+        nickname: String,
+        birth: String,
+        gender: String,
+        job: String
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val result = authRepository.signUp(username, password, nickname)
+            val result = authRepository.signUp(username, password, nickname, birth, gender, job)
 
             result.onSuccess {
                 Log.d(TAG, "회원가입 성공")

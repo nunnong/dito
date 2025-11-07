@@ -180,7 +180,8 @@ fun DitoNavGraph(
                 job = job,
                 onNavigateBack = { navController.popBackStack() },
                 onPermissionsGranted = { user, pass, nick, year, month, day, gend, jobType ->
-                    // TODO: 회원가입 API 호출
+                    // 회원가입 API 호출은 ViewModel에서 이미 완료됨
+                    // 성공 시 Home 화면으로 이동
                     navController.navigate(Route.Home.path) {
                         popUpTo(Route.Splash.path) { inclusive = true }
                         launchSingleTop = true

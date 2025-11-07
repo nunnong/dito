@@ -77,10 +77,20 @@ class AuthRepository @Inject constructor(
      * 회원가입
      * @param username 사용자 아이디
      * @param password 비밀번호
-     * @param nickname 닉네임 (선택)
+     * @param nickname 닉네임
+     * @param birth 생년월일 (yyyy-MM-dd 형식)
+     * @param gender 성별 (MALE/FEMALE)
+     * @param job 직업 (STUDENT 등)
      * @return 성공 여부
      */
-    suspend fun signUp(username: String, password: String, nickname: String? = null): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun signUp(
+        username: String,
+        password: String,
+        nickname: String,
+        birth: String,
+        gender: String,
+        job: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             // FCM 토큰 발급 (없으면 새로 발급)
             val fcmToken = fcmTokenManager.getToken() ?: fcmTokenManager.refreshToken()
@@ -89,31 +99,34 @@ class AuthRepository @Inject constructor(
                 username = username,
                 password = password,
                 nickname = nickname,
-                birth = "1970-01-01",
-                gender = "MALE",
-                job = "STUDENT",
+                birth = birth,
+                gender = gender,
+                job = job,
                 frequency = null,
                 fcmToken = fcmToken
             )
 
-            Log.d(TAG, "회원가입 시도: username=$username, fcmToken=${fcmToken?.take(20)}...")
+            Log.d(TAG, "회원가입 시도: username=$username, nickname=$nickname, birth=$birth, gender=$gender, job=$job, fcmToken=${fcmToken?.take(20)}...")
 
             val response = apiService.signUp(request)
 
             if (response.isSuccessful && response.body()?.error == false) {
-                val authData = response.body()?.data
-                if (authData != null) {
-                    // 토큰 저장
-                    authTokenManager.saveAccessToken(authData.accessToken)
-                    authTokenManager.saveRefreshToken(authData.refreshToken)
-                    authTokenManager.savePersonalId(username)
+                Log.d(TAG, "✅ 회원가입 성공: username=$username")
 
-                    Log.d(TAG, "✅ 회원가입 성공: username=$username")
-                    Result.success(Unit)
-                } else {
-                    Log.e(TAG, "❌ 회원가입 실패: 응답 데이터 없음")
-                    Result.failure(Exception("응답 데이터가 없습니다"))
-                }
+                // 회원가입 성공 후 자동 로그인
+                Log.d(TAG, "자동 로그인 시도...")
+                val loginResult = signIn(username, password)
+
+                return@withContext loginResult.fold(
+                    onSuccess = {
+                        Log.d(TAG, "✅ 자동 로그인 성공")
+                        Result.success(Unit)
+                    },
+                    onFailure = { error ->
+                        Log.e(TAG, "❌ 자동 로그인 실패: ${error.message}")
+                        Result.failure(error)
+                    }
+                )
             } else {
                 val errorMessage = response.body()?.message ?: "회원가입 실패"
                 Log.e(TAG, "❌ 회원가입 실패: code=${response.code()}, message=$errorMessage")

@@ -84,6 +84,14 @@ fun SignUpPermissionScreen(
         }
     }
 
+    // 에러 메시지 표시
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { message ->
+            // TODO: 토스트나 스낵바로 에러 표시
+            android.util.Log.e("SignUpPermissionScreen", "회원가입 실패: $message")
+        }
+    }
+
     val isFormValid = uiState.accessibilityPermission &&
             uiState.usageStatsPermission &&
             uiState.notificationPermission
@@ -98,11 +106,20 @@ fun SignUpPermissionScreen(
                     .padding(start = 32.dp, end = 32.dp, bottom = 90.dp)
             ) {
                 LargeStartButton(
-                    text = "Let's Start!",
-                    enabled = isFormValid,
+                    text = if (uiState.isLoading) "가입 중..." else "Let's Start!",
+                    enabled = isFormValid && !uiState.isLoading,
                     onClick = {
                         focusManager.clearFocus()
-                        viewModel.onLetsStartClicked()
+                        viewModel.onLetsStartClicked(
+                            username = username,
+                            password = password,
+                            nickname = nickname,
+                            birthYear = birthYear,
+                            birthMonth = birthMonth,
+                            birthDay = birthDay,
+                            gender = gender,
+                            job = job
+                        )
                     },
                     modifier = Modifier
                 )
