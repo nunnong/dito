@@ -35,32 +35,57 @@ class MissionTracker @Inject constructor(
     }
 
     fun startTracking(missionData: MissionData){
-        currentMissionId = missionData.missionId
-        val startTime = System.currentTimeMillis()
+        // 20초 후 실제 추적 시작
+        val DELAY_SECONDS = 20L
+        val actualStartTime = System.currentTimeMillis() + (DELAY_SECONDS * 1000L)
 
+        //이미 같은 미션 추적 중이면 무시
+        if (currentMissionId == missionData.missionId) {
+            Log.w(TAG, "⚠️ 이미 추적 중인 미션: ${missionData.missionId}")
+            return
+        }
+
+
+        if (currentMissionId != null) {
+            Log.w(TAG, "⚠️ 기존 미션($currentMissionId) 종료 후 새 미션 시작")
+
+            // WorkManager 취소
+            WorkManager.getInstance(context)
+                .cancelUniqueWork("mission_eval_$currentMissionId")
+            Log.d(TAG, "🚫 기존 WorkManager 취소: mission_eval_$currentMissionId")
+
+            stopTracking()
+        }
+
+
+
+        currentMissionId = missionData.missionId
         currentMissionInfo = com.dito.app.core.network.MissionInfo(
             type = missionData.missionType,
             instruction = missionData.instruction,
             durationSeconds = missionData.durationSeconds,
             targetApps = missionData.targetApps,
-            startTime = Checker.formatTimestamp(startTime),
-            endTime = Checker.formatTimestamp(startTime + missionData.durationSeconds * 1000L)
+            startTime = Checker.formatTimestamp(actualStartTime),
+            endTime = Checker.formatTimestamp(actualStartTime + missionData.durationSeconds * 1000L)
         )
 
         sequenceCounter.set(0)
 
-        Log.i(TAG, "🎯 미션 추적 시작: ${missionData.missionId} (${missionData.durationSeconds}초)") 
-        Log.d(TAG, "   타입: ${missionData.missionType}") 
-        Log.d(TAG, "   지시: ${missionData.instruction}") 
-        Log.d(TAG, "   타겟 앱: ${missionData.targetApps.joinToString()}") 
-        
-        //workmanager로 n분 후 평가
-        scheduleEvaluation(missionData)
+        Log.i(TAG, "🎯 미션 수신: ${missionData.missionId}")
+        Log.d(TAG, "   ⏳ ${DELAY_SECONDS}초 후 추적 시작 예정")
+        Log.d(TAG, "   타입: ${missionData.missionType}")
+        Log.d(TAG, "   지시: ${missionData.instruction}")
+
+        // WorkManager로 (20초 + 미션시간) 후 평가
+        scheduleEvaluation(missionData, DELAY_SECONDS)
     }
 
-    private fun scheduleEvaluation(missionData: MissionData) {
+    private fun scheduleEvaluation(missionData: MissionData, delaySeconds: Long) {
+        // 총 대기 시간 = 20초 지연 + 미션 수행 시간
+        val totalDelaySeconds = delaySeconds + missionData.durationSeconds
+
         val workRequest = OneTimeWorkRequestBuilder<com.dito.app.core.background.MissionEvaluationWorker>()
-            .setInitialDelay(missionData.durationSeconds.toLong(), TimeUnit.SECONDS)
+            .setInitialDelay(totalDelaySeconds, TimeUnit.SECONDS)  // 변경!
             .setInputData(
                 workDataOf(
                     "mission_id" to missionData.missionId,
@@ -71,7 +96,6 @@ class MissionTracker @Inject constructor(
                     "start_time" to currentMissionInfo!!.startTime,
                     "end_time" to currentMissionInfo!!.endTime
                 )
-
             )
             .setConstraints(
                 Constraints.Builder()
@@ -84,7 +108,6 @@ class MissionTracker @Inject constructor(
             )
             .build()
 
-        // WorkManager에 작업 등록
         WorkManager.getInstance(context)
             .enqueueUniqueWork(
                 "mission_eval_${missionData.missionId}",
@@ -92,7 +115,7 @@ class MissionTracker @Inject constructor(
                 workRequest
             )
 
-        Log.d(TAG, "⏰ WorkManager 스케줄 완료: ${missionData.durationSeconds}초 후 전송")
+        Log.d(TAG, "⏰ WorkManager 스케줄: ${totalDelaySeconds}초 후 평가 (지연 ${delaySeconds}초 + 미션 ${missionData.durationSeconds}초)")
     }
 
     //앱 전환 기록

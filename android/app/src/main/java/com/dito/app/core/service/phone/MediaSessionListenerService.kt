@@ -11,6 +11,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.service.phone.PlaybackProbe
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -71,7 +72,7 @@ class MediaSessionListenerService : NotificationListenerService() {
             Log.d(TAG, "MediaController 등록: $packageName")
             logMediaInfo(controller)
 
-            // ✅ 수정 ①: 등록 직후에도 이미 메타데이터/상태가 유효할 수 있음 → 즉시 반영
+            // 등록 직후에도 이미 메타데이터/상태가 유효할 수 있음 → 즉시 반영
             val state = controller.playbackState?.state
             val md = controller.metadata
             if (md != null) {
@@ -210,6 +211,11 @@ class MediaSessionListenerService : NotificationListenerService() {
                 if (metadata == null) {
                     Log.d(TAG, "메타데이터 없음")
                     return
+                }
+
+                // PlaybackProbe 기록
+                if (state?.state == PlaybackState.STATE_PLAYING) {
+                    PlaybackProbe.recordPlayback()
                 }
 
                 when (state?.state) {
