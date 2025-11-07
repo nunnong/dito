@@ -19,36 +19,35 @@ object Checker {
     const val STOP_DEBOUNCE_MS: Long = 300L // STOPPED 연속 이벤트 디바운스
     const val STOP_SAVE_DELAY_MS: Long = 500L // 저장 지연
 
-    // === 쿨다운 키 ===
+    // 쿨다운 키
     const val CD_KEY_YT_PLAY = "cd.youtube.play"           // 재생 기반
     const val CD_KEY_YT_EXPLORE = "cd.youtube.explore"     // 탐색 기반
     const val CD_KEY_IG_APP = "cd.instagram.app"           // 앱 기반
 
-    // === 패키지명 상수 ===
+    // 패키지명
     const val PKG_YOUTUBE = "com.google.android.youtube"
     const val PKG_INSTAGRAM = "com.instagram.android"
 
-    // === 쿨다운 시간 설정 ===
+    //쿨다운 시간 설정
     private val COOLDOWN_MS = mapOf(
         CD_KEY_YT_PLAY to TimeUnit.MINUTES.toMillis(2),     // 2분
-        CD_KEY_YT_EXPLORE to TimeUnit.MINUTES.toMillis(5),  // 5분
-        CD_KEY_IG_APP to TimeUnit.MINUTES.toMillis(5)       // 5분
+        CD_KEY_YT_EXPLORE to TimeUnit.MINUTES.toMillis(2),  // 2분
+        CD_KEY_IG_APP to TimeUnit.MINUTES.toMillis(2)       // 2분
     )
 
-    // === 쿨다운 관리 ===
+
     private val cooldownMap = ConcurrentHashMap<String, Long>() // key -> lastFiredAt
 
-    // === 대상 앱 ===
     private val TARGET_APPS = setOf(
         PKG_YOUTUBE,
         PKG_INSTAGRAM
     )
 
-    // === 중복 방지 캐시 ===
+    //중복 방지 캐시
     private val sentCache = ConcurrentHashMap<String, Long>() // key -> expiryTime
     private const val SENT_CACHE_TTL_MS = 30 * 60 * 1000L // 30분
 
-    // === 콘텐츠 분류 키워드 ===
+
     private val EDUCATIONAL_KEYWORDS = setOf(
         "강의", "lecture", "tutorial", "강좌", "공부", "study",
         "배우기", "learn", "교육", "education", "수업", "class",
@@ -60,9 +59,7 @@ object Checker {
         "예능", "entertainment", "리액션", "reaction", "쇼츠", "shorts"
     )
 
-    // ========================================
-    // 유효 콘텐츠 검증
-    // ========================================
+
     fun isVideoContent(title: String?, channel: String?): Boolean {
         val t = (title ?: "").trim()
         val c = (channel ?: "").trim()
@@ -81,14 +78,10 @@ object Checker {
         return t.length >= 8
     }
 
-    // ========================================
-    // 대상 앱 확인
-    // ========================================
+
     fun isTargetApp(packageName: String): Boolean = packageName in TARGET_APPS
 
-    // ========================================
-    // 쿨다운 관리
-    // ========================================
+
     fun canCallYoutubePlay(): Boolean = canFire(CD_KEY_YT_PLAY)
     fun canCallYoutubeExplore(): Boolean = canFire(CD_KEY_YT_EXPLORE)
     fun canCallInstagramApp(): Boolean = canFire(CD_KEY_IG_APP)
@@ -108,9 +101,8 @@ object Checker {
         cooldownMap[key] = System.currentTimeMillis()
     }
 
-    // ========================================
+
     // 앱-타이머 경로 (유튜브 제외, 인스타그램 등)
-    // ========================================
     fun shouldCallAi(
         packageName: String,
         sessionStartTime: Long,
@@ -142,17 +134,13 @@ object Checker {
         return true
     }
 
-    // ========================================
-    // 유튜브 탐색 경로 (AppMonitoringService용)
-    // ========================================
+
     fun shouldCallYoutubeExploreByTimer(): Boolean {
         cleanupExpiredCache()
-        return true // 추가 캐시 검증 없이 허용
+        return true
     }
 
-    // ========================================
-    // MediaSession 콘텐츠 분석 (유튜브 재생 경로)
-    // ========================================
+
     fun checkMediaSession(
         title: String,
         channel: String,
@@ -204,9 +192,7 @@ object Checker {
         )
     }
 
-    // ========================================
-    // 콘텐츠 분류
-    // ========================================
+
     private fun isEducational(title: String, channel: String): Boolean {
         val lt = title.lowercase()
         val lc = channel.lowercase()
@@ -221,9 +207,7 @@ object Checker {
         return cnt >= 1 // 키워드 1개 이상
     }
 
-    // ========================================
-    // 캐시 관리
-    // ========================================
+
     private fun isRecentlySent(key: String): Boolean {
         val exp = sentCache[key] ?: return false
         return exp > System.currentTimeMillis()
@@ -239,18 +223,14 @@ object Checker {
         }
     }
 
-    // ========================================
-    // 유틸리티
-    // ========================================
+
     fun formatTimestamp(timestamp: Long): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
         return sdf.format(Date(timestamp))
     }
 }
 
-// ========================================
-// CheckPoint 데이터 클래스
-// ========================================
+
 data class CheckPoint(
     val appName: String,
     val videoTitle: String? = null,

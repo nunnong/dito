@@ -91,7 +91,7 @@ class MissionEvaluationWorker @AssistedInject constructor(
             Log.d(TAG, "서버 응답 코드: ${response.code()}")
 
             if (response.isSuccessful) {
-                // ✅ 200 성공
+
                 val responseBody = response.body()?.string()
                 Log.d(TAG, "응답 body: $responseBody")
 
@@ -110,12 +110,12 @@ class MissionEvaluationWorker @AssistedInject constructor(
                 Result.success()
 
             } else {
-                // ❌ 400, 404 등 에러
+
                 val errorBody = response.body()?.string()
                 Log.e(TAG, "❌ 미션 평가 전송 실패: ${response.code()}")
                 Log.e(TAG, "에러 응답: $errorBody")
 
-                // 400 에러 상세 파싱
+
                 if (response.code() == 400 && errorBody != null) {
                     try {
                         val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
@@ -137,7 +137,7 @@ class MissionEvaluationWorker @AssistedInject constructor(
                 }
 
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-                Result.retry() // 그 외 에러는 재시도
+                Result.retry()
             }
 
         } catch (e: Exception) {
