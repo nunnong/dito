@@ -17,76 +17,84 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
-import com.dito.app.core.ui.component.BottomTab
-import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.designsystem.*
 
 /** 상점 화면 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
-    onBackClick: () -> Unit = {},
-    onNavigateHome: () -> Unit = {}
+    onBackClick: () -> Unit = {}
 ) {
     var selectedTab by remember { mutableStateOf(ShopTab.COSTUME) }
     var userCoins by remember { mutableStateOf(100) }
-
-    // 더미 데이터
     val ownedItemIds = remember { mutableStateOf(setOf("item_1")) }
 
-    Scaffold( // Wrap with Scaffold
-        bottomBar = {
-            DitoBottomAppBar(
-                selectedTab = BottomTab.HOME, // Default to HOME tab
-                onTabSelected = { tab ->
-                    if (tab == BottomTab.HOME) {
-                        onNavigateHome()
+    var showDialog by remember { mutableStateOf(false) }
+    var showInsufficientCoinsDialog by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableStateOf<ShopItem?>(null) }
+
+    if (showDialog) {
+        ShopConfirmDialog(
+            onConfirm = {
+                selectedItem?.let { item ->
+                    if (userCoins >= item.price) {
+                        userCoins -= item.price
+                        ownedItemIds.value = ownedItemIds.value + item.id
                     }
                 }
-            )
-        }
-    ) { innerPadding -> // Get innerPadding
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-                .padding(top = innerPadding.calculateTopPadding()) // Apply only top padding
-        ) {
-            // 상단 헤더
+                showDialog = false
+                selectedItem = null
+            },
+            onDismiss = {
+                showDialog = false
+                selectedItem = null
+            }
+        )
+    }
+
+    if (showInsufficientCoinsDialog) {
+        ShopInsufficientCoinsDialog(
+            onDismiss = {
+                showInsufficientCoinsDialog = false
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
             ShopHeader(onBackClick = onBackClick)
 
-            // 탭 선택 + 코인 표시
             TabAndCoinSection(
                 selectedTab = selectedTab,
                 onTabSelected = { selectedTab = it },
                 coins = userCoins
             )
 
-            // 아이템 그리드
             ItemGrid(
                 selectedTab = selectedTab,
                 ownedItemIds = ownedItemIds.value,
                 userCoins = userCoins,
-                onPurchase = { itemId, price ->
-                    if (userCoins >= price) {
-                        userCoins -= price
-                        ownedItemIds.value = ownedItemIds.value + itemId
+                onPurchase = { item ->
+                    if (userCoins >= item.price) {
+                        selectedItem = item
+                        showDialog = true
+                    } else {
+                        showInsufficientCoinsDialog = true
                     }
-                },
-                contentPadding = innerPadding
+                }
             )
-        }
     }
 }
 
-/** 상단 헤더 (검은색 배경 + 뒤로가기 + 상점 제목) */
 @Composable
 private fun ShopHeader(onBackClick: () -> Unit) {
     Row(
@@ -98,9 +106,8 @@ private fun ShopHeader(onBackClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 뒤로가기 아이콘
         Image(
-            painter = painterResource(id = R.drawable.angle_left), // 또는 angle_left 아이콘
+            painter = painterResource(id = R.drawable.angle_left),
             contentDescription = "Back",
             modifier = Modifier
                 .size(28.dp)
@@ -108,21 +115,16 @@ private fun ShopHeader(onBackClick: () -> Unit) {
             contentScale = ContentScale.Fit,
             colorFilter = ColorFilter.tint(Color.White)
         )
-
-        // 상점 타이틀
         Text(
             text = "상점",
-            style = DitoTypography.headlineMedium, // 28sp
+            style = DitoTypography.headlineMedium,
             color = Color.White,
             textAlign = TextAlign.Center
         )
-
-        // 오른쪽 여백 (균형 맞추기)
         Spacer(modifier = Modifier.size(28.dp))
     }
 }
 
-/** 탭 선택 + 코인 표시 영역 */
 @Composable
 private fun TabAndCoinSection(
     selectedTab: ShopTab,
@@ -137,7 +139,6 @@ private fun TabAndCoinSection(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 의상 | 배경 토글
         Row(
             modifier = Modifier
                 .wrapContentSize()
@@ -145,22 +146,17 @@ private fun TabAndCoinSection(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 의상 탭
             Text(
                 text = "의상",
-                style = DitoCustomTextStyles.titleDLarge, // 22sp
+                style = DitoCustomTextStyles.titleDLarge,
                 color = if (selectedTab == ShopTab.COSTUME) Color.Black else Color(0xFFC9C4CE),
                 modifier = Modifier.clickable { onTabSelected(ShopTab.COSTUME) }
             )
-
-            // 구분선
             Text(
                 text = "|",
                 style = DitoCustomTextStyles.titleDLarge,
                 color = Color.Black
             )
-
-            // 배경 탭
             Text(
                 text = "배경",
                 style = DitoCustomTextStyles.titleDLarge,
@@ -168,13 +164,10 @@ private fun TabAndCoinSection(
                 modifier = Modifier.clickable { onTabSelected(ShopTab.BACKGROUND) }
             )
         }
-
-        // 코인 표시
         CoinDisplay(coins = coins)
     }
 }
 
-/** 코인 표시 (노란색 버튼) */
 @Composable
 private fun CoinDisplay(coins: Int) {
     Row(
@@ -186,14 +179,14 @@ private fun CoinDisplay(coins: Int) {
             .border(2.dp, Color.Black, CircleShape)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.Center // Center the group
     ) {
         Text(
             text = coins.toString(),
             style = DitoCustomTextStyles.titleDLarge, // 22sp
             color = Color.Black
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(4.dp)) // Small space between text and image
         Image(
             painter = painterResource(id = R.drawable.lemon),
             contentDescription = "Coin",
@@ -203,23 +196,20 @@ private fun CoinDisplay(coins: Int) {
     }
 }
 
-/** 아이템 그리드 (3열) */
 @Composable
 private fun ItemGrid(
     selectedTab: ShopTab,
     ownedItemIds: Set<String>,
     userCoins: Int,
-    onPurchase: (itemId: String, price: Int) -> Unit,
-    contentPadding: PaddingValues
+    onPurchase: (ShopItem) -> Unit
 ) {
-    // 더미 아이템 데이터
     val items = remember(selectedTab) {
         List(12) { index ->
             ShopItem(
                 id = "item_${index + 1}",
                 name = if (selectedTab == ShopTab.COSTUME) "의상 ${index + 1}" else "배경 ${index + 1}",
                 price = 100,
-                imageRes = R.drawable.dito // 실제로는 각 아이템별 이미지
+                imageRes = R.drawable.dito
             )
         }
     }
@@ -231,7 +221,7 @@ private fun ItemGrid(
             start = 16.dp,
             end = 16.dp,
             top = 10.dp,
-            bottom = contentPadding.calculateBottomPadding() + 10.dp
+            bottom = 10.dp
         ),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -241,13 +231,12 @@ private fun ItemGrid(
                 item = item,
                 isOwned = ownedItemIds.contains(item.id),
                 canAfford = userCoins >= item.price,
-                onPurchase = { onPurchase(item.id, item.price) }
+                onPurchase = { onPurchase(item) }
             )
         }
     }
 }
 
-/** 개별 아이템 카드 */
 @Composable
 private fun ShopItemCard(
     item: ShopItem,
@@ -265,14 +254,14 @@ private fun ShopItemCard(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-                    // 아이템 이미지 영역
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f) // Changed to 1:1 aspect ratio
-                            .fillMaxWidth()
-                            .background(Color(0xFFF5EBD2)), // 도트 배경 느낌
-                        contentAlignment = Alignment.Center
-                    ) {            Image(
+        Box(
+            modifier = Modifier
+                .aspectRatio(1f)
+                .fillMaxWidth()
+                .background(Color(0xFFF5EBD2)),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
                 painter = painterResource(id = item.imageRes),
                 contentDescription = item.name,
                 modifier = Modifier.size(70.dp),
@@ -282,9 +271,7 @@ private fun ShopItemCard(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 하단 버튼 (보유중 or 가격)
         if (isOwned) {
-            // 보유중 버튼 (노란색)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -295,18 +282,17 @@ private fun ShopItemCard(
             ) {
                 Text(
                     text = "보유중",
-                    style = DitoCustomTextStyles.titleDSmall, // 14sp
+                    style = DitoCustomTextStyles.titleDSmall,
                     color = Color.Black
                 )
             }
         } else {
-            // 가격 버튼 (검은색)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(28.dp)
                     .background(Color.Black, CircleShape)
-                    .clickable(enabled = canAfford) { onPurchase() },
+                    .clickable { onPurchase() },
                 contentAlignment = Alignment.Center
             ) {
                 Row(
@@ -331,13 +317,11 @@ private fun ShopItemCard(
     }
 }
 
-/** 상점 탭 종류 */
 enum class ShopTab {
-    COSTUME,    // 의상
-    BACKGROUND  // 배경
+    COSTUME,
+    BACKGROUND
 }
 
-/** 상점 아이템 데이터 */
 data class ShopItem(
     val id: String,
     val name: String,
@@ -348,5 +332,5 @@ data class ShopItem(
 @Preview(showBackground = true)
 @Composable
 fun ShopScreenPreview() {
-    ShopScreen(onBackClick = {}, onNavigateHome = {})
+    ShopScreen(onBackClick = {})
 }
