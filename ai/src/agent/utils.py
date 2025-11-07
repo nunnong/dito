@@ -232,7 +232,8 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             response.raise_for_status()
             result = response.json()
 
-            mission_id = result.get("mission_id")
+            mission_id = result.get("data", {}).get("missionId")
+
             if mission_id:
                 print(f"     ✅ 미션 생성 완료: ID={mission_id}")
             else:
