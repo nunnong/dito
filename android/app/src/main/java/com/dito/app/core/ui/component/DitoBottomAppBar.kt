@@ -48,7 +48,7 @@ fun DitoBottomAppBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp)
+                .height(64.dp)
                 .drawBehind {
                     val strokeWidth = 1.dp.toPx()
                     val y = 0f
