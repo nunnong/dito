@@ -7,11 +7,15 @@ import com.dito.app.core.data.auth.AuthResponse
 import com.dito.app.core.data.auth.CheckUsernameResponse
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
+import com.dito.app.core.data.screentime.GroupRankingResponse
+import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
+import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 //Retrofit API 서비스
@@ -45,5 +49,18 @@ interface ApiService {
         @Body request: MediaSessionBatchRequest,
         @Header("Authorization") token: String
     ): Response<BatchUploadResponse>
+
+    // ========== Screen Time ==========
+    @POST("/screen-time/update")
+    suspend fun updateScreenTime(
+        @Body request: ScreenTimeUpdateRequest,
+        @Header("Authorization") token: String
+    ): Response<ScreenTimeUpdateResponse>
+
+    @GET("/challenges/groups/{groupId}/ranking")
+    suspend fun getGroupRanking(
+        @Path("groupId") groupId: Long,
+        @Header("Authorization") token: String
+    ): Response<GroupRankingResponse>
 
 }
