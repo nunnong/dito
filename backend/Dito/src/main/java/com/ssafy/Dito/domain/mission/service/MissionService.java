@@ -27,12 +27,13 @@ public class MissionService {
         return missionQueryRepository.getMissionPage(page_number);
     }
 
-    public void createMission(MissionReq req) {
+    public Long createMission(MissionReq req) {
         long userId = req.userId();
         User user = userRepository.getById(userId);
 
         Mission mission = Mission.of(req, user);
-        missionRepository.save(mission);
+        Mission savedMission = missionRepository.save(mission);
+        return savedMission.getId();
     }
 
     public List<AiMissionRes> getMissionForAi(AiReq req) {

@@ -4,6 +4,7 @@ import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
+import com.ssafy.Dito.domain.mission.dto.response.MissionCreateRes;
 import com.ssafy.Dito.domain.mission.service.MissionService;
 import com.ssafy.Dito.domain.missionResult.dto.request.MissionResultReq;
 import com.ssafy.Dito.domain.missionResult.service.MissionResultService;
@@ -44,11 +45,12 @@ public class AiController {
 
     @Operation(summary = "미션 등록")
     @PostMapping("/mission")
-    public ResponseEntity<CommonResult> createMission(
+    public ResponseEntity<SingleResult<MissionCreateRes>> createMission(
         @Valid @RequestBody MissionReq req
     ) {
-        missionService.createMission(req);
-        return ApiResponse.ok();
+        Long missionId = missionService.createMission(req);
+        MissionCreateRes res = new MissionCreateRes(missionId);
+        return ApiResponse.ok(res);
     }
 
     @Operation(summary = "미션 조회")
