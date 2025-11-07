@@ -20,7 +20,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/fcm")
+@RequestMapping("/api/fcm")
 @RequiredArgsConstructor
 @Tag(name = "FCM Internal API", description = "AI 서버 전용 FCM 알림 API (X-API-Key 인증 필요)")
 public class FcmInternalController {
@@ -28,25 +28,29 @@ public class FcmInternalController {
     private final FcmService fcmService;
 
     /**
-     * POST /fcm/send
-     * AI 서버에서 호출 - 개입 알림 전송
-     * TECH_SPEC.md:882 참조
+     * POST /api/fcm/send
+     * AI 서버에서 호출 - 개입 알림 전송 (V2)
+     * - intervention_id 제거, mission_id 사용
+     * - fcm_type에 따라 notification/data/mixed 메시지 전송
      *
      * @param apiKey  X-API-Key 헤더 (ApiKeyAuthFilter에서 검증)
-     * @param request 알림 요청 (personalId, message, interventionId, type)
-     * @return 성공 응답
+     * @param request 알림 요청 (personalId, message, missionId, type, fcmType, title, data)
+     * @return 성공 응답 (missionId 포함)
      */
     @PostMapping("/send")
     @Operation(
-            summary = "AI 개입 알림 전송",
-            description = "AI 서버에서 사용자에게 개입 알림을 전송합니다. X-API-Key 헤더 인증이 필요합니다."
+            summary = "AI 개입 알림 전송 (V2)",
+            description = "AI 서버에서 사용자에게 개입 알림을 전송합니다. " +
+                          "X-API-Key 헤더 인증이 필요합니다. " +
+                          "fcm_type에 따라 notification/data/mixed 메시지를 전송합니다."
     )
     public ResponseEntity<?> sendInterventionNotification(
             @Parameter(description = "API Key (X-API-Key 헤더)", required = true)
             @RequestHeader("X-API-Key") String apiKey,
             @Valid @RequestBody FcmSendRequest request
     ) {
-        log.info("Received FCM send request from AI server for user: {}", request.personalId());
+        log.info("Received FCM send request from AI server - user: {}, type: {}, fcmType: {}, missionId: {}",
+                request.personalId(), request.type(), request.fcmType(), request.missionId());
 
         try {
             fcmService.sendInterventionNotification(request);
@@ -55,7 +59,8 @@ public class FcmInternalController {
                     "success", true,
                     "message", "Notification sent successfully",
                     "personalId", request.personalId(),
-                    "interventionId", request.interventionId()
+                    "missionId", request.missionId() != null ? request.missionId() : "none",
+                    "fcmType", request.fcmType()
             ));
 
         } catch (IllegalArgumentException e) {
@@ -69,7 +74,7 @@ public class FcmInternalController {
             log.error("Failed to send notification", e);
             return ResponseEntity.internalServerError().body(Map.of(
                     "success", false,
-                    "error", "Failed to send notification"
+                    "error", "Failed to send notification: " + e.getMessage()
             ));
         }
     }

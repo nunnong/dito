@@ -3,9 +3,6 @@ package com.ssafy.Dito.domain.fcm.service;
 import com.google.firebase.messaging.*;
 import com.ssafy.Dito.domain.fcm.dto.FcmNotificationRequest;
 import com.ssafy.Dito.domain.fcm.dto.FcmSendRequest;
-import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
-import com.ssafy.Dito.domain.mission.entity.Mission;
-import com.ssafy.Dito.domain.mission.repository.MissionRepository;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +21,6 @@ public class FcmService {
 
     private final FirebaseMessaging firebaseMessaging;
     private final UserRepository userRepository;
-    private final MissionRepository missionRepository;
 
     /**
      * 특정 사용자에게 FCM 알림 전송
@@ -76,47 +72,115 @@ public class FcmService {
     }
 
     /**
-     * AI 서버에서 요청하는 개입 알림 전송
-     * TECH_SPEC.md:882 - POST /fcm/send 구현
-     * TECH_SPEC.md:2136-2156 - FCM 푸시 알림 구조
+     * AI 서버에서 요청하는 개입 알림 전송 (V2)
+     * - 미션 생성 로직 제거 (AI 서버가 직접 /api/ai/missions 호출)
+     * - fcm_type에 따라 notification/data/mixed 메시지 전송
      *
-     * @param request AI 서버 요청 (personalId, message, interventionId, type)
+     * @param request AI 서버 요청 (personalId, message, missionId, type, fcmType, title, data)
      */
     public void sendInterventionNotification(FcmSendRequest request) {
         // personalId로 User 조회
         User user = userRepository.getByPersonalId(request.personalId());
 
-        // 1. 항상 FCM 알림 전송
-        Map<String, String> data = new HashMap<>();
-        data.put("type", request.type());
-        data.put("intervention_id", request.interventionId());
-        data.put("intervention_needed", String.valueOf(request.interventionNeeded()));
-        data.put("action", "rest_suggestion");
-        data.put("deep_link", "dito://intervention/" + request.interventionId());
+        if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
+            log.warn("User {} has no FCM token. Skipping notification.", user.getPersonalId());
+            return;
+        }
 
-        FcmNotificationRequest notificationRequest = new FcmNotificationRequest(
-                "디토",  // title
-                request.message(),  // body (AI가 보낸 메시지)
-                data,
-                "high",  // priority
-                300  // timeToLive: 5분 (TECH_SPEC.md 참조)
-        );
-
-        // FCM 전송 (실패해도 Mission 생성에 영향 없음)
+        // FCM 메시지 타입에 따라 분기
         try {
-            sendNotificationToUser(user.getId(), notificationRequest);
-        } catch (Exception e) {
-            log.error("FCM send failed for intervention {}, but will still create mission if needed: {}",
-                    request.interventionId(), e.getMessage());
+            String response;
+            switch (request.fcmType()) {
+                case FcmSendRequest.TYPE_NOTIFICATION -> response = sendNotificationOnly(user, request);
+                case FcmSendRequest.TYPE_DATA -> response = sendDataOnly(user, request);
+                case FcmSendRequest.TYPE_MIXED -> response = sendMixedMessage(user, request);
+                default -> throw new IllegalArgumentException("Invalid fcm_type: " + request.fcmType());
+            }
+
+            log.info("FCM sent successfully - user: {}, missionId: {}, fcmType: {}, response: {}",
+                    request.personalId(), request.missionId(), request.fcmType(), response);
+
+        } catch (FirebaseMessagingException e) {
+            log.error("FCM send failed - user: {}, missionId: {}, error: {}",
+                    request.personalId(), request.missionId(), e.getMessage(), e);
+            handleMessagingException(e, user);
+            throw new RuntimeException("FCM 전송 실패: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Notification 타입 FCM 전송 (시스템 트레이 알림)
+     */
+    private String sendNotificationOnly(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .setNotification(Notification.builder()
+                        .setTitle(request.title())
+                        .setBody(request.message())
+                        .build())
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setTtl(300 * 1000L)  // 5분 TTL
+                        .setNotification(AndroidNotification.builder()
+                                .setClickAction("FLUTTER_NOTIFICATION_CLICK")
+                                .build())
+                        .build())
+                .build();
+
+        return firebaseMessaging.send(message);
+    }
+
+    /**
+     * Data 타입 FCM 전송 (백그라운드 처리)
+     */
+    private String sendDataOnly(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        Map<String, String> data = new HashMap<>(request.data() != null ? request.data() : Map.of());
+        data.put("type", request.type());
+        data.put("message", request.message());
+        if (request.missionId() != null) {
+            data.put("mission_id", String.valueOf(request.missionId()));
         }
 
-        // 2. intervention_needed=true일 때만 Mission 생성 (FCM 전송 결과와 무관)
-        if (request.interventionNeeded()) {
-            createInterventionMission(user, request);
-            log.info("Mission created for intervention {}", request.interventionId());
-        } else {
-            log.info("No mission created - intervention not needed for {}", request.interventionId());
+        Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .putAllData(data)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setTtl(300 * 1000L)  // 5분 TTL
+                        .build())
+                .build();
+
+        return firebaseMessaging.send(message);
+    }
+
+    /**
+     * Mixed 타입 FCM 전송 (알림 + 데이터)
+     */
+    private String sendMixedMessage(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        Map<String, String> data = new HashMap<>(request.data() != null ? request.data() : Map.of());
+        data.put("type", request.type());
+        if (request.missionId() != null) {
+            data.put("mission_id", String.valueOf(request.missionId()));
+            data.put("deep_link", "dito://mission/" + request.missionId());
         }
+
+        Message message = Message.builder()
+                .setToken(user.getFcmToken())
+                .setNotification(Notification.builder()
+                        .setTitle(request.title())
+                        .setBody(request.message())
+                        .build())
+                .putAllData(data)
+                .setAndroidConfig(AndroidConfig.builder()
+                        .setPriority(AndroidConfig.Priority.HIGH)
+                        .setTtl(300 * 1000L)  // 5분 TTL
+                        .setNotification(AndroidNotification.builder()
+                                .setClickAction("FLUTTER_NOTIFICATION_CLICK")
+                                .build())
+                        .build())
+                .build();
+
+        return firebaseMessaging.send(message);
     }
 
     /**
@@ -261,59 +325,5 @@ public class FcmService {
                 }
             }
         }
-    }
-
-    /**
-     * 개입에 대한 Mission 생성
-     */
-    @Transactional
-    protected void createInterventionMission(User user, FcmSendRequest request) {
-        String missionType = determineMissionType(request.interventionType());
-        int durationSeconds = 600;  // 10분 기본값
-        int coinReward = 10;
-        String targetApp = determineTargetApp(request.interventionType());
-
-        MissionReq missionReq = new MissionReq(
-                user.getId(),
-                missionType,
-                request.message(),  // AI 생성 메시지 (최대 100자)
-                coinReward,
-                durationSeconds,
-                targetApp,
-                1, 1, 1,  // stat changes (체력, 정신력, 집중력)
-                "AI 개입"
-        );
-
-        Mission mission = Mission.of(missionReq, user);
-        missionRepository.save(mission);
-
-        log.info("Created mission {} for user {}", mission.getId(), user.getId());
-    }
-
-    /**
-     * 개입 유형에 따른 미션 타입 결정
-     */
-    private String determineMissionType(String interventionType) {
-        if (interventionType == null) return "REST";
-
-        return switch (interventionType) {
-            case "short-form-overuse" -> "REST";
-            case "bedtime-usage" -> "SLEEP";
-            case "focus-break" -> "FOCUS";
-            case "app-switching" -> "FOCUS";
-            default -> "REST";
-        };
-    }
-
-    /**
-     * 개입 유형에 따른 타겟 앱 결정
-     */
-    private String determineTargetApp(String interventionType) {
-        // TODO: behavior_log에서 실제 앱 이름 가져오기
-        return switch (interventionType) {
-            case "short-form-overuse" -> "YouTube Shorts";
-            case "bedtime-usage" -> "All Apps";
-            default -> "All Apps";
-        };
     }
 }

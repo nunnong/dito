@@ -45,8 +45,12 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
                                 "/actuator/**",
-                                "/fcm/send",  // API Key 인증 (permitAll로 필터에서 처리)
+<<<<<<< Updated upstream
+                                "/fcm/send"  // API Key 인증 (permitAll로 필터에서 처리)
+=======
+                                "/api/fcm/send",  // API Key 인증 (permitAll로 필터에서 처리)
                                 "/api/ai/**"
+>>>>>>> Stashed changes
                         ).permitAll()
                         .anyRequest().authenticated()  // 나머지 API는 JWT 인증 필요
                 )
