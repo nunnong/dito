@@ -2,6 +2,7 @@ package com.dito.app.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -19,9 +20,11 @@ import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
-fun LogoutDialog() {
+fun LogoutDialog(
+    onDismiss: () -> Unit = {},
+    onConfirm: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -67,6 +70,7 @@ fun LogoutDialog() {
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(Color.White)
+                            .clickable{onDismiss()}
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -90,6 +94,7 @@ fun LogoutDialog() {
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(Color.White)
+                            .clickable{onDismiss()}
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {

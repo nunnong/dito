@@ -36,7 +36,9 @@ import androidx.work.ExistingWorkPolicy
 import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.repository.AuthRepository
 import com.dito.app.core.wearable.WearableMessageService
+import com.dito.app.feature.group.ChallengeResultScreen
 import com.dito.app.feature.group.GroupChallengeScreen
+import com.dito.app.feature.settings.SettingTab
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,8 +68,11 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    // 테스트용: GroupChallengeScreen 바로 표시
-                    GroupChallengeScreen(navController = navController)
+                    // 테스트용: SettingTab 바로 표시
+                    SettingTab()
+
+                    // GroupChallengeScreen (주석 처리)
+//                    GroupChallengeScreen(navController = navController)
 
                     // 원래 네비게이션 (주석 처리)
 //                    DitoNavGraph(
