@@ -9,6 +9,7 @@ import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.exception.DuplicatedNicknameException;
 import com.ssafy.Dito.domain.user.repository.UserQueryRepository;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
+import com.ssafy.Dito.global.exception.PageNotFoundException;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,10 @@ public class UserService {
     }
 
     public UserInfoRes getUserInfoForAi(String personalId) {
-        return userQueryRepository.getUserInfoForAi(personalId);
+        UserInfoRes res = userQueryRepository.getUserInfoForAi(personalId);
+        if (res == null) {
+            throw new PageNotFoundException("사용자를 찾을 수 없습니다.");
+        }
+        return res;
     }
 }

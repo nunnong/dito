@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "AI - api", description = "AI 전용 API")
 @SecurityRequirement(name = "X-API-Key")
-@RequestMapping("/api/ai")
+@RequestMapping("/api")
 public class AiController {
 
     private final MissionService missionService;
@@ -78,7 +78,7 @@ public class AiController {
     }
 
     @Operation(summary = "유저 정보 조회")
-    @GetMapping("/{personalId}")
+    @GetMapping("/user/{personalId}")
     public ResponseEntity<SingleResult<UserInfoRes>> getUserInfo(
         @PathVariable String personalId
     ) {

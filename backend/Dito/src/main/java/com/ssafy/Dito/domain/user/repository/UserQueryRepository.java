@@ -124,7 +124,7 @@ public class UserQueryRepository {
                 )
             ))
             .from(user)
-            .join(status).on(status.user.id.eq(user.id))
+            .leftJoin(status).on(status.user.id.eq(user.id))
             .where(user.personalId.eq(personalId))
             .fetchOne();
     }
