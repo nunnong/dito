@@ -91,7 +91,6 @@ fun CreateGroupNameDialog(
 
             Spacer(Modifier.height(Spacing.xl))
 
-            // Box: 입력 필드에 밑줄을 그리기 위해
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
@@ -120,19 +119,21 @@ fun CreateGroupNameDialog(
                             contentAlignment = Alignment.Center
                         ) {
                             innerTextField()
+
+                            Image(
+                                painter = painterResource(id = R.drawable.x),
+                                contentDescription = "방 이름 삭제",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .align(Alignment.TopEnd)
+
+                            )
                         }
 
                     }
                 )
-                Image(
-                    painter = painterResource(id = R.drawable.x),
-                    contentDescription = "방 이름 삭제",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .align(Alignment.TopEnd)
 
-                )
             }
 
             Spacer(Modifier.height(Spacing.xxl))
