@@ -112,6 +112,11 @@ public class FcmService {
      * Notification 타입 FCM 전송 (시스템 트레이 알림)
      */
     private String sendNotificationOnly(User user, FcmSendRequest request) throws FirebaseMessagingException {
+        log.info("=== FCM Notification-Only Message ===");
+        log.info("User: {} (ID: {})", user.getPersonalId(), user.getId());
+        log.info("Notification - Title: '{}', Body: '{}'", request.title(), request.message());
+        log.info("Android Config - Priority: HIGH, TTL: 300s, ClickAction: FLUTTER_NOTIFICATION_CLICK");
+
         Message message = Message.builder()
                 .setToken(user.getFcmToken())
                 .setNotification(Notification.builder()
@@ -127,7 +132,10 @@ public class FcmService {
                         .build())
                 .build();
 
-        return firebaseMessaging.send(message);
+        String response = firebaseMessaging.send(message);
+        log.info("Firebase Response - Message ID: {}", response);
+        log.info("====================================");
+        return response;
     }
 
     /**
@@ -141,6 +149,11 @@ public class FcmService {
             data.put("mission_id", String.valueOf(request.missionId()));
         }
 
+        log.info("=== FCM Data-Only Message ===");
+        log.info("User: {} (ID: {})", user.getPersonalId(), user.getId());
+        log.info("Data Payload: {}", data);
+        log.info("Android Config - Priority: HIGH, TTL: 300s");
+
         Message message = Message.builder()
                 .setToken(user.getFcmToken())
                 .putAllData(data)
@@ -150,7 +163,10 @@ public class FcmService {
                         .build())
                 .build();
 
-        return firebaseMessaging.send(message);
+        String response = firebaseMessaging.send(message);
+        log.info("Firebase Response - Message ID: {}", response);
+        log.info("====================================");
+        return response;
     }
 
     /**
@@ -163,6 +179,12 @@ public class FcmService {
             data.put("mission_id", String.valueOf(request.missionId()));
             data.put("deep_link", "dito://mission/" + request.missionId());
         }
+
+        log.info("=== FCM Mixed Message (Notification + Data) ===");
+        log.info("User: {} (ID: {})", user.getPersonalId(), user.getId());
+        log.info("Notification - Title: '{}', Body: '{}'", request.title(), request.message());
+        log.info("Data Payload: {}", data);
+        log.info("Android Config - Priority: HIGH, TTL: 300s, ClickAction: FLUTTER_NOTIFICATION_CLICK");
 
         Message message = Message.builder()
                 .setToken(user.getFcmToken())
@@ -180,7 +202,10 @@ public class FcmService {
                         .build())
                 .build();
 
-        return firebaseMessaging.send(message);
+        String response = firebaseMessaging.send(message);
+        log.info("Firebase Response - Message ID: {}", response);
+        log.info("===============================================");
+        return response;
     }
 
     /**
