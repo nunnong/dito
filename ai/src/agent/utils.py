@@ -241,7 +241,21 @@ def send_fcm_notification(state: InterventionState) -> str | None:
 
     except httpx.HTTPError as e:
         print(f"     ❌ 미션 생성 실패: {e}")
-        # 미션 생성 실패해도 FCM은 전송 (상태 메시지로)
+        # 상세 에러 정보 출력
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        # 미션 생성 실패 시 FCM 전송 스킵
+        return None
+
+    # mission_id가 없으면 FCM 전송 불가
+    if mission_id is None:
+        print("     ⚠️ mission_id 없음 - FCM 전송 스킵")
+        return None
 
     # Step 2: FCM 전송 (간소화된 형식, personalId 사용)
     print("     📱 FCM 알림 전송 중...")
