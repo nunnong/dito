@@ -130,7 +130,7 @@ fun GroupChallengeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 10.dp)
+                        .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
                         .background(Color.White, RoundedCornerShape(8.dp))
                         .padding(vertical = 12.dp)
                         .clickable { viewModel.onCreateDialogOpen() }
@@ -173,7 +173,7 @@ fun GroupChallengeScreen(
     }
 
     if (uiState.showCreateDialog) {
-        CreateChallengeDialog(onDismiss = {
+        CreateGroupNameDialog(onDismiss = {
             viewModel.onDialogClose()
         })
     }

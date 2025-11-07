@@ -3,6 +3,7 @@ package com.dito.app.feature.group
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
@@ -27,9 +28,10 @@ import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
-fun CreateGroupNameDialog() {
+fun CreateGroupNameDialog(
+    onDismiss: () -> Unit
+) {
     var groupName by remember { mutableStateOf("") }
 
     Box(
@@ -64,6 +66,7 @@ fun CreateGroupNameDialog() {
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.TopStart)
+                        .clickable { onDismiss() }
                 )
             }
 
