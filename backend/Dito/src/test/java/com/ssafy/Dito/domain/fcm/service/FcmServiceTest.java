@@ -5,6 +5,8 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MessagingErrorCode;
 import com.ssafy.Dito.domain.fcm.dto.FcmSendRequest;
+import com.ssafy.Dito.domain.mission.entity.Mission;
+import com.ssafy.Dito.domain.mission.repository.MissionRepository;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -26,7 +29,7 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("FCM Service 테스트")
+@DisplayName("FCM Service 테스트 (Data 타입 통일)")
 class FcmServiceTest {
 
     @Mock
@@ -35,127 +38,91 @@ class FcmServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private MissionRepository missionRepository;
+
     @InjectMocks
     private FcmService fcmService;
 
     private User testUser;
+    private Mission testMission;
     private String fcmToken = "test_fcm_token";
     private String personalId = "user123";
 
     @BeforeEach
     void setUp() {
         testUser = mock(User.class);
-        lenient().when(testUser.getFcmToken()).thenReturn(fcmToken);
-        lenient().when(testUser.getPersonalId()).thenReturn(personalId);
-        lenient().when(testUser.getId()).thenReturn(1L);
+        when(testUser.getFcmToken()).thenReturn(fcmToken);
+        when(testUser.getPersonalId()).thenReturn(personalId);
+        when(testUser.getId()).thenReturn(1L);
+
+        testMission = mock(Mission.class);
+        when(testMission.getId()).thenReturn(42L);
+        when(testMission.getMissionType()).thenReturn("REST");
+        when(testMission.getDurationSeconds()).thenReturn(300);
+        when(testMission.getCoinReward()).thenReturn(10);
     }
 
     @Test
-    @DisplayName("notification 타입 FCM 전송 성공")
-    void testSendNotificationOnly() throws Exception {
+    @DisplayName("mission_id가 있는 FCM 전송 - Mission DB 조회")
+    void testSendWithMissionId() throws Exception {
         // given
         FcmSendRequest request = new FcmSendRequest(
             personalId,
-            "잠시 휴식을 취해보세요",
-            null,  // missionId
-            "intervention",
-            FcmSendRequest.TYPE_NOTIFICATION,
-            "디토",  // title
-            null   // data
-        );
-
-        when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
-        when(firebaseMessaging.send(any(Message.class))).thenReturn("message_id_123");
-
-        // when
-        fcmService.sendInterventionNotification(request);
-
-        // then
-        verify(firebaseMessaging).send(any(Message.class));
-        verify(userRepository).getByPersonalId(personalId);
-    }
-
-    @Test
-    @DisplayName("data 타입 FCM 전송 성공")
-    void testSendDataOnly() throws Exception {
-        // given
-        Map<String, String> data = Map.of(
-            "mission_type", "REST",
-            "duration", "300",
-            "coin_reward", "10"
-        );
-
-        FcmSendRequest request = new FcmSendRequest(
-            personalId,
-            "잠시 휴식을 취해보세요",
-            42L,  // missionId
-            "intervention",
-            FcmSendRequest.TYPE_DATA,
-            null,  // title (data 타입은 title 불필요)
-            data
-        );
-
-        when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
-        when(firebaseMessaging.send(any(Message.class))).thenReturn("message_id_456");
-
-        // when
-        fcmService.sendInterventionNotification(request);
-
-        // then
-        verify(firebaseMessaging).send(any(Message.class));
-        verify(userRepository).getByPersonalId(personalId);
-    }
-
-    @Test
-    @DisplayName("mixed 타입 FCM 전송 성공")
-    void testSendMixedMessage() throws Exception {
-        // given
-        Map<String, String> data = Map.of(
-            "mission_type", "REST",
-            "duration", "300"
-        );
-
-        FcmSendRequest request = new FcmSendRequest(
-            personalId,
-            "잠시 휴식을 취해보세요",
-            42L,  // missionId
-            "intervention",
-            FcmSendRequest.TYPE_MIXED,
-            "디토",  // title
-            data
-        );
-
-        when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
-        when(firebaseMessaging.send(any(Message.class))).thenReturn("message_id_789");
-
-        // when
-        fcmService.sendInterventionNotification(request);
-
-        // then
-        verify(firebaseMessaging).send(any(Message.class));
-        verify(userRepository).getByPersonalId(personalId);
-    }
-
-    @Test
-    @DisplayName("잘못된 fcm_type으로 전송 시 예외 발생")
-    void testInvalidFcmType() {
-        // given
-        FcmSendRequest request = new FcmSendRequest(
-            personalId,
-            "메시지",
-            null,
-            "intervention",
-            "invalid_type",  // 잘못된 타입
             "디토",
-            null
+            "잠시 휴식을 취해보세요",
+            42L
         );
 
         when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
+        when(missionRepository.findById(42L)).thenReturn(Optional.of(testMission));
+        when(firebaseMessaging.send(any(Message.class))).thenReturn("msg_123");
+
+        // when
+        fcmService.sendInterventionNotification(request);
+
+        // then
+        verify(missionRepository).findById(42L);
+        verify(firebaseMessaging).send(any(Message.class));
+    }
+
+    @Test
+    @DisplayName("mission_id가 없는 FCM 전송 - 기본 정보만")
+    void testSendWithoutMissionId() throws Exception {
+        // given
+        FcmSendRequest request = new FcmSendRequest(
+            personalId,
+            "디토",
+            "잘하고 있어요!",
+            null  // mission_id 없음
+        );
+
+        when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
+        when(firebaseMessaging.send(any(Message.class))).thenReturn("msg_456");
+
+        // when
+        fcmService.sendInterventionNotification(request);
+
+        // then
+        verify(missionRepository, never()).findById(any());  // DB 조회 안함
+        verify(firebaseMessaging).send(any(Message.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 mission_id로 전송 시 예외")
+    void testSendWithInvalidMissionId() {
+        // given
+        FcmSendRequest request = new FcmSendRequest(
+            personalId, "디토", "메시지", 999L
+        );
+
+        when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
+        when(missionRepository.findById(999L)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> fcmService.sendInterventionNotification(request))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Invalid fcm_type: invalid_type");
+            .hasMessageContaining("Mission not found: 999");
     }
 
     @Test
@@ -163,13 +130,7 @@ class FcmServiceTest {
     void testNullFcmToken() throws Exception {
         // given
         FcmSendRequest request = new FcmSendRequest(
-            personalId,
-            "메시지",
-            null,
-            "intervention",
-            FcmSendRequest.TYPE_NOTIFICATION,
-            "디토",
-            null
+            personalId, "디토", "메시지", null
         );
 
         User userWithoutToken = mock(User.class);
@@ -182,6 +143,7 @@ class FcmServiceTest {
 
         // then
         verify(firebaseMessaging, never()).send(any(Message.class));
+        verify(missionRepository, never()).findById(any());
     }
 
     @Test
@@ -189,13 +151,7 @@ class FcmServiceTest {
     void testFcmSendFailure() throws Exception {
         // given
         FcmSendRequest request = new FcmSendRequest(
-            personalId,
-            "메시지",
-            null,
-            "intervention",
-            FcmSendRequest.TYPE_NOTIFICATION,
-            "디토",
-            null
+            personalId, "디토", "메시지", null
         );
 
         FirebaseMessagingException exception = mock(FirebaseMessagingException.class);
@@ -216,13 +172,7 @@ class FcmServiceTest {
     void testUserNotFound() {
         // given
         FcmSendRequest request = new FcmSendRequest(
-            "unknown_user",
-            "메시지",
-            null,
-            "intervention",
-            FcmSendRequest.TYPE_NOTIFICATION,
-            "디토",
-            null
+            "unknown_user", "디토", "메시지", null
         );
 
         when(userRepository.getByPersonalId("unknown_user"))
@@ -232,5 +182,26 @@ class FcmServiceTest {
         assertThatThrownBy(() -> fcmService.sendInterventionNotification(request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("User not found");
+    }
+
+    @Test
+    @DisplayName("Deep link 생성 확인")
+    void testDeepLinkGeneration() throws Exception {
+        // given
+        FcmSendRequest request = new FcmSendRequest(
+            personalId, "디토", "미션 시작!", 123L
+        );
+
+        when(userRepository.getByPersonalId(personalId)).thenReturn(testUser);
+        when(missionRepository.findById(123L)).thenReturn(Optional.of(testMission));
+        when(testMission.getId()).thenReturn(123L);
+        when(firebaseMessaging.send(any(Message.class))).thenReturn("msg_789");
+
+        // when
+        fcmService.sendInterventionNotification(request);
+
+        // then
+        verify(firebaseMessaging).send(any(Message.class));
+        verify(missionRepository).findById(123L);
     }
 }

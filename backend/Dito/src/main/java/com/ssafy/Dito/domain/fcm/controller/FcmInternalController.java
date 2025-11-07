@@ -29,28 +29,34 @@ public class FcmInternalController {
 
     /**
      * POST /api/fcm/send
-     * AI 서버에서 호출 - 개입 알림 전송 (V2)
-     * - intervention_id 제거, mission_id 사용
-     * - fcm_type에 따라 notification/data/mixed 메시지 전송
+     * AI 서버에서 호출 - 알림 전송 (Data 타입 통일)
+     * - FCM 타입은 항상 data로 전송
+     * - mission_id가 있으면: Mission 테이블 조회 후 풍부한 정보 전송
+     * - mission_id가 없으면: title, message만 전송
      *
      * @param apiKey  X-API-Key 헤더 (ApiKeyAuthFilter에서 검증)
-     * @param request 알림 요청 (personalId, message, missionId, type, fcmType, title, data)
-     * @return 성공 응답 (missionId 포함)
+     * @param request 알림 요청 (personalId, title, message, missionId)
+     * @return 성공 응답 (hasMission 포함)
      */
     @PostMapping("/send")
     @Operation(
-            summary = "AI 개입 알림 전송 (V2)",
-            description = "AI 서버에서 사용자에게 개입 알림을 전송합니다. " +
-                          "X-API-Key 헤더 인증이 필요합니다. " +
-                          "fcm_type에 따라 notification/data/mixed 메시지를 전송합니다."
+            summary = "AI 알림 전송 (Data 타입)",
+            description = """
+                    AI 서버에서 사용자에게 알림을 전송합니다.
+                    - mission_id가 있으면: Mission 테이블 조회 후 미션 정보 포함
+                    - mission_id가 없으면: title, message만 전송 (격려 메시지 등)
+                    - X-API-Key 헤더 인증이 필요합니다.
+                    """
     )
     public ResponseEntity<?> sendInterventionNotification(
             @Parameter(description = "API Key (X-API-Key 헤더)", required = true)
             @RequestHeader("X-API-Key") String apiKey,
             @Valid @RequestBody FcmSendRequest request
     ) {
-        log.info("Received FCM send request from AI server - user: {}, type: {}, fcmType: {}, missionId: {}",
-                request.personalId(), request.type(), request.fcmType(), request.missionId());
+        log.info("FCM request - user: {}, missionId: {}, hasMission: {}",
+                request.personalId(),
+                request.missionId(),
+                request.missionId() != null);
 
         try {
             fcmService.sendInterventionNotification(request);
@@ -60,7 +66,7 @@ public class FcmInternalController {
                     "message", "Notification sent successfully",
                     "personalId", request.personalId(),
                     "missionId", request.missionId() != null ? request.missionId() : "none",
-                    "fcmType", request.fcmType()
+                    "hasMission", request.missionId() != null
             ));
 
         } catch (IllegalArgumentException e) {
