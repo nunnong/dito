@@ -4,11 +4,15 @@ import com.ssafy.Dito.domain.auth.dto.request.SignInReq;
 import com.ssafy.Dito.domain.auth.dto.response.SignInRes;
 import com.ssafy.Dito.domain.auth.exception.DuplicatedPersonalIdException;
 import com.ssafy.Dito.domain.auth.exception.NotFoundUserException;
+import com.ssafy.Dito.domain.item.entity.Item;
+import com.ssafy.Dito.domain.item.repository.ItemRepository;
 import com.ssafy.Dito.domain.status.entity.Status;
 import com.ssafy.Dito.domain.status.repository.StatusRepository;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.domain.auth.dto.request.SignUpReq;
 import com.ssafy.Dito.domain.user.entity.User;
+import com.ssafy.Dito.domain.user.userItem.entity.UserItem;
+import com.ssafy.Dito.domain.user.userItem.repository.UserItemRepository;
 import com.ssafy.Dito.global.jwt.exception.UnauthorizedUserException;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import com.ssafy.Dito.global.jwt.util.JwtClaims;
@@ -26,6 +30,8 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final StatusRepository statusRepository;
+    private final UserItemRepository userItemRepository;
+    private final ItemRepository itemRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -46,6 +52,14 @@ public class AuthService {
 
         Status status = Status.of(user);
         statusRepository.save(status);
+
+        Item costume = itemRepository.getById(4);
+        Item background = itemRepository.getById(6);
+
+        UserItem defaultCostume = UserItem.of(user, costume, true);
+        UserItem defaultBackground = UserItem.of(user, background, true);
+        userItemRepository.save(defaultCostume);
+        userItemRepository.save(defaultBackground);
     }
 
     public boolean checkPersonalId(String personalId) {

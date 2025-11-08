@@ -71,7 +71,7 @@ public class ItemService {
             throw new InsufficientBalanceException();
         }
 
-        UserItem userItem = UserItem.of(user, item);
+        UserItem userItem = UserItem.of(user, item, false);
 
         user.updateCoin(item.getPrice());
         userItemRepository.save(userItem);

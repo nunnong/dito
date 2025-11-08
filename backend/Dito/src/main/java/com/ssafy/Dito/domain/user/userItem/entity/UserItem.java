@@ -42,11 +42,11 @@ public class UserItem {
 
     private UserItem(User user, Item item, boolean isEquipped) {
         this.id = new UserItemId(user, item);
-        this.isEquipped = false;
+        this.isEquipped = isEquipped;
     }
 
-    public static UserItem of(User user, Item item) {
-        return new UserItem(user, item , false);
+    public static UserItem of(User user, Item item, boolean isEquipped) {
+        return new UserItem(user, item , isEquipped);
     }
 
     public void updateEquipStatus(boolean equipStatus) {
