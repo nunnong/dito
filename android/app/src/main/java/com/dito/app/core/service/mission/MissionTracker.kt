@@ -147,7 +147,7 @@ class MissionTracker @Inject constructor(
 
                 RealmRepository.insertMissionLog(log)
 
-                val targetFlag = if (log.isTargetApp) "⚠️ 타겟" else "일반"
+                val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
                 Log.d(TAG, "📌 미션 시작 앱 마킹: $appName (0초) [$targetFlag]")
             }
         } catch (e: Exception) {
@@ -219,7 +219,7 @@ class MissionTracker @Inject constructor(
 
         RealmRepository.insertMissionLog(log)
 
-        val targetFlag = if (log.isTargetApp) "⚠️ 타겟" else "일반"
+        val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
         Log.d(TAG, "📱 앱 사용 기록: $appName (${actualDuration}초) [$targetFlag]")
 
         // ✨ 시작 앱 기록 후 초기화
@@ -359,7 +359,7 @@ class MissionTracker @Inject constructor(
 
                 RealmRepository.insertMissionLog(log)
 
-                val targetFlag = if (log.isTargetApp) "⚠️ 타겟" else "일반"
+                val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
                 Log.d(TAG, "🏁 미션 종료 시점 앱 기록: $appName (${elapsedSeconds}초) [$targetFlag]")
             } else {
                 Log.d(TAG, "🏁 미션 종료 시점에 사용 중인 앱 없음 또는 자기 앱")

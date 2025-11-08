@@ -62,7 +62,7 @@ class MissionEvaluationWorker @AssistedInject constructor(
                     packageName = log.packageName,
                     appName = log.appName,
                     durationSeconds = log.durationSeconds,
-                    isTargetApp = log.isTargetApp,
+                    isTargetApp = if (log.logType == "APP_USAGE" || log.logType == "MEDIA_SESSION") log.isTargetApp else null,
                     videoTitle = log.videoTitle,
                     channelName = log.channelName,
                     eventType = log.eventType,
