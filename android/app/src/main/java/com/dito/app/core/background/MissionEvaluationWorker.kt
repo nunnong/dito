@@ -150,12 +150,15 @@ class MissionEvaluationWorker @AssistedInject constructor(
 
     private fun triggerFinalAppRecord() {
         try {
-            // AppMonitoring에게 현재 앱 강제 기록 요청
-            // (실제로는 AppMonitoring이 주기적으로 체크하므로 대부분 이미 기록됨)
-            Log.d(TAG, "📌 미션 종료 - 마지막 앱 기록 확인")
+            Log.d(TAG, "📌 미션 종료 - 마지막 앱 기록 시작")
 
-            // 100ms 대기 (AppMonitoring이 마지막 기록 완료할 시간)
-            Thread.sleep(100)
+            // MissionTracker에게 현재 사용 중인 앱 강제 기록 요청
+            missionTracker.recordFinalApp()
+
+            // 기록 완료 대기 (Realm 쓰기 작업 완료 시간)
+            Thread.sleep(200)
+
+            Log.d(TAG, "✅ 마지막 앱 기록 완료")
         } catch (e: Exception) {
             Log.e(TAG, "마지막 앱 기록 트리거 실패", e)
         }

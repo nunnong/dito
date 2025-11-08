@@ -312,4 +312,60 @@ class MissionTracker @Inject constructor(
 
     fun isTracking(): Boolean = currentMissionId != null
     fun getCurrentMissionId(): String? = currentMissionId
+
+    /**
+     * 미션 종료 시점에 현재 사용 중인 앱을 강제로 기록
+     */
+    fun recordFinalApp() {
+        val missionId = currentMissionId ?: return
+
+        try {
+            val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val currentTime = System.currentTimeMillis()
+
+            // 최근 1초간의 사용 기록 조회
+            val stats = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                currentTime - 1000,
+                currentTime
+            )
+
+            // 가장 최근에 사용한 앱 찾기
+            val currentApp = stats.maxByOrNull { it.lastTimeUsed }
+
+            if (currentApp != null && currentApp.packageName != context.packageName) {
+                val packageManager = context.packageManager
+                val appName = try {
+                    val appInfo = packageManager.getApplicationInfo(currentApp.packageName, 0)
+                    packageManager.getApplicationLabel(appInfo).toString()
+                } catch (e: Exception) {
+                    currentApp.packageName
+                }
+
+                // 미션 시작부터 종료까지의 시간 계산
+                val elapsedSeconds = ((currentTime - missionStartTime) / 1000).toInt()
+
+                val targetApps = currentMissionInfo?.targetApps ?: emptyList()
+                val log = MissionTrackingLog().apply {
+                    this.missionId = missionId
+                    this.logType = "APP_USAGE"
+                    this.sequence = sequenceCounter.incrementAndGet()
+                    this.timestamp = currentTime
+                    this.packageName = currentApp.packageName
+                    this.appName = appName
+                    this.durationSeconds = elapsedSeconds
+                    this.isTargetApp = targetApps.contains(currentApp.packageName)
+                }
+
+                RealmRepository.insertMissionLog(log)
+
+                val targetFlag = if (log.isTargetApp) "⚠️ 타겟" else "일반"
+                Log.d(TAG, "🏁 미션 종료 시점 앱 기록: $appName (${elapsedSeconds}초) [$targetFlag]")
+            } else {
+                Log.d(TAG, "🏁 미션 종료 시점에 사용 중인 앱 없음 또는 자기 앱")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "미션 종료 시점 앱 기록 실패", e)
+        }
+    }
 }
