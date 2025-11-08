@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,9 +33,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnPrimary
 import com.dito.app.core.ui.designsystem.PrimaryContainer
+import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
 fun GroupScreen(
@@ -49,7 +52,7 @@ fun GroupScreen(
             .fillMaxSize()
             .background(PrimaryContainer)
             .verticalScroll(rememberScrollState())
-            .padding(vertical = 44.dp),
+            .padding(vertical = Spacing.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -60,36 +63,32 @@ fun GroupScreen(
                 modifier = Modifier
                     .width(270.dp)
                     .height(120.dp)
-                    .padding(bottom = 11.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
 
+            Spacer(modifier = Modifier.height(Spacing.l))
 
             Row(
-                modifier = Modifier
-                    .padding(bottom = 10.dp),
-                horizontalArrangement = Arrangement.Center
+                modifier = Modifier.padding(bottom = Spacing.m),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.dito),
                     contentDescription = null,
                     modifier = Modifier
-                        .width(135.dp)
-                        .height(135.dp)
+                        .size(135.dp)
                 )
 
                 Image(
                     painter = painterResource(id = R.drawable.melon),
                     contentDescription = null,
                     modifier = Modifier
-                        .width(135.dp)
-                        .height(135.dp)
+                        .size(135.dp)
                 )
             }
 
             Column(
                 modifier = Modifier
-                    .padding(vertical = 28.dp, horizontal = 5.dp),
+                    .padding(vertical = Spacing.xl, horizontal = Spacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -98,6 +97,8 @@ fun GroupScreen(
                     style = DitoCustomTextStyles.titleKLarge
                 )
 
+                Spacer(modifier = Modifier.height(Spacing.xs))
+
                 Text(
                     text = "함께 디지털 휴식에 도전해볼까요?",
                     color = OnPrimary,
@@ -105,29 +106,36 @@ fun GroupScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Spacing.m))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 29.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .padding(horizontal = Spacing.l, vertical = Spacing.m),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.m)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
-                        .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .padding(vertical = 12.dp)
+                        .hardShadow(
+                            offsetX = 4.dp,
+                            offsetY = 4.dp,
+                            cornerRadius = 8.dp,
+                            color = Color.Black
+                        )
+                        .clip(DitoShapes.small)
+                        .border(1.dp, Color.Black, DitoShapes.small)
+                        .background(Color.White)
                         .clickable { viewModel.onCreateDialogOpen() }
-
+                        .padding(vertical = Spacing.l)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.star),
                         contentDescription = null,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(40.dp)
                     )
+                    Spacer(modifier = Modifier.height(Spacing.s))
                     Text(
                         text = "방 만들기",
                         color = Color.Black,
@@ -139,16 +147,24 @@ fun GroupScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
-                        .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
-                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .hardShadow(
+                            offsetX = 4.dp,
+                            offsetY = 4.dp,
+                            cornerRadius = 8.dp,
+                            color = Color.Black
+                        )
+                        .clip(DitoShapes.small)
+                        .border(1.dp, Color.Black, DitoShapes.small)
+                        .background(Color.White)
                         .clickable { viewModel.onJoinDialogOpen() }
-                        .padding(vertical = 12.dp)
+                        .padding(vertical = Spacing.l)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.mail),
                         contentDescription = null,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(40.dp)
                     )
+                    Spacer(modifier = Modifier.height(Spacing.s))
                     Text(
                         text = "입장하기",
                         color = Color.Black,
