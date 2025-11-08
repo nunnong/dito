@@ -11,6 +11,7 @@ import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
+import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -43,6 +44,12 @@ interface ApiService {
     suspend fun checkUsername(
         @Query("personalId") username: String
     ): Response<CheckUsernameResponse>
+
+    // ========== Home ==========
+    @GET("/user/main")
+    suspend fun getHomeData(
+        @Header("Authorization") token: String
+    ): Response<HomeResponse>
 
     // ========== Events ==========
     @POST("/event/app-usage")
