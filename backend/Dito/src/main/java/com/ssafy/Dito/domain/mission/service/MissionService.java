@@ -13,7 +13,9 @@ import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.global.exception.BadRequestException;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -33,8 +35,19 @@ public class MissionService {
         long userId = req.userId();
 
         // 진행 중인 미션이 이미 있는지 확인
-        if (missionRepository.existsByUser_IdAndStatus(userId, Status.IN_PROGRESS)) {
-            throw new BadRequestException("이미 진행 중인 미션이 있습니다");
+        Optional<Mission> existingMission = missionRepository.findByUser_IdAndStatus(userId, Status.IN_PROGRESS);
+
+        if (existingMission.isPresent()) {
+            Mission mission = existingMission.get();
+            // trigger_time + duration_seconds로 만료 시간 계산
+            Instant expirationTime = mission.getTriggerTime().toInstant()
+                .plusSeconds(mission.getDurationSeconds());
+
+            // 현재 시간이 만료 시간보다 이전이면 (아직 유효한 미션이면) 예외 발생
+            if (Instant.now().isBefore(expirationTime)) {
+                throw new BadRequestException("이미 진행 중인 미션이 있습니다");
+            }
+            // 만료된 미션이면 새 미션 생성 허용 (아래 로직 계속 진행)
         }
 
         User user = userRepository.getById(userId);
