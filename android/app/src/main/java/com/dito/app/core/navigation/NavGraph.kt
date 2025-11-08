@@ -43,6 +43,11 @@ fun DitoNavGraph(
         composable(Route.Login.path) {
             LoginScreen(
                 onLoginSuccess = {
+                    // 테스트용: 로그인 성공 시 Test 화면으로 이동
+//                    navController.navigate(Route.Test.path) {
+//                        popUpTo(Route.Login.path) { inclusive = true }
+//                        launchSingleTop = true
+//                    }
                     // 로그인 성공 시 Home 화면으로 이동
                     navController.navigate(Route.Home.path){
                         popUpTo(Route.Login.path){ inclusive = true }
