@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class HomeResponse(
     val error: Boolean,
-    val message: String,
+    val message: String?,
     val data: HomeData?
 )
 
