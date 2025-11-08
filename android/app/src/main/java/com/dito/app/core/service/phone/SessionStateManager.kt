@@ -12,6 +12,7 @@ import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
 import com.dito.app.core.service.mission.MissionTracker
 import java.text.SimpleDateFormat
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.Date
 import java.util.Locale
 
@@ -21,18 +22,34 @@ class SessionStateManager(
     private val missionTracker: MissionTracker
 ) {
 
+
+
     companion object {
         private const val TAG = "SessionState"
         private const val MIN_WATCH_TIME = 5000L
         private const val SESSION_UPDATE_THRESHOLD = 5000L
         private const val SAVE_DELAY = 500L
+        private const val METADATA_WAIT_DELAY = 1000L // 채널명 대기 시간 (1초)
+
+        private const val PKG_YOUTUBE = "com.google.android.youtube"
     }
 
     private var currentSession: ActiveSession? = null
     private var lastSessionTitle: String = ""
     private var lastSessionTime: Long = 0L
+    private var lastStoppedAt: Long = 0L
+    private var lastStoppedKey: String = ""
+    private val stopDebounceMs = 400L
     private val handler = Handler(Looper.getMainLooper())
     private var pendingSaveRunnable: Runnable? = null
+    private var pendingSessionSaveRunnable: Runnable? = null // 영상 전환 시 이전 세션 저장 대기
+    private var sessionToSave: ActiveSession? = null // 저장 대기 중인 이전 세션
+    private var aiCheckRunnable: Runnable? = null // 재생 중 AI 호출 타이머
+    private var explorationCheckRunnable: Runnable? = null // 탐색 중 AI 호출 타이머
+    private var explorationStartTime: Long = 0L // 탐색 시작 시간
+
+
+
 
     data class ActiveSession(
         var title: String,
@@ -51,36 +68,33 @@ class SessionStateManager(
     ) {
         val title = metadata.getString(MediaMetadata.METADATA_KEY_TITLE) ?: ""
         val rawChannel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: ""
-
-
         val channel = rawChannel.ifBlank { "알 수 없음" }
-
         val duration = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
         val currentTime = System.currentTimeMillis()
 
+        // PlaybackProbe 기록: 재생 시작
+        PlaybackProbe.recordPlayback()
+
+        // 재생 중 AI 호출 타이머 시작 (YouTube만)
+        if (appPackage == PKG_YOUTUBE) {
+            cancelExplorationCheck() // 탐색 타이머 취소
+            scheduleAICheckDuringPlayback()
+        }
 
         if (title.isBlank()) {
             Log.d(TAG, "빈 제목 무시")
             return
         }
-
-
-        if (title == "YouTube" || title == "youtube") {
+        if (title.equals("YouTube", true)) {
             Log.d(TAG, "YouTube 로딩 중 - 대기")
             return
         }
 
-
-        val isValidChannel = channel != "알 수 없음" &&
-                channel != "m.youtube.com" &&
-                channel != "www.youtube.com" &&
-                channel != "YouTube" &&
-                channel != "youtube"
+        val isValidChannel = channel !in setOf("알 수 없음", "m.youtube.com", "www.youtube.com", "YouTube", "youtube")
 
         Log.d(TAG, "재생 시작")
         Log.d(TAG, "   제목: $title")
         Log.d(TAG, "   채널: $channel (유효: $isValidChannel)")
-
 
         pendingSaveRunnable?.let { handler.removeCallbacks(it) }
         pendingSaveRunnable = null
@@ -97,7 +111,6 @@ class SessionStateManager(
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 saveSession(session)
 
-
                 currentSession = ActiveSession(
                     title = title,
                     channel = channel,
@@ -111,7 +124,7 @@ class SessionStateManager(
                 Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) channel else ""}")
 
             } else if (isLongTimeSinceLastEvent) {
-                // 같은 제목이지만 5초 이상 지남 → 재시작으로 간주
+                // ✅ 수정 ②: 같은 제목 재시작 분기에서 ifBlank 고착화 제거
                 val elapsedTime = System.currentTimeMillis() - session.startTime
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 Log.d(TAG, "같은 영상 재시작 감지 (${elapsedTime / 1000}초 경과)")
@@ -120,11 +133,16 @@ class SessionStateManager(
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 saveSession(session)
 
-                // 새 세션 생성 (기존 bestChannel 유지)
                 currentSession = ActiveSession(
                     title = title,
-                    channel = session.bestChannel.ifBlank { channel },
-                    bestChannel = session.bestChannel.ifBlank { (if (isValidChannel) channel else "") },
+                    // 표시용 현재 채널: 유효하면 최신값을 우선, 아니면 기존 값 유지
+                    channel = if (isValidChannel && channel.isNotBlank()) channel else session.channel,
+                    // 신뢰 채널: 기존 값이 있으면 유지, 없으면 이번에 채움
+                    bestChannel = when {
+                        session.bestChannel.isNotBlank() -> session.bestChannel
+                        isValidChannel && channel.isNotBlank() -> channel
+                        else -> ""
+                    },
                     appPackage = appPackage,
                     duration = duration,
                     startTime = System.currentTimeMillis()
@@ -134,10 +152,9 @@ class SessionStateManager(
                 Log.d(TAG, "  bestChannel: ${currentSession?.bestChannel}")
 
             } else {
-
                 Log.d(TAG, "기존 세션 유지 (${currentTime - lastSessionTime}ms 경과)")
 
-                // 채널 업데이트
+                // 채널 업데이트(유효하면 무조건 갱신)
                 if (isValidChannel) {
                     if (session.bestChannel.isBlank() || session.bestChannel != channel) {
                         Log.d(TAG, "handlePlaybackStarted에서 채널 업데이트: ${session.channel} → $channel")
@@ -158,13 +175,11 @@ class SessionStateManager(
                     Log.d(TAG, "재생 재개 (일시정지: ${pauseDuration / 1000}초)")
                 }
 
-
                 lastSessionTitle = title
                 lastSessionTime = currentTime
                 return
             }
         } ?: run {
-
             currentSession = ActiveSession(
                 title = title,
                 channel = channel,
@@ -183,19 +198,28 @@ class SessionStateManager(
     }
 
     fun handlePlaybackPaused() {
+        // 재생 중 AI 호출 타이머 취소
+        cancelAICheck()
+
+        // YouTube 탐색 타이머 시작
         currentSession?.let { session ->
+            if (session.appPackage == PKG_YOUTUBE) {
+                scheduleExplorationCheck()
+            }
             session.lastPauseTime = System.currentTimeMillis()
             Log.d(TAG, "일시정지")
         }
     }
 
     fun handlePlaybackResumed() {
+        // 탐색 타이머 취소 (재생 재개)
+        cancelExplorationCheck()
+
         currentSession?.let { session ->
             session.lastPauseTime?.let { pauseTime ->
                 val pauseDuration = System.currentTimeMillis() - pauseTime
                 session.totalPauseTime += pauseDuration
                 session.lastPauseTime = null
-
                 Log.d(TAG, "재개")
                 Log.d(TAG, "  일시정지 시간: ${pauseDuration / 1000}초")
             }
@@ -203,15 +227,34 @@ class SessionStateManager(
     }
 
     fun handlePlaybackStopped() {
+        // 재생 중 AI 호출 타이머 취소
+        cancelAICheck()
+
+        // YouTube 탐색 타이머 시작
         currentSession?.let { session ->
+            if (session.appPackage == PKG_YOUTUBE) {
+                scheduleExplorationCheck()
+            }
+
+            // ====== (1) 연속 STOPPED 디바운스 ======
+            val now = System.currentTimeMillis()
+            val stopKey = "${session.appPackage}|${session.title}"
+            if (stopKey == lastStoppedKey && (now - lastStoppedAt) < stopDebounceMs) {
+                Log.d(TAG, "STOPPED 디바운스 히트(${now - lastStoppedAt}ms) → 중복 STOPPED 무시")
+                return
+            }
+            lastStoppedKey = stopKey
+            lastStoppedAt = now
+            // ======================================
+
             Log.d(TAG, "재생 종료 → ${SAVE_DELAY}ms 후 저장 예약")
             Log.d(TAG, "   현재 channel: ${session.channel}")
             Log.d(TAG, "   현재 bestChannel: ${session.bestChannel}")
 
-            // 기존 저장 작업 취소
+            // 기존 예약이 있으면 취소
             pendingSaveRunnable?.let { handler.removeCallbacks(it) }
 
-            // 새로운 저장 작업 예약
+            // 예약 저장 runnable
             pendingSaveRunnable = Runnable {
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 Log.d(TAG, "${SAVE_DELAY}ms 대기 완료 → 세션 저장 시작")
@@ -220,6 +263,8 @@ class SessionStateManager(
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
                 saveSession(session)
+
+                // 세션 종료 정리
                 currentSession = null
                 lastSessionTitle = ""
                 lastSessionTime = 0L
@@ -234,13 +279,10 @@ class SessionStateManager(
         currentSession?.let { session ->
             val newTitle = metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
             val rawChannel = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
-
-
             val newChannel = if (rawChannel.isNullOrBlank()) "" else rawChannel
 
-
             if (!newTitle.isNullOrBlank() && newTitle != session.title) {
-                if (newTitle == "YouTube" || newTitle == "youtube") {
+                if (newTitle.equals("YouTube", true)) {
                     Log.d(TAG, "YouTube 로딩 중 제목 무시")
                     return@let
                 }
@@ -249,26 +291,37 @@ class SessionStateManager(
                 Log.d(TAG, "⚠️ updateMetadata에서 제목 변경 감지!")
                 Log.d(TAG, "   이전: ${session.title}")
                 Log.d(TAG, "   새로운: $newTitle")
-                Log.d(TAG, "   → 다른 영상으로 간주, 기존 세션 즉시 저장")
+                Log.d(TAG, "   새 채널: $newChannel")
+                Log.d(TAG, "   이전 세션 현재 상태:")
+                Log.d(TAG, "     - channel: ${session.channel}")
+                Log.d(TAG, "     - bestChannel: ${session.bestChannel}")
+                Log.d(TAG, "   → ${METADATA_WAIT_DELAY}ms 대기 후 이전 세션 저장")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
-
-                saveSession(session)
-
+                pendingSessionSaveRunnable?.let { handler.removeCallbacks(it) }
+                sessionToSave = session.copy()
+                pendingSessionSaveRunnable = Runnable {
+                    sessionToSave?.let { oldSession ->
+                        Log.d(TAG, "⏰ 대기 완료 → 이전 세션 저장")
+                        Log.d(TAG, "   제목: ${oldSession.title}")
+                        Log.d(TAG, "   최종 channel: ${oldSession.channel}")
+                        Log.d(TAG, "   최종 bestChannel: ${oldSession.bestChannel}")
+                        saveSession(oldSession)
+                    }
+                    sessionToSave = null
+                    pendingSessionSaveRunnable = null
+                }
+                handler.postDelayed(pendingSessionSaveRunnable!!, METADATA_WAIT_DELAY)
 
                 val isValidChannel = newChannel.isNotBlank() &&
-                        newChannel != "알 수 없음" &&
-                        newChannel != "m.youtube.com" &&
-                        newChannel != "www.youtube.com" &&
-                        newChannel != "YouTube" &&
-                        newChannel != "youtube"
+                        newChannel !in setOf("알 수 없음", "m.youtube.com", "www.youtube.com", "YouTube", "youtube")
 
                 currentSession = ActiveSession(
                     title = newTitle,
                     channel = if (isValidChannel) newChannel else "알 수 없음",
                     bestChannel = if (isValidChannel) newChannel else "",
                     appPackage = session.appPackage,
-                    duration = 0L,  // 새 영상이므로 duration은 나중에 업데이트됨
+                    duration = 0L,
                     startTime = System.currentTimeMillis()
                 )
 
@@ -279,26 +332,17 @@ class SessionStateManager(
                 Log.d(TAG, "  제목: $newTitle")
                 Log.d(TAG, "  초기 channel: ${if (isValidChannel) newChannel else "알 수 없음"}")
                 Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) newChannel else ""}")
-
                 return@let
             }
 
-
             if (newChannel.isNotBlank()) {
-                val isValidChannel = newChannel != "알 수 없음" &&
-                        newChannel != "m.youtube.com" &&
-                        newChannel != "www.youtube.com" &&
-                        newChannel != "YouTube" &&
-                        newChannel != "youtube"
-
+                val isValidChannel = newChannel !in setOf("알 수 없음", "m.youtube.com", "www.youtube.com", "YouTube", "youtube")
                 if (isValidChannel) {
                     if (session.bestChannel.isBlank()) {
-                        // 처음으로 유효한 채널명 받음
                         Log.d(TAG, "updateMetadata에서 채널 업데이트: ${session.channel} → $newChannel")
                         session.channel = newChannel
                         session.bestChannel = newChannel
                     } else if (session.bestChannel != newChannel) {
-                        // 채널명이 변경됨
                         Log.w(TAG, "⚠️ updateMetadata에서 채널 변경 감지: ${session.bestChannel} → $newChannel (같은 제목)")
                         session.channel = newChannel
                         session.bestChannel = newChannel
@@ -314,6 +358,193 @@ class SessionStateManager(
         }
     }
 
+    // 재생 중 AI 호출 타이머 시작
+    private fun scheduleAICheckDuringPlayback() {
+        // 기존 타이머 취소
+        cancelAICheck()
+
+        aiCheckRunnable = Runnable {
+            currentSession?.let { session ->
+                if (session.appPackage != PKG_YOUTUBE) return@let
+
+                val currentTime = System.currentTimeMillis()
+                val watchTime = currentTime - session.startTime - session.totalPauseTime
+
+                Log.d(TAG, "⏰ 재생 중 AI 호출 타이머 트리거 (${watchTime / 1000}초 시청)")
+
+                // 쿨다운 체크
+                if (!Checker.canCallYoutubePlay()) {
+                    Log.d(TAG, "YouTube 재생 쿨다운 중 → AI 호출 스킵")
+                    return@let
+                }
+
+                // ⚠️ 테스트용: YouTube 재생 시간을 4시간으로 강제 설정
+                val adjustedWatchTime = 4 * 60 * 60 * 1000L // 4시간 (밀리초)
+
+                val finalChannel = when {
+                    session.bestChannel.isNotBlank() -> session.bestChannel
+                    session.channel.isNotBlank() && session.channel != "알 수 없음" -> session.channel
+                    else -> "알 수 없는 채널"
+                }
+
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(TAG, "checkMediaSession 호출 직전 값 확인:")
+                Log.d(TAG, "  title: '${session.title}'")
+                Log.d(TAG, "  finalChannel: '$finalChannel'")
+                Log.d(TAG, "  session.bestChannel: '${session.bestChannel}'")
+                Log.d(TAG, "  session.channel: '${session.channel}'")
+                Log.d(TAG, "  watchTime: $adjustedWatchTime")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
+                val checkPoint = Checker.checkMediaSession(
+                    title = session.title,
+                    channel = finalChannel,
+                    watchTime = adjustedWatchTime,
+                    timestamp = currentTime,
+                    appPackage = session.appPackage
+                )
+
+                if (checkPoint != null) {
+                    // Realm에 저장 (TRACK_2, 배치 전송용)
+                    val eventIds = mutableListOf<String>()
+                    try {
+                        val realm = RealmConfig.getInstance()
+                        realm.writeBlocking {
+                            val event = copyToRealm(MediaSessionEvent().apply {
+                                this.trackType = "TRACK_2"
+                                this.eventType = "PLAYING_CHECK" // 재생 중 체크
+                                this.title = session.title
+                                this.channel = finalChannel
+                                this.appPackage = session.appPackage
+                                this.timestamp = currentTime
+                                this.videoDuration = session.duration
+                                this.watchTime = adjustedWatchTime
+                                this.pauseTime = session.totalPauseTime
+                                this.date = formatDate(currentTime)
+                                this.detectionMethod = "playback-timer"
+                                this.synced = false
+                            })
+                            eventIds.add(event._id.toHexString())
+                        }
+                        Log.d(TAG, "✅ 재생 중 체크 Realm 저장 완료")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ 재생 중 체크 Realm 저장 실패", e)
+                        return@let
+                    }
+
+                    Log.d(TAG, "🤖 재생 중 AI 호출 (무의식적 시청 감지)")
+                    aiAgent.requestIntervention(
+                        behaviorLog = BehaviorLog(
+                            appName = checkPoint.appName,
+                            durationSeconds = checkPoint.durationSeconds,
+                            usageTimestamp = checkPoint.usageTimestamp,
+                            videoTitle = session.title,
+                            channelName = finalChannel
+                        ),
+                        eventIds = eventIds
+                    )
+                    // 쿨다운 마킹
+                    Checker.markCooldown(Checker.CD_KEY_YT_PLAY)
+                } else {
+                    Log.d(TAG, "재생 중 체크: AI 호출 조건 불충족")
+                }
+            }
+        }
+
+        handler.postDelayed(aiCheckRunnable!!, Checker.TEST_CHECKER_MS)
+        Log.d(TAG, "🎬 재생 중 AI 타이머 시작 (${Checker.TEST_CHECKER_MS / 1000}초 후)")
+    }
+
+    // AI 호출 타이머 취소
+    private fun cancelAICheck() {
+        aiCheckRunnable?.let {
+            handler.removeCallbacks(it)
+            aiCheckRunnable = null
+            Log.d(TAG, "⏹ 재생 중 AI 타이머 취소")
+        }
+    }
+
+    // 탐색 중 AI 호출 타이머 시작
+    private fun scheduleExplorationCheck() {
+        // 기존 탐색 타이머 취소
+        cancelExplorationCheck()
+
+        // 탐색 시작 시간 기록
+        explorationStartTime = System.currentTimeMillis()
+
+        explorationCheckRunnable = Runnable {
+            // 20초 이상 비재생 상태인지 확인
+            val exploring = PlaybackProbe.isNotPlayingFor(Checker.TEST_CHECKER_MS)
+
+            if (!exploring) {
+                Log.d(TAG, "[YouTube 탐색] 재생 재개됨 → 탐색 호출 스킵")
+                return@Runnable
+            }
+
+            // 쿨다운 체크
+            if (!Checker.canCallYoutubeExplore()) {
+                Log.d(TAG, "[YouTube 탐색] 쿨다운 중 → 호출 스킵")
+                return@Runnable
+            }
+
+            Log.d(TAG, "🔍 YouTube 탐색 감지 (앱 내에서 비재생 20초 경과)")
+
+            // ⚠️ 테스트용: 4시간 사용시간으로 설정
+            val duration = 4 * 60 * 60 * 1000L // 4시간 (밀리초)
+
+            // Realm 저장
+            val eventIds = mutableListOf<String>()
+            try {
+                val realm = RealmConfig.getInstance()
+                realm.writeBlocking {
+                    val event = copyToRealm(com.dito.app.core.data.phone.AppUsageEvent().apply {
+                        this.trackType = "TRACK_2"
+                        this.eventType = "APP_EXPLORATION"
+                        this.packageName = PKG_YOUTUBE
+                        this.appName = "YouTube"
+                        this.timestamp = System.currentTimeMillis()
+                        this.duration = duration
+                        this.date = formatDate(System.currentTimeMillis())
+                        this.synced = false
+                        this.aiCalled = true
+                    })
+                    eventIds.add(event._id.toHexString())
+                }
+                Log.d(TAG, "✅ 탐색 Realm 저장 완료")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 탐색 Realm 저장 실패", e)
+                return@Runnable
+            }
+
+            // AI 호출
+            Log.d(TAG, "🤖 [YouTube 탐색] AI 실시간 호출")
+            aiAgent.requestIntervention(
+                behaviorLog = BehaviorLog(
+                    appName = "YouTube",
+                    durationSeconds = (duration / 1000).toInt(),
+                    usageTimestamp = Checker.formatTimestamp(System.currentTimeMillis())
+                ),
+                eventIds = eventIds
+            )
+
+            // 쿨다운 마킹
+            Checker.markCooldown(Checker.CD_KEY_YT_EXPLORE)
+        }
+
+        handler.postDelayed(explorationCheckRunnable!!, Checker.TEST_CHECKER_MS)
+        Log.d(TAG, "🔍 YouTube 탐색 타이머 시작 (${Checker.TEST_CHECKER_MS / 1000}초 후)")
+    }
+
+    // 탐색 타이머 취소
+    private fun cancelExplorationCheck() {
+        explorationCheckRunnable?.let {
+            handler.removeCallbacks(it)
+            explorationCheckRunnable = null
+            explorationStartTime = 0L
+            Log.d(TAG, "⏹ 탐색 타이머 취소")
+        }
+    }
+
     private fun saveSession(session: ActiveSession) {
         val endTime = System.currentTimeMillis()
         val totalTime = endTime - session.startTime
@@ -323,7 +554,6 @@ class SessionStateManager(
             Log.d(TAG, "시청 시간 너무 짧음 (${watchTime}ms) - 저장 안 함")
             return
         }
-
 
         val finalChannel = when {
             session.bestChannel.isNotBlank() -> {
@@ -356,20 +586,38 @@ class SessionStateManager(
         Log.d(TAG, "   날짜: ${formatDate(session.startTime)}")
         Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
-        val checkPoint = Checker.checkMediaSession(
-            title = session.title,
-            channel = finalChannel,
-            watchTime = watchTime,
-            timestamp = endTime,
-            appPackage = session.appPackage
-        )
+        // YouTube 재생 기반 쿨다운 체크
+        val canCallAI = if (session.appPackage == PKG_YOUTUBE) {
+            Checker.canCallYoutubePlay()
+        } else {
+            true // 다른 앱은 별도 로직
+        }
+
+        // ⚠️ 테스트용: YouTube 재생 시간을 4시간으로 강제 설정
+        val adjustedWatchTime = if (session.appPackage == PKG_YOUTUBE) {
+            4 * 60 * 60 * 1000L // 4시간 (밀리초)
+        } else {
+            watchTime
+        }
+
+        val checkPoint = if (canCallAI) {
+            Checker.checkMediaSession(
+                title = session.title,
+                channel = finalChannel,
+                watchTime = adjustedWatchTime,
+                timestamp = endTime,
+                appPackage = session.appPackage
+            )
+        } else {
+            Log.d(TAG, "YouTube 재생 쿨다운 중 (${Checker.CD_KEY_YT_PLAY}) → AI 호출 스킵")
+            null
+        }
 
         val trackType = "TRACK_2"
         val eventIds = mutableListOf<String>()
 
         try {
             val realm = RealmConfig.getInstance()
-
             realm.writeBlocking {
                 val event = copyToRealm(MediaSessionEvent().apply {
                     this.trackType = trackType
@@ -387,19 +635,17 @@ class SessionStateManager(
                 })
                 eventIds.add(event._id.toHexString())
             }
-
             Log.d(TAG, "✅ Realm 저장 완료 ($trackType)")
 
-            if(missionTracker.isTracking()){
+            if (missionTracker.isTracking()) {
                 missionTracker.onMediaEvent(
                     packageName = session.appPackage,
                     videoTitle = session.title,
                     channelName = finalChannel,
-                    watchTimeSeconds = (watchTime/1000).toInt(),
+                    watchTimeSeconds = (watchTime / 1000).toInt(),
                     eventType = "VIDEO_END"
                 )
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ Realm 저장 실패", e)
             return
@@ -420,6 +666,7 @@ class SessionStateManager(
         }
     }
 
+
     private fun formatTime(timestamp: Long): String {
         val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         return sdf.format(Date(timestamp))
@@ -430,14 +677,59 @@ class SessionStateManager(
         return sdf.format(Date(timestamp))
     }
 
-
     fun cleanup() {
+        cancelAICheck()
+        cancelExplorationCheck()
+
         pendingSaveRunnable?.let { handler.removeCallbacks(it) }
         pendingSaveRunnable = null
+
+        pendingSessionSaveRunnable?.let { handler.removeCallbacks(it) }
+        pendingSessionSaveRunnable = null
 
         currentSession?.let { session ->
             Log.d(TAG, "⚠️ 서비스 종료 → 남은 세션 즉시 저장")
             saveSession(session)
+        }
+    }
+
+    /** 앱 전환 시 현재 세션 강제 저장 */
+    fun forceFlushCurrentSession() {
+        cancelAICheck()
+        cancelExplorationCheck()
+
+        currentSession?.let { session ->
+            val currentTime = System.currentTimeMillis()
+            val totalTime = currentTime - session.startTime
+            val watchTime = totalTime - session.totalPauseTime
+
+            if (watchTime < MIN_WATCH_TIME) {
+                Log.d(TAG, "🔄 강제 플러시: 시청 시간 너무 짧음 (${watchTime / 1000}초) - 저장 생략")
+                currentSession = null
+                lastSessionTitle = ""
+                lastSessionTime = 0L
+                return
+            }
+
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🔄 강제 플러시 → 앱 전환으로 인한 즉시 저장")
+            Log.d(TAG, "   제목: ${session.title}")
+            Log.d(TAG, "   채널: ${session.channel}")
+            Log.d(TAG, "   bestChannel: ${session.bestChannel}")
+            Log.d(TAG, "   시청 시간: ${watchTime / 1000}초")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
+            pendingSaveRunnable?.let { handler.removeCallbacks(it) }
+            pendingSaveRunnable = null
+            pendingSessionSaveRunnable?.let { handler.removeCallbacks(it) }
+            pendingSessionSaveRunnable = null
+
+            saveSession(session)
+            currentSession = null
+            lastSessionTitle = ""
+            lastSessionTime = 0L
+        } ?: run {
+            Log.d(TAG, "🔄 강제 플러시: 저장할 세션 없음")
         }
     }
 }

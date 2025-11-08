@@ -29,9 +29,13 @@ import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
+<<<<<<< HEAD
 fun ChangeNickName(
     onDismiss: () -> Unit = {}
 ) {
+=======
+fun ChangeNickName(onDismiss: () -> Unit = {}) {
+>>>>>>> c956d14b2f5a74ceb9cc3534b790f50a4581cda3
     var nickName by remember { mutableStateOf("") }
 
     Box(
@@ -64,7 +68,11 @@ fun ChangeNickName(
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopStart)
+<<<<<<< HEAD
                             .clickable { onDismiss() }
+=======
+                            .clickable{onDismiss()}
+>>>>>>> c956d14b2f5a74ceb9cc3534b790f50a4581cda3
                     )
                 }
 
@@ -118,6 +126,7 @@ fun ChangeNickName(
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopEnd)
+                            .clickable{nickName = ""}
 
                     )
                 }
@@ -136,6 +145,10 @@ fun ChangeNickName(
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
                         .background(Color.White)
+                        .clickable{
+                            //닉네임 변경 api 호출 추가해야 함
+                            onDismiss()
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
