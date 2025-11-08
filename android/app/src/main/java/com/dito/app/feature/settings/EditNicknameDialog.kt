@@ -24,19 +24,16 @@ import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.ErrorContainer
+import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
-<<<<<<< HEAD
-fun ChangeNickName(
-    onDismiss: () -> Unit = {}
-) {
-=======
 fun ChangeNickName(onDismiss: () -> Unit = {}) {
->>>>>>> c956d14b2f5a74ceb9cc3534b790f50a4581cda3
     var nickName by remember { mutableStateOf("") }
+    val isValid = nickName.length in 1..7 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
 
     Box(
         modifier = Modifier
@@ -68,11 +65,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopStart)
-<<<<<<< HEAD
                             .clickable { onDismiss() }
-=======
-                            .clickable{onDismiss()}
->>>>>>> c956d14b2f5a74ceb9cc3534b790f50a4581cda3
                     )
                 }
 
@@ -94,7 +87,12 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                 ) {
                     BasicTextField(
                         value = nickName,
-                        onValueChange = { nickName = it },
+                        onValueChange = { input ->
+                            val regex = "^[a-zA-Z가-힣]{0,7}$".toRegex()
+                            if (regex.matches(input)) {
+                                nickName = input
+                            }
+                        },
                         textStyle = DitoTypography.bodyLarge.copy(color = OnSurface),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -114,6 +112,13 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                                 modifier = Modifier.fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
+                                if (nickName.isEmpty()) {
+                                    Text(
+                                        text = "영문/한글 1~7자",
+                                        color = Color.Gray,
+                                        style = DitoTypography.bodyMedium
+                                    )
+                                }
                                 innerTextField()
                             }
 
@@ -126,7 +131,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopEnd)
-                            .clickable{nickName = ""}
+                            .clickable { nickName = "" }
 
                     )
                 }
@@ -144,8 +149,8 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
-                        .clickable{
+                        .background(if (isValid) Color.White else ErrorContainer)
+                        .clickable(enabled = isValid) {
                             //닉네임 변경 api 호출 추가해야 함
                             onDismiss()
                         }
@@ -154,7 +159,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                 ) {
                     Text(
                         text = "변경하기",
-                        color = Color.Black,
+                        color = if (isValid) Color.Black else OnErrorContainer,
                         style = DitoCustomTextStyles.titleKMedium
                     )
                 }

@@ -25,6 +25,8 @@ import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.ErrorContainer
+import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
@@ -35,6 +37,7 @@ fun CreateGroupNameDialog(
     onNavigateNext: (String) -> Unit
 ) {
     var groupName by remember { mutableStateOf("") }
+    val isValid = groupName.length in 1..7 && groupName.matches("^[a-zA-Z가-힣]+$".toRegex())
 
     Box(
         modifier = Modifier
@@ -127,7 +130,7 @@ fun CreateGroupNameDialog(
                             ) {
                                 if (groupName.isEmpty()) {
                                     Text(
-                                        text = "닉네임 (1~7자의 영문 또는 한글)",
+                                        text = "영문/한글 1~7자",
                                         color = Color.Gray,
                                         style = DitoTypography.bodyMedium
                                     )
@@ -161,18 +164,16 @@ fun CreateGroupNameDialog(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
-                        .clickable {
-                            if (groupName.isNotEmpty()) {
-                                onNavigateNext(groupName)
-                            }
+                        .background(if (isValid) Color.White else ErrorContainer)
+                        .clickable(enabled = isValid) {
+                            onNavigateNext(groupName)
                         }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "계속하기",
-                        color = Color.Black,
+                        color = if (isValid) Color.Black else OnErrorContainer,
                         style = DitoCustomTextStyles.titleDMedium
                     )
                 }
