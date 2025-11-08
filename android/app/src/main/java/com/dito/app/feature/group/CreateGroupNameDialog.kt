@@ -31,7 +31,8 @@ import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
 fun CreateGroupNameDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onNavigateNext: (String) -> Unit
 ) {
     var groupName by remember { mutableStateOf("") }
 
@@ -161,6 +162,11 @@ fun CreateGroupNameDialog(
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
                         .background(Color.White)
+                        .clickable {
+                            if (groupName.isNotEmpty()) {
+                                onNavigateNext(groupName)
+                            }
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

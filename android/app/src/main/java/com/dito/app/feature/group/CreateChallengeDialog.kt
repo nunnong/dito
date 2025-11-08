@@ -33,7 +33,9 @@ import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
 fun CreateChallengeDialog(
-    onDismiss: () -> Unit
+    groupName: String,
+    onDismiss: () -> Unit,
+    onCreateChallenge: (String, String, String, Int, Int) -> Unit = { _, _, _, _, _ -> }
 ) {
     var period by remember { mutableStateOf("") }
     var goal by remember { mutableStateOf("") }
@@ -190,6 +192,13 @@ fun CreateChallengeDialog(
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
                         .background(Background)
+                        .clickable {
+                            val periodInt = period.toIntOrNull() ?: 0
+                            val betInt = bet.toIntOrNull() ?: 0
+                            if (goal.isNotEmpty() && penalty.isNotEmpty() && periodInt > 0 && betInt >= 10) {
+                                onCreateChallenge(groupName, goal, penalty, periodInt, betInt)
+                            }
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

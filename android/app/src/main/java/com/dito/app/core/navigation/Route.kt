@@ -49,8 +49,7 @@ sealed class Route(val path: String) {
     data object GroupWaitingRoomGuest : Route("waiting_room_guest")
     data object GroupOngoingChallenge : Route("ongoing_challenge")
     data object GroupChallengeReport : Route("challenge_report")
-
-    // Setting
+   // Setting
     data object SettingRoot : Route("setting")
     data object SettingEditNickname : Route("edit_nickname")
     data object SettingEditNotiCount : Route("edit_noti_count")
