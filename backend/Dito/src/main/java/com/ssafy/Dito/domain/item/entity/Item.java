@@ -48,8 +48,9 @@ public class Item extends IdentifiableEntity {
         String url = costume.imgUrl;
         int lastDotIndex = url.lastIndexOf('.');
         if (lastDotIndex == -1) {
-            return url;
+            this.imgUrl =  url;
+            return;
         }
-        return url.substring(0, lastDotIndex) + surfix + url.substring(lastDotIndex);
+        this.imgUrl = url.substring(0, lastDotIndex) + surfix + url.substring(lastDotIndex);
     }
 }
