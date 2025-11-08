@@ -80,7 +80,7 @@ public class UserQueryRepository {
                     )
                     .limit(1),
 
-                user.coinBalance.stringValue(),
+                user.coinBalance,
 
                 JPAExpressions.select(weeklyGoal.goal)
                     .from(weeklyGoal)
