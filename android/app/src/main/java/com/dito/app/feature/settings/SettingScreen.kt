@@ -9,21 +9,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import androidx.navigation.NavController
 import com.dito.app.R
+import com.dito.app.core.navigation.Route
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 
-@Preview(showBackground = true)
 @Composable
-fun SettingTab() {
-    var showNicknameDialog by remember { mutableStateOf(false) }
-    var showNotiCountDialog by remember { mutableStateOf(false) }
-    var showTermsDialog by remember { mutableStateOf(false) }
-    var showPrivacyDialog by remember { mutableStateOf(false) }
+fun SettingScreen(navController: NavController? = null) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showWithdrawDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -84,7 +82,7 @@ fun SettingTab() {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showNicknameDialog = true }
+                            .clickable { navController?.navigate(Route.SettingEditNickname.path) }
                             .padding(vertical = 10.dp,)
                     ){
                         Text("닉네임 변경",
@@ -105,7 +103,7 @@ fun SettingTab() {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showNotiCountDialog = true }
+                            .clickable { navController?.navigate(Route.SettingEditNotiCount.path) }
                             .padding(vertical = 11.dp,)
                     ){
                         Text("미션 빈도 변경",
@@ -126,7 +124,7 @@ fun SettingTab() {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showTermsDialog = true }
+                            .clickable { navController?.navigate(Route.SettingTermsOfService.path) }
                             .padding(vertical = 11.dp,)
                     ){
                         Text("서비스 이용약관",
@@ -147,7 +145,7 @@ fun SettingTab() {
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showPrivacyDialog = true }
+                            .clickable { navController?.navigate(Route.SettingPrivacyPolicy.path) }
                             .padding(vertical = 11.dp,)
                     ){
                         Text("개인정보 처리방침",
@@ -196,32 +194,38 @@ fun SettingTab() {
                             style = DitoTypography.bodyLarge,
                         )
                     }
+                    Column(
+                        modifier = Modifier
+                            .padding(bottom = 1.dp,)
+                            .fillMaxWidth()
+                            .clickable { showWithdrawDialog = true }
+                            .padding(vertical = 19.dp,horizontal = 10.dp,)
+                    ){
+                        Text("탈퇴하기",
+                            color =  OnSurface,
+                            style = DitoTypography.bodyLarge,
+                        )
+                    }
                 }
             }
         }
 
         // 다이얼로그들
-        if (showNicknameDialog) {
-            ChangeNickName(onDismiss = { showNicknameDialog = false })
-        }
-
-        if (showNotiCountDialog) {
-            EditNotiCount(onDismiss = { showNotiCountDialog = false })
-        }
-
-        if (showTermsDialog) {
-            TermsOfServiceDialog(onDismiss = { showTermsDialog = false })
-        }
-
-        if (showPrivacyDialog) {
-            PrivacyPoicyDialog(onDismiss = { showPrivacyDialog = false })
-        }
-
         if (showLogoutDialog) {
             LogoutDialog(
                 onDismiss = { showLogoutDialog = false },
                 onConfirm = {
                     showLogoutDialog = false
+                }
+            )
+        }
+
+        if (showWithdrawDialog) {
+            WithdrawDialog(
+                onDismiss = { showWithdrawDialog = false },
+                onConfirm = {
+                    showWithdrawDialog = false
+                    // TODO: 탈퇴 API 호출
                 }
             )
         }
