@@ -28,15 +28,17 @@ import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.ErrorContainer
 import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
 fun CreateGroupNameDialog(
+    initialGroupName: String = "",
     onDismiss: () -> Unit,
     onNavigateNext: (String) -> Unit
 ) {
-    var groupName by remember { mutableStateOf("") }
+    var groupName by remember { mutableStateOf(initialGroupName) }
     val isValid = groupName.length in 1..7 && groupName.matches("^[a-zA-Z가-힣]+$".toRegex())
 
     Box(
@@ -147,7 +149,7 @@ fun CreateGroupNameDialog(
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopEnd)
-
+                            .clickable { groupName = "" }
                     )
                 }
 
@@ -164,7 +166,7 @@ fun CreateGroupNameDialog(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(if (isValid) Color.White else ErrorContainer)
+                        .background(if (isValid) Primary else ErrorContainer)
                         .clickable(enabled = isValid) {
                             onNavigateNext(groupName)
                         }

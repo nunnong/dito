@@ -11,24 +11,50 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.dito.app.R
 import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
-fun EditNotiCount(onDismiss: () -> Unit = {}) {
+fun EditNotiCount(
+    onDismiss: () -> Unit = {},
+    viewModel: SettingViewModel = hiltViewModel()
+) {
+    // 저장된 빈도를 불러와서 초기값으로 설정
+    val savedFrequency = remember { viewModel.getFrequency() }
+    val initialOption = remember {
+        when (savedFrequency) {
+            "LOW" -> 0
+            "MEDIUM" -> 1
+            "HIGH" -> 2
+            else -> 1
+        }
+    }
 
-    var selectedOption by remember { mutableStateOf(1)}
+    var selectedOption by remember { mutableStateOf(initialOption) }
+    val uiState by viewModel.uiState.collectAsState()
+
+    fun getFrequencyString(option: Int): String {
+        return when (option) {
+            0 -> "LOW"
+            1 -> "MEDIUM"
+            2 -> "HIGH"
+            else -> "MEDIUM"
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -167,6 +193,37 @@ fun EditNotiCount(onDismiss: () -> Unit = {}) {
                             style = DitoCustomTextStyles.titleKMedium
                         )
                     }
+                }
+
+                Spacer(Modifier.height(Spacing.l))
+
+                // 확인 버튼
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .hardShadow(
+                            offsetX = 4.dp,
+                            offsetY = 4.dp,
+                            cornerRadius = 8.dp,
+                            color = Color.Black
+                        )
+                        .clip(DitoShapes.small)
+                        .border(1.dp, Color.Black, DitoShapes.small)
+                        .background(Primary)
+                        .clickable {
+                            val frequency = getFrequencyString(selectedOption)
+                            viewModel.updateFrequency(frequency) {
+                                onDismiss()
+                            }
+                        }
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "확인",
+                        color = Color.Black,
+                        style = DitoCustomTextStyles.titleKMedium
+                    )
                 }
 
                 Spacer(Modifier.height(Spacing.m))

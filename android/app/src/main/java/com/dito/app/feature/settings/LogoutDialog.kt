@@ -94,7 +94,7 @@ fun LogoutDialog(
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(Color.White)
-                            .clickable{onDismiss()}
+                            .clickable{onConfirm()}
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {

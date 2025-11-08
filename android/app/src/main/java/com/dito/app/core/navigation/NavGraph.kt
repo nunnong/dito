@@ -192,14 +192,18 @@ fun DitoNavGraph(
             val authViewModel: AuthViewModel = hiltViewModel()
             MainScreen(
                 onLogout = {
-                    authViewModel.signOut()
-                    navController.navigate(Route.Login.path) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
+                    authViewModel.logout(
+                        onSuccess = {
+                            navController.navigate(Route.Login.path) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
-                        launchSingleTop = true
-                    }
-                }
+                    )
+                },
+                outerNavController = navController
             )
         }
 

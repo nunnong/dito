@@ -174,30 +174,26 @@ fun GroupScreen(
             }
         }
 
-    var showChallengeDialog by remember { mutableStateOf(false) }
-    var currentGroupName by remember { mutableStateOf("") }
-
     if (uiState.showCreateDialog) {
         CreateGroupNameDialog(
+            initialGroupName = uiState.groupName,
             onDismiss = {
                 viewModel.onDialogClose()
             },
             onNavigateNext = { groupName ->
-                currentGroupName = groupName
-                viewModel.onDialogClose()
-                showChallengeDialog = true
+                viewModel.onNavigateToChallenge(groupName)
             }
         )
     }
 
-    if (showChallengeDialog) {
+    if (uiState.showChallengeDialog) {
         CreateChallengeDialog(
-            groupName = currentGroupName,
+            groupName = uiState.groupName,
             onDismiss = {
-                showChallengeDialog = false
+                viewModel.onBackToNameDialog()
             },
             onCreateChallenge = { name, goal, penalty, period, bet ->
-                showChallengeDialog = false
+                viewModel.onDialogClose()
             }
         )
     }
