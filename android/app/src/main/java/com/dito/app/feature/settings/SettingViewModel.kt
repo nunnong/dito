@@ -55,4 +55,38 @@ class SettingViewModel @Inject constructor(
             )
         }
     }
+
+    /**
+     * 미션 빈도 변경
+     */
+    fun updateFrequency(frequency: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, successMessage = null)
+
+            settingRepository.updateFrequency(frequency).fold(
+                onSuccess = { message ->
+                    Log.d(TAG, "미션 빈도 변경 성공: $message")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        successMessage = message
+                    )
+                    onSuccess()
+                },
+                onFailure = { error ->
+                    Log.e(TAG, "미션 빈도 변경 실패: ${error.message}")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "미션 빈도 변경에 실패했습니다"
+                    )
+                }
+            )
+        }
+    }
+
+    /**
+     * 저장된 미션 빈도 조회
+     */
+    fun getFrequency(): String {
+        return settingRepository.getFrequency()
+    }
 }
