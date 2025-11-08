@@ -21,7 +21,10 @@ import com.dito.app.core.ui.designsystem.OnSurfaceVariant
 import com.dito.app.core.ui.designsystem.Spacing
 
 @Composable
-fun SettingScreen(navController: NavController? = null) {
+fun SettingScreen(
+    navController: NavController? = null,
+    onLogout: () -> Unit = {}
+) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
 
@@ -111,6 +114,7 @@ fun SettingScreen(navController: NavController? = null) {
                 onDismiss = { showLogoutDialog = false },
                 onConfirm = {
                     showLogoutDialog = false
+                    onLogout()
                 }
             )
         }

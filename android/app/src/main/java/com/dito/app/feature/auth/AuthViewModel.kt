@@ -101,11 +101,11 @@ class AuthViewModel @Inject constructor(
     /**
      * 로그아웃
      */
-    fun signOut() {
+    fun logout(onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val result = authRepository.signOut()
+            val result = authRepository.logout()
 
             result.onSuccess {
                 Log.d(TAG, "로그아웃 성공")
@@ -116,12 +116,43 @@ class AuthViewModel @Inject constructor(
                         errorMessage = null
                     )
                 }
+                onSuccess()
             }.onFailure { exception ->
                 Log.e(TAG, "로그아웃 실패: ${exception.message}")
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         errorMessage = exception.message ?: "로그아웃에 실패했습니다"
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * 회원탈퇴
+     */
+    fun signOut() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            val result = authRepository.signOut()
+
+            result.onSuccess {
+                Log.d(TAG, "회원탈퇴 성공")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isLoggedIn = false,
+                        errorMessage = null
+                    )
+                }
+            }.onFailure { exception ->
+                Log.e(TAG, "회원탈퇴 실패: ${exception.message}")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = exception.message ?: "회원탈퇴에 실패했습니다"
                     )
                 }
             }

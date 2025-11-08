@@ -19,7 +19,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.dito.app.R
+import com.dito.app.core.navigation.Route
 import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
@@ -36,11 +38,23 @@ import com.dito.app.core.ui.designsystem.hardShadow
 @Composable
 fun ChangeNickName(
     onDismiss: () -> Unit = {},
+    navController: NavController? = null,
     viewModel: SettingViewModel = hiltViewModel()
 ) {
     var nickName by remember { mutableStateOf("") }
     val isValid = nickName.length in 1..7 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
     val uiState by viewModel.uiState.collectAsState()
+
+    // 로그인 필요 에러 발생 시 로그인 페이지로 이동
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage == "로그인이 필요합니다") {
+            onDismiss()
+            navController?.navigate(Route.Login.path) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
