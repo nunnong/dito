@@ -21,7 +21,7 @@ import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
-fun LogoutDialog(
+fun WithdrawDialog(
     onDismiss: () -> Unit = {},
     onConfirm: () -> Unit = {}
 ) {
@@ -45,7 +45,7 @@ fun LogoutDialog(
             ) {
                 // 제목 텍스트
                 Text(
-                    text = "로그아웃하시겠어요?",
+                    text = "회원 탈퇴하시겠어요?",
                     color = OnSurface,
                     style = DitoCustomTextStyles.titleKLarge
                 )
@@ -81,7 +81,7 @@ fun LogoutDialog(
                         )
                     }
 
-                    // 로그아웃 버튼
+                    // 탈퇴 버튼
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -94,12 +94,12 @@ fun LogoutDialog(
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(Color.White)
-                            .clickable{onDismiss()}
+                            .clickable{onConfirm()}
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "로그아웃",
+                            text = "탈퇴",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKMedium
                         )

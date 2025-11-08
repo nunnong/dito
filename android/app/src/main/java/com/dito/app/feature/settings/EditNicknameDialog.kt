@@ -28,9 +28,14 @@ import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
+<<<<<<< HEAD
+fun ChangeNickName(
+    onDismiss: () -> Unit = {}
+) {
+=======
 fun ChangeNickName(onDismiss: () -> Unit = {}) {
+>>>>>>> c956d14b2f5a74ceb9cc3534b790f50a4581cda3
     var nickName by remember { mutableStateOf("") }
 
     Box(
@@ -63,7 +68,11 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopStart)
+<<<<<<< HEAD
+                            .clickable { onDismiss() }
+=======
                             .clickable{onDismiss()}
+>>>>>>> c956d14b2f5a74ceb9cc3534b790f50a4581cda3
                     )
                 }
 

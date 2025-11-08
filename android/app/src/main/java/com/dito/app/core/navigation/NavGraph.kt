@@ -2,14 +2,12 @@ package com.dito.app.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.dito.app.MainActivity
 import com.dito.app.MainScreen
 import com.dito.app.feature.auth.AuthViewModel
 import com.dito.app.feature.auth.LoginScreen
@@ -17,8 +15,6 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
-import com.dito.app.feature.closet.ClosetScreen
-import com.dito.app.feature.shop.ShopScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
@@ -212,14 +208,8 @@ fun DitoNavGraph(
             )
         }
 
-        
-        // 테스트 화면 (권한 설정, Realm 확인 등)
-        composable(Route.Test.path) {
-            val activity = LocalContext.current as MainActivity
-            MainScreen(
-                activity = activity,
-                onNavigateToHealth = {}
-            )
-        }
+
+
+
     }
 }
