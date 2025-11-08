@@ -6,7 +6,7 @@ public record MainRes(
     String nickname,
     String costumeUrl,
     String backgroundUrl,
-    String coinBalance,
+    int coinBalance,
     String weeklyGoal,
     int selfCareStatus,
     int focusStatus,
