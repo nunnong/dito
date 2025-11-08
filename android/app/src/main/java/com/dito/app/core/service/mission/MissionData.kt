@@ -5,5 +5,6 @@ data class MissionData(
     val missionType: String,
     val instruction: String,
     val durationSeconds: Int,
-    val targetApps: List<String>
+    val targetApps: List<String>,
+    val coinReward: Int = 10
 )

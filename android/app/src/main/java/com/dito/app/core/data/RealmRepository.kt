@@ -134,15 +134,39 @@ object RealmRepository {
         realm.writeBlocking {
             copyToRealm(log)
         }
+        Log.d(TAG, "✅ 미션 로그 저장 완료: missionId=${log.missionId}, seq=${log.sequence}, type=${log.logType}, app=${log.appName}")
     }
 
     fun getMissionLogs(missionId: String): List<MissionTrackingLog>{
-        return realm.query<MissionTrackingLog>(
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "getMissionLogs 호출: missionId='$missionId'")
+
+        // 전체 미션 로그 수 확인
+        val allLogs = realm.query<MissionTrackingLog>().find()
+        Log.d(TAG, "  전체 MissionTrackingLog 수: ${allLogs.size}")
+
+        // 해당 missionId를 가진 모든 로그 (synced 무관)
+        val allMissionLogs = realm.query<MissionTrackingLog>(
+            "missionId == $0",
+            missionId
+        ).find()
+        Log.d(TAG, "  missionId='$missionId'인 전체 로그: ${allMissionLogs.size}개")
+
+        allMissionLogs.forEachIndexed { index, log ->
+            Log.d(TAG, "    [$index] seq=${log.sequence}, type=${log.logType}, synced=${log.synced}, app=${log.appName}")
+        }
+
+        val unsyncedLogs = realm.query<MissionTrackingLog>(
             "missionId == $0 AND synced == false",
             missionId
         )
             .sort("sequence", Sort.ASCENDING)
             .find()
+
+        Log.d(TAG, "  synced=false인 로그: ${unsyncedLogs.size}개")
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+
+        return unsyncedLogs
     }
 
     fun markMissionLogsSynced(missionId: String) {

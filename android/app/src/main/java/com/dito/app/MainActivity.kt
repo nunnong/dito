@@ -26,11 +26,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import com.dito.app.core.navigation.DitoNavGraph
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navDeepLink
 import com.dito.app.core.data.RealmRepository
 import com.dito.app.core.service.phone.UsageStatsHelper
 import dagger.hilt.android.AndroidEntryPoint
@@ -40,14 +37,6 @@ import androidx.work.ExistingWorkPolicy
 import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.navigation.Route
 import com.dito.app.core.repository.AuthRepository
-import com.dito.app.feature.auth.LoginScreen
-import com.dito.app.feature.intervention.InterventionScreen
-import com.dito.app.feature.health.HealthScreen
-import com.dito.app.core.wearable.WearableMessageService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -55,9 +44,6 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
-
-    @Inject
-    lateinit var wearableMessageService: WearableMessageService
 
     companion object {
         private const val TAG = "MainActivity"
@@ -288,24 +274,6 @@ fun MainScreen(
             description = "걸음 수, 심박수, 수면, 이동거리 데이터를 확인합니다",
             buttonText = "헬스 정보 보기",
             onClick = onNavigateToHealth
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        PermissionCard(
-            title = "🌬️ 호흡 운동",
-            description = "워치에서 1분 호흡 운동을 시작합니다",
-            buttonText = "워치에서 호흡하기",
-            onClick = {
-                CoroutineScope(Dispatchers.IO).launch {
-                    val result = activity.wearableMessageService.startBreathingOnWatch()
-                    result.onSuccess {
-                        Log.d("MainActivity", "✅ 워치에 호흡 운동 시작 메시지 전송 성공")
-                    }.onFailure { error ->
-                        Log.e("MainActivity", "❌ 워치에 호흡 운동 시작 메시지 전송 실패: ${error.message}")
-                    }
-                }
-            }
         )
     }
 }

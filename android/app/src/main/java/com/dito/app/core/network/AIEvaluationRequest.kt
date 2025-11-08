@@ -93,3 +93,12 @@ data class AIEvaluationResponse(
     @SerialName("status")
     val status: String
 )
+
+@Serializable
+data class AIEvaluationErrorResponse(
+    @SerialName("error")
+    val error: Boolean,
+
+    @SerialName("message")
+    val message: String
+)
