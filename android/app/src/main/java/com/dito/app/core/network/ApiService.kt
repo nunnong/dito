@@ -9,6 +9,7 @@ import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
 import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
+import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
@@ -87,7 +88,7 @@ interface ApiService {
     suspend fun getGroupParticipants(
         @Path("group_id") groupId: Long,
         @Header("Authorization") token: String
-    ): Response<List<String>>
+    ): Response<GetParticipantsResponse>
 
 
     // Setting
