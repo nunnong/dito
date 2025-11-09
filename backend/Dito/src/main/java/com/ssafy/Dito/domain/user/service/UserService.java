@@ -55,8 +55,18 @@ public class UserService {
     @Transactional(readOnly = true)
     public MainRes getMainPage() {
         long userId = JwtAuthentication.getUserId();
+        MainRes res = userQueryRepository.getMainPage(userId);
 
-        return userQueryRepository.getMainPage(userId);
+        return new MainRes(
+                res.nickname(),
+                appendSuffix(res.costumeUrl(), "_4"),
+                res.backgroundUrl(),
+                res.coinBalance(),
+                res.weeklyGoal(),
+                res.selfCareStatus(),
+                res.focusStatus(),
+                res.sleepStatus()
+        );
     }
 
     public UserInfoRes getUserInfoForAi(String personalId) {
@@ -65,5 +75,12 @@ public class UserService {
             throw new PageNotFoundException("사용자를 찾을 수 없습니다.");
         }
         return res;
+    }
+
+    private String appendSuffix(String url, String suffix) {
+        if (url == null || url.isBlank()) return url;
+        if (url.contains(suffix + ".")) return url;
+        int idx = url.lastIndexOf(".");
+        return idx == -1 ? url : url.substring(0, idx) + suffix + url.substring(idx);
     }
 }
