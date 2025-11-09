@@ -108,7 +108,7 @@ interface ApiService {
     suspend fun joinGroup(
         @Body request: EnterGroupRequest,
         @Header("Authorization") token: String
-    ): Response<EnterGroupResponse>
+    ): Response<ApiResponse<EnterGroupResponse>>
 
     // 그룹 챌린지 랭킹 조회
     @GET("/challenges/groups/{group_id}/ranking")
@@ -141,14 +141,14 @@ interface ApiService {
     suspend fun updateNickname(
         @Body request: UpdateNicknameRequest,
         @Header("Authorization") token: String
-    ): Response<UpdateNicknameResponse>
+    ): Response<ApiResponse<UpdateNicknameResponse>>
 
     // 미션 빈도 변경
     @PATCH("/user/frequency")
     suspend fun updateFrequency(
         @Body request: UpdateFrequencyRequest,
         @Header("Authorization") token: String
-    ): Response<UpdateFrequencyResponse>
+    ): Response<ApiResponse<UpdateFrequencyResponse>>
 
 
     // 스크린타임 갱신
@@ -156,7 +156,7 @@ interface ApiService {
     suspend fun updateScreenTime(
         @Body request: UpdateScreenTimeRequest,
         @Header("Authorization") token: String
-    ): Response<UpdateScreenTimeResponse>
+    ): Response<ApiResponse<UpdateScreenTimeResponse>>
 
 
 

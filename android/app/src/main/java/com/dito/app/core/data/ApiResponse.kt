@@ -11,7 +11,7 @@ data class ApiResponse<T>(
     @SerialName("message")
     val message: String? = null,
     @SerialName("data")
-    val data: T,
+    val data: T? = null,
     @SerialName("error")
     val error: Boolean = false
 )

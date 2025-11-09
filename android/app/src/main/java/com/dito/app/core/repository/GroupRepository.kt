@@ -60,6 +60,9 @@ class GroupRepository @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val apiResponse = response.body()!!
                 val groupData = apiResponse.data
+                    ?: return@withContext Result.failure(
+                        Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                    )
                 Log.d(TAG, "챌린지 생성 성공: id=${groupData.id}, inviteCode=${groupData.inviteCode}")
                 Log.d(TAG, "파싱된 응답 본문: $groupData")
                 Result.success(groupData)
@@ -100,6 +103,9 @@ class GroupRepository @Inject constructor(
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
                     val groupData = apiResponse.data
+                        ?: return@withContext Result.failure(
+                            Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                        )
                     Log.d(
                         TAG,
                         "그룹 정보 조회 성공: groupId=${groupData.groupId}, groupName=${groupData.groupName}"
@@ -141,7 +147,11 @@ class GroupRepository @Inject constructor(
                 Log.d(TAG, "응답 성공 여부: ${response.isSuccessful}")
 
                 if (response.isSuccessful && response.body() != null) {
-                    val enterData = response.body()!!
+                    val apiResponse = response.body()!!
+                    val enterData = apiResponse.data
+                        ?: return@withContext Result.failure(
+                            Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                        )
                     Log.d(TAG, "그룹 입장 성공: groupId=${enterData.groupId}, status=${enterData.status}")
                     Log.d(TAG, "파싱된 응답 본문: $enterData")
                     Result.success(enterData)
@@ -206,6 +216,9 @@ class GroupRepository @Inject constructor(
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
                     val ranking = apiResponse.data
+                        ?: return@withContext Result.failure(
+                            Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                        )
                     Log.d(
                         TAG,
                         "랭킹 조회 성공: groupName=${ranking.groupInfo.groupName}, rankings=${ranking.rankings.size}개"
@@ -240,6 +253,9 @@ class GroupRepository @Inject constructor(
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
                     val participants = apiResponse.data
+                        ?: return@withContext Result.failure(
+                            Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                        )
                     Log.d(
                         TAG,
                         "참여자 목록 조회 성공: count=${participants.count}, participants=${participants.participants.size}개"
@@ -283,7 +299,11 @@ class GroupRepository @Inject constructor(
             Log.d(TAG, "응답 성공 여부: ${response.isSuccessful}")
 
             if (response.isSuccessful && response.body() != null) {
-                val screenTimeData = response.body()!!
+                val apiResponse = response.body()!!
+                val screenTimeData = apiResponse.data
+                    ?: return@withContext Result.failure(
+                        Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                    )
                 Log.d(TAG, "스크린 타임 갱신 성공: status=${screenTimeData.status}")
                 Result.success(screenTimeData)
             } else {

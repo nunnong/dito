@@ -258,50 +258,6 @@ fun ChallengeInfoField(
     }
 }
 
-@Composable
-private fun BettingAmountField(
-    value: Int,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "배팅 금액(최소 10레몬)",
-            color = Color.Black,
-            style = DitoTypography.labelLarge,
-            modifier = Modifier.padding(bottom = Spacing.xs)
-        )
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .clip(DitoShapes.small)
-                .border(1.dp, Color.Black, DitoShapes.small)
-                .background(Color.White)
-                .clickable(onClick = onClick)
-                .padding(horizontal = Spacing.s, vertical = Spacing.s)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.coin),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
-
-            Spacer(Modifier.width(Spacing.m))
-
-            Text(
-                text = value.toString(),
-                color = Color.Black,
-                style = DitoTypography.bodySmall,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
 /** 숫자 선택 다이얼로그 */
 @Composable
 private fun NumberPickerDialog(
