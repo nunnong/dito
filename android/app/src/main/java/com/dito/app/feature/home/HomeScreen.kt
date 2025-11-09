@@ -40,6 +40,10 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        viewModel.loadHomeData()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
