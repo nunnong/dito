@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.groups.service;
 
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
+import com.ssafy.Dito.domain.groups.dto.request.GroupParticipantReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
@@ -20,6 +21,7 @@ import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.groups.util.InviteCodeGenerator;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
+import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,25 +86,27 @@ public class GroupChallengeService {
             throw new AlreadyJoinedGroupException();
         }
 
-        // 4. 코인 충분한지 확인 및 차감
-        if (user.getCoinBalance() < request.betCoins()) {
-            throw new InsufficientCoinsException(request.betCoins(), user.getCoinBalance());
-        }
-        user.deductCoins(request.betCoins());
+        JoinGroupRes res = groupChallenge.of();
 
-        // 5. 그룹의 총 베팅 코인 증가
-        groupChallenge.addBetCoins(request.betCoins());
-
-        // 6. 참여자 추가 (role: guest)
-        GroupParticipant participant = GroupParticipant.ofGuest(
-            user,
-            groupChallenge,
-            request.betCoins()
-        );
-        groupParticipantRepository.save(participant);
+//        // 4. 코인 충분한지 확인 및 차감
+//        if (user.getCoinBalance() < request.betCoins()) {
+//            throw new InsufficientCoinsException(request.betCoins(), user.getCoinBalance());
+//        }
+//        user.deductCoins(request.betCoins());
+//
+//        // 5. 그룹의 총 베팅 코인 증가
+//        groupChallenge.addBetCoins(request.betCoins());
+//
+//        // 6. 참여자 추가 (role: guest)
+//        GroupParticipant participant = GroupParticipant.ofGuest(
+//            user,
+//            groupChallenge,
+//            request.betCoins()
+//        );
+//        groupParticipantRepository.save(participant);
 
         // 7. 응답 생성
-        return JoinGroupRes.from(groupChallenge);
+        return res;
     }
 
     @Transactional
@@ -152,5 +156,28 @@ public class GroupChallengeService {
             }
         }
         throw new RuntimeException("초대 코드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
+
+    @Transactional
+    public void createGroupPariticipant(GroupParticipantReq req) {
+        long userId = JwtAuthentication.getUserId();
+        User user = userRepository.getById(userId);
+
+        GroupChallenge groupChallenge = groupChallengeRepository.getById(req.groupId());
+
+        if (user.getCoinBalance() < req.betCoin()) {
+            throw new InsufficientCoinsException(req.betCoin(), user.getCoinBalance());
+        }
+        user.deductCoins(req.betCoin());
+
+        groupChallenge.addBetCoins(req.betCoin());
+
+        GroupParticipant participant = GroupParticipant.ofGuest(
+                user,
+                groupChallenge,
+                req.betCoin()
+        );
+
+        groupParticipantRepository.save(participant);
     }
 }

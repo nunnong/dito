@@ -81,7 +81,7 @@ public class User extends IdentifiableEntity {
         this.birth = birth;
         this.gender = gender;
         this.job = job == null ? Job.ETC : job;
-        this.coinBalance = 0;
+        this.coinBalance = 100;
         this.frequency = frequency == null ? Frequency.NORMAL : frequency;
         this.lastLoginAt = null;
         this.createdAt = createdAt == null ? Instant.now() : createdAt;

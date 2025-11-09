@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.groups.controller;
 
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
+import com.ssafy.Dito.domain.groups.dto.request.GroupParticipantReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
@@ -220,6 +221,15 @@ public class GroupChallengeController {
             )
         )
     })
+
+    @PutMapping("/create/participant")
+    public ResponseEntity<CommonResult> createGroupPariticipant(
+            @RequestBody GroupParticipantReq req
+    ) {
+        groupChallengeService.createGroupPariticipant(req);
+        return ApiResponse.of(HttpStatus.OK, "그룹 참가자 생성 성공");
+    }
+
     @PutMapping("/{group_id}/start")
     public ResponseEntity<SingleResult<StartChallengeRes>> startChallenge(
         @io.swagger.v3.oas.annotations.Parameter(
