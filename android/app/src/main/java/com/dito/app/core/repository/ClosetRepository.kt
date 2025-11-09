@@ -1,6 +1,8 @@
 package com.dito.app.core.repository
 
 import com.dito.app.core.data.closet.ClosetResponse
+import com.dito.app.core.data.shop.PurchaseRequest
+import com.dito.app.core.data.shop.PurchaseResponse
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +36,34 @@ class ClosetRepository @Inject constructor(
                 }
             } else {
                 val errorMessage = "옷장 아이템 로드 실패 (code: ${response.code()})"
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun equipItem(itemId: Long): Result<PurchaseResponse> = withContext(Dispatchers.IO) {
+        try {
+            val accessToken = authTokenManager.getAccessToken()
+            if (accessToken == null) {
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
+
+            val request = PurchaseRequest(itemId = itemId)
+            val response = apiService.equipItem(
+                token = "Bearer $accessToken",
+                request = request
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                if (response.body()!!.error == false) {
+                    Result.success(response.body()!!)
+                } else {
+                    Result.failure(Exception(response.body()!!.message ?: "아이템 적용 실패"))
+                }
+            } else {
+                val errorMessage = "아이템 적용 실패 (code: ${response.code()})"
                 Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {

@@ -12,7 +12,7 @@ data class ClosetResponse(
 )
 
 @Serializable
-data class class ClosetItem(
+data class ClosetItem(
     val itemId: Long,
     val name: String,
     val imageUrl: String,

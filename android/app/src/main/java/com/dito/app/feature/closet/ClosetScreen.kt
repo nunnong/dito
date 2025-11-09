@@ -7,7 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -21,25 +22,21 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.dito.app.R
+import com.dito.app.core.data.closet.ClosetItem
 import com.dito.app.core.ui.designsystem.*
 
 /** 옷장 화면 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClosetScreen(
+    viewModel: ClosetViewModel = hiltViewModel(),
     onBackClick: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf(ClosetTab.COSTUME) }
-    var appliedCostumeId by remember { mutableStateOf<String?>("costume_1") }
-    var appliedBackgroundId by remember { mutableStateOf<String?>("background_1") }
-
-    val ownedCostumes = remember {
-        mutableStateOf(setOf("costume_1", "costume_2", "costume_3", "costume_4", "costume_5"))
-    }
-    val ownedBackgrounds = remember {
-        mutableStateOf(setOf("background_1", "background_2", "background_3", "background_4", "background_5"))
-    }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -49,29 +46,37 @@ fun ClosetScreen(
         ClosetHeader(onBackClick = onBackClick)
 
         CharacterPreview(
-            selectedTab = selectedTab,
-            appliedCostumeId = appliedCostumeId,
-            appliedBackgroundId = appliedBackgroundId
+            selectedTab = uiState.selectedTab,
+            equippedCostumeImageUrl = uiState.items.firstOrNull { it.isEquipped && uiState.selectedTab == ClosetTab.COSTUME }?.imageUrl,
+            equippedBackgroundImageUrl = uiState.items.firstOrNull { it.isEquipped && uiState.selectedTab == ClosetTab.BACKGROUND }?.imageUrl
         )
 
         TabSection(
-            selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it }
+            selectedTab = uiState.selectedTab,
+            onTabSelected = viewModel::onTabSelected
         )
 
-        ItemGrid(
-            selectedTab = selectedTab,
-            ownedCostumes = ownedCostumes.value,
-            ownedBackgrounds = ownedBackgrounds.value,
-            appliedCostumeId = appliedCostumeId,
-            appliedBackgroundId = appliedBackgroundId,
-            onApply = { itemId ->
-                when (selectedTab) {
-                    ClosetTab.COSTUME -> appliedCostumeId = itemId
-                    ClosetTab.BACKGROUND -> appliedBackgroundId = itemId
-                }
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error ?: "오류가 발생했습니다.",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Red
+                )
+            } else {
+                ItemGrid(
+                    items = uiState.items,
+                    canPaginate = uiState.canPaginate,
+                    isLoadingMore = uiState.isLoadingMore,
+                    onLoadMore = viewModel::loadMoreItems,
+                    onApply = { itemId ->
+                        viewModel.equipItem(itemId)
+                    }
+                )
             }
-        )
+        }
     }
 }
 
@@ -108,8 +113,8 @@ private fun ClosetHeader(onBackClick: () -> Unit) {
 @Composable
 private fun CharacterPreview(
     selectedTab: ClosetTab,
-    appliedCostumeId: String?,
-    appliedBackgroundId: String?
+    equippedCostumeImageUrl: String?,
+    equippedBackgroundImageUrl: String?
 ) {
     Box(
         modifier = Modifier
@@ -118,12 +123,36 @@ private fun CharacterPreview(
             .background(Color(0xFFF5EBD2)),
         contentAlignment = Alignment.Center
     ) {
+        // Background Image
+        if (equippedBackgroundImageUrl != null) {
+            AsyncImage(
+                model = equippedBackgroundImageUrl,
+                contentDescription = "Equipped Background",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // Fallback background color or default image
+            Spacer(modifier = Modifier.fillMaxSize().background(Color(0xFFF5EBD2)))
+        }
+
+        // Character Base Image (e.g., Dito)
         Image(
             painter = painterResource(id = R.drawable.dito),
-            contentDescription = "Character Preview",
+            contentDescription = "Character Base",
             modifier = Modifier.size(146.dp),
             contentScale = ContentScale.Fit
         )
+
+        // Costume Image
+        if (equippedCostumeImageUrl != null) {
+            AsyncImage(
+                model = equippedCostumeImageUrl,
+                contentDescription = "Equipped Costume",
+                modifier = Modifier.size(146.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
     }
 }
 
@@ -174,59 +203,51 @@ private fun TabSection(
 
 @Composable
 private fun ItemGrid(
-    selectedTab: ClosetTab,
-    ownedCostumes: Set<String>,
-    ownedBackgrounds: Set<String>,
-    appliedCostumeId: String?,
-    appliedBackgroundId: String?,
-    onApply: (String) -> Unit
+    items: List<ClosetItem>,
+    canPaginate: Boolean,
+    isLoadingMore: Boolean,
+    onLoadMore: () -> Unit,
+    onApply: (Long) -> Unit // Changed to Long for itemId
 ) {
-    val items = remember(selectedTab) {
-        when (selectedTab) {
-            ClosetTab.COSTUME -> {
-                ownedCostumes.mapIndexed { index, id ->
-                    ClosetItem(
-                        id = id,
-                        name = "의상 ${index + 1}",
-                        imageRes = R.drawable.dito
-                    )
+    val gridState = rememberLazyGridState()
+
+    LazyVerticalGrid(
+        state = gridState,
+        columns = GridCells.Fixed(3),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        itemsIndexed(items) { index, item ->
+            ClosetItemCard(
+                item = item,
+                onApply = {
+                    android.util.Log.d("ClosetScreen", "ItemGrid: onApply called for itemId: ${item.itemId}")
+                    onApply(item.itemId)
                 }
-            }
-            ClosetTab.BACKGROUND -> {
-                ownedBackgrounds.mapIndexed { index, id ->
-                    ClosetItem(
-                        id = id,
-                        name = "배경 ${index + 1}",
-                        imageRes = R.drawable.dito
-                    )
+            )
+
+            // Check if we need to load more items
+            val isLastItem = index == items.lastIndex
+            if (isLastItem && canPaginate && !isLoadingMore) {
+                LaunchedEffect(Unit) {
+                    onLoadMore()
                 }
             }
         }
-    }
 
-    val appliedItemId = when (selectedTab) {
-        ClosetTab.COSTUME -> appliedCostumeId
-        ClosetTab.BACKGROUND -> appliedBackgroundId
-    }
-
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 16.dp,
-            bottom = 16.dp
-        ),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(items) { item ->
-            ClosetItemCard(
-                item = item,
-                isApplied = appliedItemId == item.id,
-                onApply = { onApply(item.id) }
-            )
+        if (isLoadingMore) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
@@ -234,7 +255,6 @@ private fun ItemGrid(
 @Composable
 private fun ClosetItemCard(
     item: ClosetItem,
-    isApplied: Boolean,
     onApply: () -> Unit
 ) {
     Column(
@@ -253,17 +273,23 @@ private fun ClosetItemCard(
                 .background(Color(0xFFF5EBD2)),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = item.imageRes),
+            AsyncImage(
+                model = item.imageUrl,
                 contentDescription = item.name,
                 modifier = Modifier.size(70.dp),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
+                onSuccess = {
+                    android.util.Log.d("ClosetItemCard", "Image loaded successfully: ${item.imageUrl}")
+                },
+                onError = { error ->
+                    android.util.Log.e("ClosetItemCard", "Image loading failed for ${item.imageUrl}: ${error.result.throwable?.message}")
+                }
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (isApplied) {
+        if (item.isEquipped) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -296,17 +322,6 @@ private fun ClosetItemCard(
         }
     }
 }
-
-enum class ClosetTab {
-    COSTUME,
-    BACKGROUND
-}
-
-data class ClosetItem(
-    val id: String,
-    val name: String,
-    val imageRes: Int
-)
 
 @Preview(showBackground = true)
 @Composable
