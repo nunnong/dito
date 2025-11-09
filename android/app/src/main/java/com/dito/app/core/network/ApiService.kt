@@ -7,6 +7,7 @@ import com.dito.app.core.data.auth.AuthResponse
 import com.dito.app.core.data.auth.CheckUsernameResponse
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
+import com.dito.app.core.data.closet.ClosetResponse
 import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
 import com.dito.app.core.data.group.JoinGroupRequest
@@ -76,6 +77,20 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: PurchaseRequest
     ): Response<PurchaseResponse>
+
+    // ========== Closet ==========
+    @PATCH("/user/item/equip")
+    suspend fun equipItem(
+        @Header("Authorization") token: String,
+        @Body request: PurchaseRequest
+    ): Response<PurchaseResponse>
+
+    @GET("/user/item/closet")
+    suspend fun getClosetItems(
+        @Header("Authorization") token: String,
+        @Query("type") type: String,
+        @Query("page_number") pageNumber: Int
+    ): Response<ClosetResponse>
 
 
     // ========== Events ==========
