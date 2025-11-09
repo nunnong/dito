@@ -10,7 +10,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class JoinGroupRequest(
     @SerialName("invite_code")
-    val inviteCode: String,
-    @SerialName("bet_coins")
-    val betCoins: Int
+    val inviteCode: String
 )

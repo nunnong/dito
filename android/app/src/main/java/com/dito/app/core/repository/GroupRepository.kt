@@ -72,6 +72,8 @@ class GroupRepository @Inject constructor(
         }
     }
 
+    // 초대코드로 입장
+
 
 
     // 그룹 챌린지 랭킹 조회
