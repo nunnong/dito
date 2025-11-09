@@ -187,11 +187,9 @@ fun HomeContent(
                     AsyncImage(
                         model = homeData.backgroundUrl,
                         contentDescription = "Background",
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        alpha = 0.3f,
-                        onError = { error ->
+                                                    modifier = Modifier
+                                                        .fillMaxSize(),
+                                                    contentScale = ContentScale.Crop,                        onError = { error ->
                             android.util.Log.e(
                                 "HomeScreen",
                                 "배경 이미지 로딩 실패: ${homeData.backgroundUrl}",
