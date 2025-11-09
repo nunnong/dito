@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,13 +41,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.dito.app.R
-import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoHardShadow
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.hardShadow
-
 
 
 @Composable
@@ -64,7 +62,6 @@ fun GroupLeaderScreen(
     isStarted: Boolean = false,
     onStartChallenge: () -> Unit = {},
     onLoadParticipants: () -> Unit = {},
-    onNavigateToTab: (BottomTab) -> Unit = {}
 ) {
     val context = LocalContext.current
     val participantCount = participants.size
@@ -121,18 +118,15 @@ fun GroupLeaderScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 상단 타이틀
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.star),
                     contentDescription = null,
                     modifier = Modifier.size(48.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -184,7 +178,8 @@ fun GroupLeaderScreen(
                         modifier = Modifier
                             .size(24.dp)
                             .clickable {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clipboard =
+                                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip = ClipData.newPlainText("입장코드", entryCode)
                                 clipboard.setPrimaryClip(clip)
                                 Toast.makeText(context, "입장코드가 복사되었습니다", Toast.LENGTH_SHORT).show()
@@ -212,11 +207,11 @@ fun GroupLeaderScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .height(48.dp)
                         .hardShadow(
                             offsetX = 4.dp,
                             offsetY = 4.dp,
-                            cornerRadius = 8.dp,
+                            cornerRadius = 16.dp,
                             color = Color.Black
                         )
                         .clip(DitoShapes.medium)
@@ -232,149 +227,133 @@ fun GroupLeaderScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // 참가자 목록
-            Row(
+            // 참가자 목록 (2x2 그리드)
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                repeat(4) { index ->
-                    // 각 캐릭터마다 다른 딜레이로 애니메이션
-                    val infiniteTransition = rememberInfiniteTransition(label = "bounce_$index")
-                    val offsetY by infiniteTransition.animateFloat(
-                        initialValue = 0f,
-                        targetValue = -15f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(
-                                durationMillis = 800 + (index * 100), // 각각 다른 속도
-                                easing = FastOutSlowInEasing
-                            ),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "offsetY_$index"
-                    )
-
-                    val participant = participants.getOrNull(index)
-                    val backgroundImgUrl = participant?.equipedItems?.find { it.type == "background" }?.imgUrl
-                    val costumeImgUrl = participant?.equipedItems?.find { it.type == "costume" }?.imgUrl
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.offset(y = offsetY.dp)
+                repeat(2) { rowIndex ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .border(3.dp, Color.Black, CircleShape)
-                                .background(Color.White),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (participant != null) {
-                                // 배경 이미지 (먼저 그려짐)
-                                if (backgroundImgUrl != null) {
-                                    AsyncImage(
-                                        model = backgroundImgUrl,
-                                        contentDescription = "${participant.nickname} background",
-                                        modifier = Modifier.size(56.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
+                        repeat(2) { colIndex ->
+                            val index = rowIndex * 2 + colIndex
 
-                                // 의상 이미지 (배경 위에 그려짐)
-                                if (costumeImgUrl != null) {
-                                    AsyncImage(
-                                        model = costumeImgUrl,
-                                        contentDescription = "${participant.nickname} costume",
-                                        modifier = Modifier.size(56.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
+                            val participant = participants.getOrNull(index)
+                            val backgroundImgUrl =
+                                participant?.equipedItems?.find { it.type == "background" }?.imgUrl
+                            val costumeImgUrl =
+                                participant?.equipedItems?.find { it.type == "costume" }?.imgUrl
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(DitoShapes.extraSmall)
+                                        .border(1.dp, Color.Black, DitoShapes.extraSmall)
+                                        .background(Color.White),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (participant != null) {
+                                        // 배경 이미지 (먼저 그려짐)
+                                        if (backgroundImgUrl != null) {
+                                            AsyncImage(
+                                                model = backgroundImgUrl,
+                                                contentDescription = "${participant.nickname} background",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+
+                                        // 의상 이미지 (배경 위에 그려짐)
+                                        if (costumeImgUrl != null) {
+                                            AsyncImage(
+                                                model = costumeImgUrl,
+                                                contentDescription = "${participant.nickname} costume",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
                                 }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = participant?.nickname ?: "",
+                                    style = DitoTypography.bodyLarge,
+                                    color = Color.Black
+                                )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = participant?.nickname ?: "",
-                            style = DitoTypography.labelLarge,
-                            color = Color.Black
-                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 챌린지 정보 박스
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .hardShadow(
-                        offsetX = 6.dp,
-                        offsetY = 6.dp,
-                        cornerRadius = 8.dp,
-                        color = Color.Black
-                    )
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(3.dp, Color.Black, RoundedCornerShape(8.dp))
-                    .background(Color.White)
+                    .hardShadow(DitoHardShadow.Modal.copy(cornerRadius = 4.dp))
+                    .border(2.dp, Color.Black, DitoShapes.extraSmall)
             ) {
-                Column {
-                    // 헤더
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Primary)
-                            .padding(vertical = 12.dp, horizontal = 16.dp),
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .border(2.dp, Color.Black, CircleShape)
-                                .background(Color.White),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "i",
-                                style = DitoTypography.titleMedium,
-                                color = Color.Black
-                            )
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.info),
+                            contentDescription = "정보 아이콘",
+                            modifier = Modifier.size(20.dp)
+                        )
                         Text(
-                            text = groupName,
+                            text = "그룹 정보 : ${groupName}",
                             style = DitoCustomTextStyles.titleKMedium,
-                            color = Color.Black
+                            color = Color.Black,
                         )
                     }
 
-                    // 정보 내용
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(Color.Black)
+                    )
+
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .background(Color.White)
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = "PERIOD : $formattedStartDate - $formattedEndDate",
-                            style = DitoTypography.bodyLarge,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = "GOAL : $goal",
-                            style = DitoTypography.bodyLarge,
+                            style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
                         Text(
                             text = "PENALTY : $penalty",
-                            style = DitoTypography.bodyLarge,
+                            style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
                         Text(
                             text = "현재 참여 인원 : ${participantCount}명",
-                            style = DitoTypography.bodyLarge,
+                            style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
                     }

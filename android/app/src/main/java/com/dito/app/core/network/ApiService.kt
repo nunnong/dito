@@ -120,7 +120,7 @@ interface ApiService {
     suspend fun getGroupParticipants(
         @Path("group_id") groupId: Long,
         @Header("Authorization") token: String
-    ): Response<GetParticipantsResponse>
+    ): Response<ApiResponse<GetParticipantsResponse>>
 
 
     // Setting

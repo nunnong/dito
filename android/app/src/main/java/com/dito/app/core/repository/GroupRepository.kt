@@ -143,6 +143,34 @@ class GroupRepository @Inject constructor(
 
 
 
+    // 그룹 챌린지 시작 (방장이 START 버튼 클릭)
+    suspend fun startChallenge(groupId: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = authTokenManager.getAccessToken()
+            if (token.isNullOrEmpty()) {
+                Log.e(TAG, "챌린지 시작 실패: 토큰 없음")
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
+
+            Log.d(TAG, "챌린지 시작 시도: groupId=$groupId")
+
+            val response = apiService.startChallenge(groupId, "Bearer $token")
+
+            if (response.isSuccessful) {
+                Log.d(TAG, "챌린지 시작 성공: groupId=$groupId")
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = "챌린지 시작 실패: $errorBody"
+                Log.e(TAG, "챌린지 시작 실패: code=${response.code()}, errorBody=$errorBody")
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "챌린지 시작 예외", e)
+            Result.failure(e)
+        }
+    }
+
     // 그룹 챌린지 랭킹 조회
 
 
@@ -160,8 +188,9 @@ class GroupRepository @Inject constructor(
             val response = apiService.getGroupParticipants(groupId, "Bearer $token")
 
             if (response.isSuccessful && response.body() != null) {
-                val participants = response.body()!!
-                Log.d(TAG, "참여자 목록 조회 성공: count=${participants.count}")
+                val apiResponse = response.body()!!
+                val participants = apiResponse.data
+                Log.d(TAG, "참여자 목록 조회 성공: count=${participants.count}, participants=${participants.participants.size}개")
                 Result.success(participants)
             } else {
                 val errorMessage = "참여자 목록 조회 실패"

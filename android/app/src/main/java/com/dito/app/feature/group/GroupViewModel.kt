@@ -23,6 +23,7 @@ data class GroupChallengeUiState(
     val showCreateDialog: Boolean = false,
     val showJoinDialog: Boolean = false,
     val showChallengeDialog: Boolean = false,
+    val showSplash: Boolean = false,
     val groupName: String = "",
     val goal: String = "",
     val penalty: String = "",
@@ -180,10 +181,43 @@ class GroupChallengeViewModel @Inject constructor(
     }
 
     fun onChallengeStarted() {
-        groupManager.startChallenge()
-        _uiState.value = _uiState.value.copy(
-            challengeStatus = ChallengeStatus.IN_PROGRESS
-        )
+        val groupId = groupManager.getGroupId()
+        if (groupId == 0L) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "그룹 정보를 찾을 수 없습니다"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            groupRepository.startChallenge(groupId).fold(
+                onSuccess = {
+                    // API 성공 -> 스플래시 표시
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        showSplash = true
+                    )
+
+                    // 2초 후 상태 변경
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(2000L)
+                        groupManager.startChallenge()
+                        _uiState.value = _uiState.value.copy(
+                            showSplash = false,
+                            challengeStatus = ChallengeStatus.IN_PROGRESS
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "챌린지 시작에 실패했습니다"
+                    )
+                }
+            )
+        }
     }
 
     fun onChallengeEnded() {

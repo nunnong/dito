@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -49,9 +50,21 @@ fun GroupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // 스플래시 화면 표시
+    if (uiState.showSplash) {
+        ChallengeSplashScreen()
+        return
+    }
+
     // 챌린지 상태에 따라 다른 화면 표시
     when (uiState.challengeStatus) {
-        ChallengeStatus.WAITING_TO_START, ChallengeStatus.IN_PROGRESS -> {
+        ChallengeStatus.IN_PROGRESS -> {
+            OngoingChallengeScreen(
+                onNavigateToTab = { /* TODO: 탭 이동 처리 */ }
+            )
+            return
+        }
+        ChallengeStatus.WAITING_TO_START -> {
             GroupLeaderScreen(
                 groupName = uiState.groupName,
                 entryCode = uiState.entryCode,
@@ -61,7 +74,7 @@ fun GroupScreen(
                 startDate = uiState.startDate,
                 endDate = uiState.endDate,
                 participants = uiState.participants,
-                isStarted = uiState.challengeStatus == ChallengeStatus.IN_PROGRESS,
+                isStarted = false,
                 onStartChallenge = { viewModel.onChallengeStarted() },
                 onLoadParticipants = { viewModel.loadParticipants() }
             )
@@ -227,5 +240,43 @@ fun GroupScreen(
         JoinWithCodeDialog(onDismiss = {
             viewModel.onDialogClose()
         })
+    }
+}
+
+@Composable
+fun ChallengeSplashScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // 챌린지 시작 이미지/아이콘
+//            Image(
+//                painter = painterResource(id = R.drawable.star),
+//                contentDescription = null,
+//                modifier = Modifier.size(120.dp)
+//            )
+
+            Spacer(modifier = Modifier.height(Spacing.xl))
+
+            Text(
+                text = "챌린지 시작!",
+                style = DitoCustomTextStyles.titleDLarge,
+                color = OnPrimary
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.m))
+
+            Text(
+                text = "함께 디지털 휴식에 도전해요",
+                style = DitoCustomTextStyles.titleKMedium,
+                color = OnPrimary
+            )
+        }
     }
 }
