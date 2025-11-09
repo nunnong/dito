@@ -151,7 +151,7 @@ class AuthRepository @Inject constructor(
                 try {
                     val response = apiService.logout("Bearer $token")
                     if (!response.isSuccessful) {
-                        Log.w(TAG, "서버 로그아웃 요청 실패: code=${response.code()}")
+                        Log.w(TAG, "서버 로그아웃 요청 실패: code=${response.message()}")
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "서버 로그아웃 요청 예외 (계속 진행)", e)
@@ -198,7 +198,7 @@ class AuthRepository @Inject constructor(
                 Log.d(TAG, "회원탈퇴 완료")
                 Result.success(Unit)
             } else {
-                val errorMessage = "회원탈퇴에 실패했습니다"
+                val errorMessage = response.message()
                 Log.e(TAG, "회원탈퇴 실패: code=${response.code()}")
                 Result.failure(Exception(errorMessage))
             }

@@ -3,7 +3,6 @@ package com.dito.app.core.repository
 import android.util.Log
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateNicknameRequest
-import com.dito.app.core.data.settings.UpdateNicknameResponse
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import com.dito.app.core.storage.SettingsManager
