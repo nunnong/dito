@@ -12,6 +12,8 @@ import com.dito.app.core.data.group.CreateGroupResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
 import com.dito.app.core.data.home.HomeResponse
+import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
+import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -50,6 +52,12 @@ interface ApiService {
     suspend fun getHomeData(
         @Header("Authorization") token: String
     ): Response<HomeResponse>
+
+    @POST("/weekly-goal")
+    suspend fun updateWeeklyGoal(
+        @Header("Authorization") token: String,
+        @Body request: UpdateWeeklyGoalRequest
+    ): Response<UpdateWeeklyGoalResponse>
 
     // ========== Events ==========
     @POST("/event/app-usage")

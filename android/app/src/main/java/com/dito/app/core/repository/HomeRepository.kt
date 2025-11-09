@@ -2,6 +2,7 @@ package com.dito.app.core.repository
 
 import android.util.Log
 import com.dito.app.core.data.home.HomeData
+import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import kotlinx.coroutines.Dispatchers
@@ -43,4 +44,30 @@ class HomeRepository @Inject constructor(
         }
     }
 
+    // 주간목표 post
+    suspend fun updateWeeklyGoal(goal: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val accessToken = authTokenManager.getAccessToken()
+            if (accessToken == null) {
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
+
+            val request = UpdateWeeklyGoalRequest(goal = goal)
+            val response = apiService.updateWeeklyGoal(
+                token = "Bearer $accessToken",
+                request = request
+            )
+
+            if (response.isSuccessful && response.body()?.error == false) {
+                Result.success(Unit)
+            } else {
+                val errorMessage = response.body()?.message ?: "주간 목표 업데이트 실패"
+                Result.failure(Exception(errorMessage))
+            }
+
+        } catch (e: Exception) {
+            Log.e("HomeRepository", "주간 목표 업데이트 중 오류 발생", e)
+            Result.failure(e)
+        }
+    }
 }

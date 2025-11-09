@@ -143,135 +143,140 @@ fun HomeContent(
                 )
             }
 
-            // Frame 162 - 내부 컨텐츠
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(top = 16.dp, bottom = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // 주간 목표 입력 필드 (Frame 177)
-                Row(
-                    modifier = Modifier
-                        .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 4.dp))
-                        .width(261.dp)
-                        .height(52.dp)
-                        .background(Color.White)
-                        .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = homeData.weeklyGoal ?: "주간 목표를 입력해주세요!",
-                        style = DitoCustomTextStyles.titleDSmall, // 14sp
-                        color = if (homeData.weeklyGoal.isNullOrEmpty()) Color(0xFFBDBDBD) else Color.Black,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Box(
-                        modifier = Modifier.size(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // 연필 아이콘 (Vector들로 구성)
-                        Image(
-                            painter = painterResource(id = R.drawable.pencil),
-                            contentDescription = "Edit",
-                            modifier = Modifier.size(20.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp)) // Increased space
-
-                // 캐릭터 이미지 + 배경
-                Box(
-                    modifier = Modifier.size(110.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // 배경 이미지
-                    if (!homeData.backgroundUrl.isNullOrEmpty()) {
-                        AsyncImage(
-                            model = homeData.backgroundUrl,
-                            contentDescription = "Background",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            alpha = 0.3f,
-                            onError = { error ->
-                                android.util.Log.e("HomeScreen", "배경 이미지 로딩 실패: ${homeData.backgroundUrl}", error.result.throwable)
-                            },
-                            onSuccess = {
-                                android.util.Log.d("HomeScreen", "배경 이미지 로딩 성공: ${homeData.backgroundUrl}")
+                        // Frame 162 - 내부 컨텐츠
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            if (!homeData.backgroundUrl.isNullOrEmpty()) {
+                                AsyncImage(
+                                    model = homeData.backgroundUrl,
+                                    contentDescription = "Background",
+                                    modifier = Modifier
+                                        .fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    alpha = 0.3f,
+                                    onError = { error ->
+                                        android.util.Log.e("HomeScreen", "배경 이미지 로딩 실패: ${homeData.backgroundUrl}", error.result.throwable)
+                                    },
+                                    onSuccess = {
+                                        android.util.Log.d("HomeScreen", "배경 이미지 로딩 성공: ${homeData.backgroundUrl}")
+                                    }
+                                )
                             }
-                        )
-                    }
-
-                    // 캐릭터 이미지
-                    if (homeData.costumeUrl.isNotEmpty()) {
-                        AsyncImage(
-                            model = homeData.costumeUrl,
-                            contentDescription = "Character",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit,
-                            onError = { error ->
-                                android.util.Log.e("HomeScreen", "이미지 로딩 실패: ${homeData.costumeUrl}",
-                                    error.result.throwable)
-                            },
-                            onSuccess = {
-                                android.util.Log.d("HomeScreen", "이미지 로딩 성공: ${homeData.costumeUrl}")
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentHeight()
+                                    .padding(top = 16.dp, bottom = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // 주간 목표 입력 필드 (Frame 177)
+                                Row(
+                                    modifier = Modifier
+                                        .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 4.dp))
+                                        .width(261.dp)
+                                        .height(52.dp)
+                                        .background(Color.White)
+                                        .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                                            Text(
+                                                                text = if (homeData.weeklyGoal.isNullOrEmpty()) "주간 목표를 입력해주세요!" else homeData.weeklyGoal,
+                                                                style = DitoCustomTextStyles.titleDSmall, // 14sp
+                                                                color = if (homeData.weeklyGoal.isNullOrEmpty()) Color(0xFFBDBDBD) else Color.Black,
+                                                                modifier = Modifier.weight(1f)
+                            )
+                            Box(
+                                modifier = Modifier.size(20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // 연필 아이콘 (Vector들로 구성)
+                                Image(
+                                    painter = painterResource(id = R.drawable.pencil),
+                                    contentDescription = "Edit",
+                                    modifier = Modifier.size(20.dp),
+                                    contentScale = ContentScale.Fit
+                                )
                             }
-                        )
-
-                    } else {
-                        // fallback 이미지
-                        Image(
-                            painter = painterResource(id = R.drawable.dito),
-                            contentDescription = "Character",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp)) // Original space
-
-                // 코인 표시
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 코인 박스
-                    Row(
-                        modifier = Modifier
-                            .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
-                            .widthIn(min = 97.dp) // 최소 너비 설정
-                            .height(36.dp)
-                            .background(Color.White, RoundedCornerShape(48.dp))
-                            .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = homeData.coinBalance.toString(),
-                            style = DitoCustomTextStyles.titleDLarge, // 22sp
-                            color = Color.Black
-                        )
-                        Image(
-                            painter = painterResource(id = R.drawable.lemon),
-                            contentDescription = "Coin",
-                            modifier = Modifier.size(28.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-            }
-
+                                }
+            
+                                Spacer(modifier = Modifier.height(16.dp)) // Increased space
+            
+                                // 캐릭터 이미지 + 배경
+                                Box(
+                                    modifier = Modifier.size(110.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    // 캐릭터 이미지
+                                    if (homeData.costumeUrl.isNotEmpty()) {
+                                        AsyncImage(
+                                            model = homeData.costumeUrl,
+                                            contentDescription = "Character",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Fit,
+                                            onError = { error ->
+                                                android.util.Log.e("HomeScreen", "이미지 로딩 실패: ${homeData.costumeUrl}",
+                                                    error.result.throwable)
+                                            },
+                                            onSuccess = {
+                                                android.util.Log.d("HomeScreen", "이미지 로딩 성공: ${homeData.costumeUrl}")
+                                            }
+                                        )
+            
+                                    } else {
+                                        // fallback 이미지
+                                        Image(
+                                            painter = painterResource(id = R.drawable.dito),
+                                            contentDescription = "Character",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                }
+            
+                                Spacer(modifier = Modifier.height(8.dp)) // Original space
+            
+                                // 코인 표시
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(40.dp)
+                                        .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // 코인 박스
+                                    Row(
+                                        modifier = Modifier
+                                            .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
+                                            .widthIn(min = 97.dp) // 최소 너비 설정
+                                            .height(36.dp)
+                                            .background(Color.White, RoundedCornerShape(48.dp))
+                                            .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
+                                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = homeData.coinBalance.toString(),
+                                            style = DitoCustomTextStyles.titleDLarge, // 22sp
+                                            color = Color.Black
+                                        )
+                                        Image(
+                                            painter = painterResource(id = R.drawable.lemon),
+                                            contentDescription = "Coin",
+                                            modifier = Modifier.size(28.dp),
+                                            contentScale = ContentScale.Fit
+                                        )
+                                    }
+                                }
+                            }
+                        }
             // 프로그레스 바 섹션
             Column(
                 modifier = Modifier
