@@ -2,18 +2,20 @@ package com.ssafy.Dito.domain.groups.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
+import java.time.LocalDate;
 
 public record JoinGroupRes(
     @JsonProperty("group_id")
     Long groupId,
 
     @JsonProperty("group_name")
-    String groupName
+    String groupName,
+
+    LocalDate startDate,
+    LocalDate endDate,
+    String goalDescription,
+    String penaltyDescription
+
 ) {
-    public static JoinGroupRes from(GroupChallenge groupChallenge) {
-        return new JoinGroupRes(
-            groupChallenge.getId(),
-            groupChallenge.getGroupName() //참여한 그룹 Name return 하면 프론트에서 쓸 수 있도록.
-        );
-    }
+
 }

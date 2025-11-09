@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.groups.entity;
 
+import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -85,6 +86,17 @@ public class GroupChallenge {
         String goalDescription, String penaltyDescription, int betCoins) {
         return new GroupChallenge(groupName, inviteCode, period, null, null, goalDescription,
             penaltyDescription, "pending", betCoins, Instant.now());
+    }
+
+    public JoinGroupRes of() {
+        return new JoinGroupRes(
+            this.id,
+            this.groupName,
+            this.startDate,
+            this.endDate,
+            this.goalDescription,
+            this.penaltyDescription
+        );
     }
 
     public void addBetCoins(int betCoins) {
