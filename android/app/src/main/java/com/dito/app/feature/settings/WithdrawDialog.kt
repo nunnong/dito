@@ -16,6 +16,7 @@ import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.ErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
@@ -37,7 +38,7 @@ fun WithdrawDialog(
             backgroundColor = Color.White,
             borderColor = Color.Black,
             shadowColor = Color.Black,
-            contentPadding = PaddingValues(vertical = Spacing.xl, horizontal = Spacing.l)
+            contentPadding = PaddingValues(vertical = Spacing.l, horizontal = Spacing.l)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -45,16 +46,16 @@ fun WithdrawDialog(
             ) {
                 // 제목 텍스트
                 Text(
-                    text = "회원 탈퇴하시겠어요?",
+                    text = "정말 탈퇴하시겠어요?",
                     color = OnSurface,
                     style = DitoCustomTextStyles.titleKLarge
                 )
 
-                Spacer(Modifier.height(Spacing.xl))
+                Spacer(Modifier.height(Spacing.l))
 
                 // 버튼 Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(0.8f),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.m)
                 ) {
                     // 취소 버튼
@@ -70,7 +71,7 @@ fun WithdrawDialog(
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(Color.White)
-                            .clickable{onDismiss()}
+                            .clickable { onDismiss() }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -93,8 +94,8 @@ fun WithdrawDialog(
                             )
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
-                            .background(Color.White)
-                            .clickable{onConfirm()}
+                            .background(ErrorContainer)
+                            .clickable { onConfirm() }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
