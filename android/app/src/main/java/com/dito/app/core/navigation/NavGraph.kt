@@ -19,7 +19,7 @@ import com.dito.app.feature.auth.SignUpProfileScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
-@Composable
+ @Composable
 fun DitoNavGraph(
     navController: NavHostController,
     startDestination: String = Route.Splash.path,

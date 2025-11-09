@@ -18,6 +18,9 @@ import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
 import com.dito.app.core.data.settings.UpdateNicknameResponse
+import com.dito.app.core.data.shop.PurchaseRequest
+import com.dito.app.core.data.shop.PurchaseResponse
+import com.dito.app.core.data.shop.ShopResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -58,6 +61,22 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: UpdateWeeklyGoalRequest
     ): Response<UpdateWeeklyGoalResponse>
+
+
+    // ========== Shop ==========
+    @GET("/item/shop")
+    suspend fun getShopItems(
+        @Header("Authorization") token: String,
+        @Query("type") type: String,
+        @Query("page_number") pageNumber: Int
+    ): Response<ShopResponse>
+
+    @POST("/item/shop/purchase")
+    suspend fun purchaseItem(
+        @Header("Authorization") token: String,
+        @Body request: PurchaseRequest
+    ): Response<PurchaseResponse>
+
 
     // ========== Events ==========
     @POST("/event/app-usage")
