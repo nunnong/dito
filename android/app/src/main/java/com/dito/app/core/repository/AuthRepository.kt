@@ -7,6 +7,7 @@ import com.dito.app.core.data.common.ApiErrorResponse
 import com.dito.app.core.fcm.FcmTokenManager
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
+import com.dito.app.core.storage.GroupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -21,6 +22,7 @@ class AuthRepository @Inject constructor(
     private val apiService: ApiService,
     private val authTokenManager: AuthTokenManager,
     private val fcmTokenManager: FcmTokenManager,
+    private val groupManager: GroupManager,
     private val json: Json
 ) {
     companion object {
@@ -164,6 +166,9 @@ class AuthRepository @Inject constructor(
             // 로컬 인증 정보 삭제
             authTokenManager.clearAll()
 
+            // 그룹 정보 삭제
+            groupManager.endChallenge()
+
             Log.d(TAG, "로그아웃 완료")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -194,6 +199,9 @@ class AuthRepository @Inject constructor(
 
                 // 로컬 인증 정보 삭제
                 authTokenManager.clearAll()
+
+                // 그룹 정보 삭제
+                groupManager.endChallenge()
 
                 Log.d(TAG, "회원탈퇴 완료")
                 Result.success(Unit)
