@@ -30,6 +30,19 @@ class AppMonitoringService : AccessibilityService() {
 
         private const val PKG_YOUTUBE = "com.google.android.youtube"
         const val PKG_INSTAGRAM = "com.instagram.android"
+
+        @Volatile
+        private var instance: AppMonitoringService? = null
+
+        fun getCurrentAppInfo(): Pair<String, Long>? {
+            return instance?.let { service ->
+                if (service.currentApp.isNotEmpty() && service.currentAppStartTime > 0) {
+                    Pair(service.currentApp, service.currentAppStartTime)
+                } else {
+                    null
+                }
+            }
+        }
     }
 
     @Inject
@@ -51,6 +64,7 @@ class AppMonitoringService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
         Log.d(TAG, "✅ AccessibilityService 연결됨")
     }
@@ -374,6 +388,7 @@ class AppMonitoringService : AccessibilityService() {
 
         aiCheckJob?.cancel()
         Checker.cleanupExpiredCache()
+        instance = null
 
         Log.d(TAG, "🛑 AppMonitoringService 종료")
     }

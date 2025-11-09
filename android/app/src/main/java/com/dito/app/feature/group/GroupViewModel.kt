@@ -12,6 +12,8 @@ data class GroupChallengeUiState(
     val isLoading: Boolean = false,
     val showCreateDialog: Boolean = false,
     val showJoinDialog: Boolean = false,
+    val showChallengeDialog: Boolean = false,
+    val groupName: String = "",
     val errorMessage: String? = null
 )
 
@@ -34,7 +36,24 @@ class GroupChallengeViewModel @Inject constructor() : ViewModel() {
     fun onDialogClose() {
         _uiState.value = _uiState.value.copy(
             showCreateDialog = false,
-            showJoinDialog = false
+            showJoinDialog = false,
+            showChallengeDialog = false,
+            groupName = ""
+        )
+    }
+
+    fun onNavigateToChallenge(groupName: String) {
+        _uiState.value = _uiState.value.copy(
+            groupName = groupName,
+            showCreateDialog = false,
+            showChallengeDialog = true
+        )
+    }
+
+    fun onBackToNameDialog() {
+        _uiState.value = _uiState.value.copy(
+            showChallengeDialog = false,
+            showCreateDialog = true
         )
     }
 

@@ -62,7 +62,7 @@ class MissionEvaluationWorker @AssistedInject constructor(
                     packageName = log.packageName,
                     appName = log.appName,
                     durationSeconds = log.durationSeconds,
-                    isTargetApp = log.isTargetApp,
+                    isTargetApp = if (log.logType == "APP_USAGE" || log.logType == "MEDIA_SESSION") log.isTargetApp else null,
                     videoTitle = log.videoTitle,
                     channelName = log.channelName,
                     eventType = log.eventType,
@@ -100,7 +100,7 @@ class MissionEvaluationWorker @AssistedInject constructor(
                 try {
                     val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                     val successResponse = json.decodeFromString<AIEvaluationResponse>(responseBody ?: "{}")
-                    Log.i(TAG, "✅ 미션 평가 성공: ${successResponse.runId}")
+                    Log.i(TAG, "✅ 미션 평가 성공: run_id=${successResponse.data.runId}, status=${successResponse.data.status}")
                 } catch (e: Exception) {
                     Log.w(TAG, "응답 파싱 실패했지만 200이므로 성공 처리", e)
                 }

@@ -18,22 +18,43 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.dito.app.R
+import com.dito.app.core.navigation.Route
 import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.Error
 import com.dito.app.core.ui.designsystem.ErrorContainer
 import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
-fun ChangeNickName(onDismiss: () -> Unit = {}) {
+fun ChangeNickName(
+    onDismiss: () -> Unit = {},
+    navController: NavController? = null,
+    viewModel: SettingViewModel = hiltViewModel()
+) {
     var nickName by remember { mutableStateOf("") }
     val isValid = nickName.length in 1..7 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
+    val uiState by viewModel.uiState.collectAsState()
+
+    // 로그인 필요 에러 발생 시 로그인 페이지로 이동
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage == "로그인이 필요합니다") {
+            onDismiss()
+            navController?.navigate(Route.Login.path) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -47,7 +68,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
             backgroundColor = Color.White,
             borderColor = Color.Black,
             shadowColor = Color.Black,
-            contentPadding = PaddingValues(vertical = Spacing.s)
+            contentPadding = PaddingValues(vertical = Spacing.l)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -56,7 +77,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Spacing.s, vertical = Spacing.m)
+                        .padding(horizontal = Spacing.s, vertical = Spacing.xs)
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.back),
@@ -69,7 +90,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                     )
                 }
 
-                Spacer(Modifier.height(Spacing.xl))
+                Spacer(Modifier.height(Spacing.m))
 
                 // 제목 텍스트
                 Text(
@@ -78,7 +99,7 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                     style = DitoCustomTextStyles.titleKLarge
                 )
 
-                Spacer(Modifier.height(Spacing.xl))
+                Spacer(Modifier.height(Spacing.l))
 
                 Box(
                     modifier = Modifier
@@ -136,7 +157,18 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                     )
                 }
 
-                Spacer(Modifier.height(Spacing.xxl))
+                // 에러 메시지 표시
+                uiState.errorMessage?.let { errorMessage ->
+                    Spacer(Modifier.height(Spacing.s))
+                    Text(
+                        text = errorMessage,
+                        color = Error,
+                        style = DitoTypography.bodySmall,
+                        modifier = Modifier.padding(horizontal = Spacing.m)
+                    )
+                }
+
+                Spacer(Modifier.height(Spacing.xl))
 
                 Box(
                     modifier = Modifier
@@ -149,22 +181,23 @@ fun ChangeNickName(onDismiss: () -> Unit = {}) {
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(if (isValid) Color.White else ErrorContainer)
-                        .clickable(enabled = isValid) {
-                            //닉네임 변경 api 호출 추가해야 함
-                            onDismiss()
+                        .background(if (isValid) Primary else ErrorContainer)
+                        .clickable(enabled = isValid && !uiState.isLoading) {
+                            viewModel.updateNickname(nickName) {
+                                onDismiss()
+                            }
                         }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "변경하기",
+                        text = if (uiState.isLoading) "변경 중..." else "변경하기",
                         color = if (isValid) Color.Black else OnErrorContainer,
                         style = DitoCustomTextStyles.titleKMedium
                     )
                 }
 
-                Spacer(Modifier.height(Spacing.m))
+                Spacer(Modifier.height(Spacing.s))
             }
         }
     }

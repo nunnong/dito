@@ -131,5 +131,4 @@ interface ApiService {
     ): Response<UpdateFrequencyResponse>
 
 
-
 }
