@@ -7,10 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,6 +22,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.dito.app.R
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
@@ -29,12 +34,58 @@ import com.dito.app.core.ui.designsystem.Spacing.s
 import com.dito.app.core.ui.designsystem.Spacing.xl
 import com.dito.app.core.ui.designsystem.Spacing.xs
 
-@Preview(showBackground = true)
+private fun formatDateRange(startDate: String, endDate: String): String {
+    fun formatDate(date: String): String {
+        return try {
+            if (date.isEmpty()) return ""
+            val parts = date.split("-")
+            if (parts.size == 3) {
+                "${parts[0]}.${parts[1]}.${parts[2]}"
+            } else {
+                date
+            }
+        } catch (e: Exception) {
+            date
+        }
+    }
+
+    return "${formatDate(startDate)} - ${formatDate(endDate)}"
+}
+@Preview(showBackground=true)
 @Composable
 fun ChallengeResultScreen(
     onNavigateToTab: (BottomTab) -> Unit = {},
-    onClose: () -> Unit = {}
+    onClose: () -> Unit = {},
+    viewModel: ChallengeResultViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    if (uiState.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val groupInfo = uiState.groupInfo
+    val rankings = uiState.rankings
+
+    if (groupInfo == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = uiState.errorMessage ?: "데이터를 불러올 수 없습니다",
+                style = DitoCustomTextStyles.titleKMedium,
+                color = OnSurface
+            )
+        }
+        return
+    }
     Scaffold(
         bottomBar = {
             DitoBottomAppBar(
@@ -66,7 +117,7 @@ fun ChallengeResultScreen(
 
             // 제목
             Text(
-                text = "ㅇㅇ팀의\n챌린지가 종료되었습니다.",
+                text = "${groupInfo.groupName}의\n챌린지가 종료되었습니다.",
                 style = DitoCustomTextStyles.titleKLarge,
                 color = OnSurface,
                 modifier = Modifier.fillMaxWidth(),
@@ -77,7 +128,7 @@ fun ChallengeResultScreen(
 
             // 기간
             Text(
-                text = "2025.11.02 - 2025.11.16",
+                text = formatDateRange(groupInfo.startDate, groupInfo.endDate),
                 style = DitoCustomTextStyles.titleKSmall,
                 color = OnSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -93,7 +144,7 @@ fun ChallengeResultScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Betting : ",
+                    text = "Betting : ${groupInfo.totalBetCoins}",
                     style = DitoCustomTextStyles.titleDLarge,
                     color = OnSurface
                 )
@@ -110,10 +161,14 @@ fun ChallengeResultScreen(
             Spacer(modifier = Modifier.height(xl))
 
             // 랭킹 리스트
-            RankingItem(rank = 1, nickname = "뛰콩", time = "50h 01m")
-            RankingItem(rank = 2, nickname = "디토", time = "48h 30m")
-            RankingItem(rank = 3, nickname = "멜론", time = "45h 15m")
-            RankingItem(rank = 4, nickname = "뛰콩 동생", time = "40h 20m")
+            rankings.forEach { ranking ->
+                RankingItem(
+                    rank = ranking.rank,
+                    nickname = ranking.nickname,
+                    time = ranking.totalScreenTimeFormatted,
+                    profileImage = ranking.profileImage
+                )
+            }
 
             Spacer(modifier = Modifier.height(xl))
 
@@ -123,7 +178,13 @@ fun ChallengeResultScreen(
             Spacer(modifier = Modifier.height(xl))
 
             // 벌칙 카드
-            PenaltyCardSection()
+            val lastPlace = rankings.lastOrNull()
+            if (lastPlace != null) {
+                PenaltyCardSection(
+                    penaltyRecipient = lastPlace.nickname,
+                    penaltyDescription = groupInfo.penaltyDescription
+                )
+            }
 
             Spacer(modifier = Modifier.height(xl))
 
@@ -139,7 +200,8 @@ fun ChallengeResultScreen(
 fun RankingItem(
     rank: Int,
     nickname: String,
-    time: String
+    time: String,
+    profileImage: String? = null
 ) {
     val rankText = when (rank) {
         1 -> "1st"
@@ -180,11 +242,19 @@ fun RankingItem(
         Spacer(modifier = Modifier.width(l))
 
         // 프로필 이미지
-        Image(
-            painter = painterResource(R.drawable.dito),
-            contentDescription = null,
-            modifier = Modifier.size(40.dp)
-        )
+        if (profileImage != null) {
+            AsyncImage(
+                model = profileImage,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
+        } else {
+            Image(
+                painter = painterResource(R.drawable.dito),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.width(m))
 
@@ -236,7 +306,10 @@ fun SaveButton() {
 }
 
 @Composable
-fun PenaltyCardSection() {
+fun PenaltyCardSection(
+    penaltyRecipient: String,
+    penaltyDescription: String
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -259,7 +332,7 @@ fun PenaltyCardSection() {
                     .padding(vertical = m)
             ) {
                 Text(
-                    text = "벌칙대상자 : 뛰콩 동생",
+                    text = "벌칙대상자 : $penaltyRecipient",
                     style = DitoCustomTextStyles.titleKMedium,
                     color = OnPrimary,
                     textAlign = TextAlign.Center,
@@ -291,7 +364,7 @@ fun PenaltyCardSection() {
 
             // 벌칙 내용
             Text(
-                text = "벌칙 : 바나프레소 쏘기",
+                text = "벌칙 : $penaltyDescription",
                 style = DitoCustomTextStyles.titleKMedium,
                 color = OnSurface
             )

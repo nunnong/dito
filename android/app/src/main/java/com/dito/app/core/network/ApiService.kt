@@ -16,6 +16,8 @@ import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
+import com.dito.app.core.data.group.UpdateScreenTimeRequest
+import com.dito.app.core.data.group.UpdateScreenTimeResponse
 import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
@@ -109,11 +111,11 @@ interface ApiService {
     ): Response<EnterGroupResponse>
 
     // 그룹 챌린지 랭킹 조회
-    @GET("/challenges/groups/{groups_id}/ranking")
+    @GET("/challenges/groups/{group_id}/ranking")
     suspend fun getRanking(
         @Path("group_id") groupId: Long,
-        @Header("Authorization") token:String
-    ): Response<GetRankingResponse>
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<GetRankingResponse>>
     
     // 그룹 챌린지 참여자 목록 조회
     @GET("/challenges/groups/{group_id}/participants")
@@ -147,6 +149,15 @@ interface ApiService {
         @Body request: UpdateFrequencyRequest,
         @Header("Authorization") token: String
     ): Response<UpdateFrequencyResponse>
+
+
+    // 스크린타임 갱신
+    @POST("/screen-time/update")
+    suspend fun updateScreenTime(
+        @Body request: UpdateScreenTimeRequest,
+        @Header("Authorization") token: String
+    ): Response<UpdateScreenTimeResponse>
+
 
 
 }

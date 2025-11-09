@@ -48,218 +48,207 @@ fun OngoingChallengeScreen(
     onNavigateToTab: (BottomTab) -> Unit = {}
 ) {
 
-    Scaffold(
-        bottomBar = {
-            DitoBottomAppBar(
-                selectedTab = BottomTab.GROUP,
-                onTabSelected = onNavigateToTab
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .verticalScroll(rememberScrollState())
+    ) {
+
+        // RACE IN PROGRESS 배너
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFFDD835))
+                .border(2.dp, Color.Black)
+                .padding(vertical = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "RACE IN PROGRESS!",
+                style = DitoTypography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
             )
         }
-    ) { innerPadding ->
+
+        Spacer(Modifier.height(24.dp))
+
+        // 챌린지 제목
+        Text(
+            text = "취업하기",
+            style = DitoTypography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(16.dp))
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Background)
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .padding(horizontal = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // RACE IN PROGRESS 배너
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFFDD835))
-                    .border(2.dp, Color.Black)
-                    .padding(vertical = 20.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "RACE IN PROGRESS!",
-                    style = DitoTypography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // 챌린지 제목
-            Text(
-                text = "취업하기",
-                style = DitoTypography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            // 프로그레스 바
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .height(24.dp)
+                    .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
+                        .fillMaxWidth(0.43f) // 3/7 = 약 43%
+                        .fillMaxHeight()
+                        .background(Color.Black)
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "3일 / 7일",
+                style = DitoCustomTextStyles.titleKSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Betting 정보
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Betting : 300",
+                style = DitoCustomTextStyles.titleDLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Image(
+                painter = painterResource(R.drawable.lemon),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // 랭킹 카드들 (높낮이 다르게)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // 2위 카드
+            RankCard(
+                rank = "2",
+                name = "뛰콩",
+                time = "59M",
+                backgroundColor = Color.White,
+                height = 180.dp
+            )
+
+            // 1위 카드 (가장 높음)
+            RankCard(
+                rank = "1",
+                name = "삭병장",
+                time = "51M",
+                backgroundColor = Color(0xFFFDD835),
+                height = 200.dp
+            )
+
+            // 3위 카드
+            RankCard(
+                rank = "3",
+                name = "나연",
+                time = "1H 10M",
+                backgroundColor = Color.White,
+                height = 160.dp
+            )
+
+            // 4위 카드
+            RankCard(
+                rank = "4",
+                name = "뛰콩동생",
+                time = "1H 29M",
+                backgroundColor = Color(0xFFFF5722),
+                height = 140.dp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // RACE INFO 박스
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+        ) {
+            Image(
+                painter = painterResource(R.drawable.raceinfo),
+                contentDescription = "Race Info Background",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .padding(20.dp)
+            ) {
+                // 헤더
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.43f) // 3/7 = 약 43%
-                            .fillMaxHeight()
-                            .background(Color.Black)
+                    Text(
+                        text = " RACE INFO",
+                        style = DitoTypography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                Text(
-                    text = "3일 / 7일",
-                    style = DitoCustomTextStyles.titleKSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            // Betting 정보
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Betting : 300",
-                    style = DitoCustomTextStyles.titleDLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Image(
-                    painter = painterResource(R.drawable.lemon),
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // 랭킹 카드들 (높낮이 다르게)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                // 2위 카드
-                RankCard(
-                    rank = "2",
-                    name = "뛰콩",
-                    time = "59M",
-                    backgroundColor = Color.White,
-                    height = 180.dp
-                )
-
-                // 1위 카드 (가장 높음)
-                RankCard(
-                    rank = "1",
-                    name = "삭병장",
-                    time = "51M",
-                    backgroundColor = Color(0xFFFDD835),
-                    height = 200.dp
-                )
-
-                // 3위 카드
-                RankCard(
-                    rank = "3",
-                    name = "나연",
-                    time = "1H 10M",
-                    backgroundColor = Color.White,
-                    height = 160.dp
-                )
-
-                // 4위 카드
-                RankCard(
-                    rank = "4",
-                    name = "뛰콩동생",
-                    time = "1H 29M",
-                    backgroundColor = Color(0xFFFF5722),
-                    height = 140.dp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // RACE INFO 박스
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.raceinfo),
-                    contentDescription = "Race Info Background",
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.Center)
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.Center)
-                        .padding(20.dp)
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .padding(16.dp)
                 ) {
-                    // 헤더
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Column {
                         Text(
-                            text = " RACE INFO",
-                            style = DitoTypography.titleLarge,
+                            text = "PERIOD : 25.10.29 - 25.11.05",
+                            style = DitoTypography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "PENALTY : 바나프레소 쓰기",
+                            style = DitoTypography.bodyLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                     }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White, RoundedCornerShape(8.dp))
-                            .padding(16.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "PERIOD : 25.10.29 - 25.11.05",
-                                style = DitoTypography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = "PENALTY : 바나프레소 쓰기",
-                                style = DitoTypography.bodyLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
-                        }
-                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
