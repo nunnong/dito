@@ -29,7 +29,30 @@ public class UserItemService {
     @Transactional(readOnly = true)
     public Page<ClosetRes> getUserCloset(Type type, long pageNumber) {
         long userId = JwtAuthentication.getUserId();
-        return userItemQueryRepository.getUserCloset(userId, type, pageNumber);
+        Page<ClosetRes> page = userItemQueryRepository.getUserCloset(userId, type, pageNumber);
+
+        // COSTUME 아닐 땐 그대로 리턴
+        if (type != Type.COSTUME) {
+            return page;
+        }
+
+        return page.map(closet -> new ClosetRes(
+                closet.itemId(),
+                closet.name(),
+                addSuffixToImageUrl(closet.imageUrl(), "_4"),
+                closet.isEquipped()
+        ));
+    }
+
+    private String addSuffixToImageUrl(String url, String suffix) {
+        if (url == null || url.isEmpty()) {
+            return url;
+        }
+        int lastDotIndex = url.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            return url;
+        }
+        return url.substring(0, lastDotIndex) + suffix + url.substring(lastDotIndex);
     }
 
     @Transactional
