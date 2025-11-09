@@ -71,6 +71,13 @@ interface ApiService {
         @Query("page_number") pageNumber: Int
     ): Response<ShopResponse>
 
+    @GET("/user/item/closet")
+    suspend fun getClosetItems(
+        @Header("Authorization") token: String,
+        @Query("type") type: String,
+        @Query("page_number") pageNumber: Int
+    ): Response<ClosetResponse>
+
     @POST("/item/shop/purchase")
     suspend fun purchaseItem(
         @Header("Authorization") token: String,
