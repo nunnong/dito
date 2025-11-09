@@ -8,6 +8,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.dito.app.PermissionTestScreen
 import com.dito.app.MainScreen
 import com.dito.app.feature.auth.AuthViewModel
 import com.dito.app.feature.auth.LoginScreen
@@ -43,14 +44,13 @@ fun DitoNavGraph(
         composable(Route.Login.path) {
             LoginScreen(
                 onLoginSuccess = {
-                    // 로그인 성공 시 Home 화면으로 이동
+
                     navController.navigate(Route.Home.path){
                         popUpTo(Route.Login.path){ inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
-                    // TODO: 회원가입 라우트 추가시 열기
                      navController.navigate(Route.SignupCredential.path)
                 }
             )
@@ -207,7 +207,10 @@ fun DitoNavGraph(
             )
         }
 
-
+        // 7) 테스트 화면 (권한 테스트)
+        composable(Route.Test.path) {
+            PermissionTestScreen()
+        }
 
 
     }

@@ -165,11 +165,9 @@ fun DitoTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-fun MainScreen(
-    activity: MainActivity,
-    onNavigateToHealth: () -> Unit = {}
-) {
+fun PermissionTestScreen() {
     val context = LocalContext.current
+    val activity = context as? MainActivity
 
     NotificationPermissionRequest()
 
@@ -226,7 +224,7 @@ fun MainScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { activity.testRealmData() },
+            onClick = { activity?.testRealmData() },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("📊 Realm 데이터 확인")
@@ -235,7 +233,7 @@ fun MainScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
-            onClick = { activity.clearRealmData() },
+            onClick = { activity?.clearRealmData() },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error
@@ -247,7 +245,7 @@ fun MainScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
-            onClick = { activity.triggerWorkManagerManually() },
+            onClick = { activity?.triggerWorkManagerManually() },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.tertiary
@@ -269,12 +267,12 @@ fun MainScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        PermissionCard(
-            title = "💚 헬스 정보",
-            description = "걸음 수, 심박수, 수면, 이동거리 데이터를 확인합니다",
-            buttonText = "헬스 정보 보기",
-            onClick = onNavigateToHealth
-        )
+//        PermissionCard(
+//            title = "💚 헬스 정보",
+//            description = "걸음 수, 심박수, 수면, 이동거리 데이터를 확인합니다",
+//            buttonText = "헬스 정보 보기",
+//            onClick = onNavigateToHealth
+//        )
     }
 }
 

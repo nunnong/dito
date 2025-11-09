@@ -19,7 +19,7 @@ class MissionTrackingLog : RealmObject{
     var packageName: String? = null
     var appName: String? = null
     var durationSeconds: Int? = null
-    var isTargetApp: Boolean = false
+    var isTargetApp: Boolean? = null
 
     //media_session
     var videoTitle: String? = null
