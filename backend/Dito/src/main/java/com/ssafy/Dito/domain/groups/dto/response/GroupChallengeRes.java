@@ -41,21 +41,22 @@ public record GroupChallengeRes(
 
     HostInfo host
 ) {
-    public static GroupChallengeRes from(GroupChallenge groupChallenge, Long hostUserId) {
+    public static GroupChallengeRes from(GroupChallenge groupChallenge, Long hostUserId, int betCoins) {
         return new GroupChallengeRes(
-            groupChallenge.getId(),
-            groupChallenge.getGroupName(),
-            groupChallenge.getInviteCode(),
-            groupChallenge.getStartDate(),
-            groupChallenge.getEndDate(),
-            groupChallenge.getPeriod(),
-            groupChallenge.getGoalDescription(),
-            groupChallenge.getPenaltyDescription(),
-            groupChallenge.getStatus(),
-            groupChallenge.getTotalBetCoins(),
-            groupChallenge.getTotalBetCoins(),
-            groupChallenge.getCreatedAt(),
-            new HostInfo(hostUserId, "host")
+                groupChallenge.getId(),
+                groupChallenge.getGroupName(),
+                groupChallenge.getInviteCode(),
+                groupChallenge.getStartDate(),
+                groupChallenge.getEndDate(),
+                groupChallenge.getPeriod(),
+                groupChallenge.getGoalDescription(),
+                groupChallenge.getPenaltyDescription(),
+                groupChallenge.getStatus(),
+                betCoins,
+                groupChallenge.getTotalBetCoins(),
+                groupChallenge.getCreatedAt(),
+                new HostInfo(hostUserId, "host")
         );
     }
+
 }

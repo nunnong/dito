@@ -68,7 +68,7 @@ public class GroupChallengeService {
         );
         groupParticipantRepository.save(hostParticipant);
 
-        return GroupChallengeRes.from(savedChallenge, hostUserId);
+        return GroupChallengeRes.from(savedChallenge, hostUserId, request.betCoins());
     }
 
     @Transactional
