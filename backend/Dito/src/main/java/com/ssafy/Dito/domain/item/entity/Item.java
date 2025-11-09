@@ -43,14 +43,4 @@ public class Item extends IdentifiableEntity {
         this.imgUrl = imgUrl;
         this.onSale = onSale;
     }
-
-    public void updateItemUrl(Item costume, String surfix) {
-        String url = costume.imgUrl;
-        int lastDotIndex = url.lastIndexOf('.');
-        if (lastDotIndex == -1) {
-            this.imgUrl =  url;
-            return;
-        }
-        this.imgUrl = url.substring(0, lastDotIndex) + surfix + url.substring(lastDotIndex);
-    }
 }

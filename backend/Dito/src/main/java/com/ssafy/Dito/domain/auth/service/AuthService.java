@@ -60,8 +60,6 @@ public class AuthService {
         UserItem defaultBackground = UserItem.of(user, background, true);
         userItemRepository.save(defaultCostume);
         userItemRepository.save(defaultBackground);
-
-        costume.updateItemUrl(costume, "_4");
     }
 
     public boolean checkPersonalId(String personalId) {
