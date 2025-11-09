@@ -15,19 +15,34 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dito.app.R
+import com.dito.app.core.data.home.HomeData
 import com.dito.app.core.ui.designsystem.*
+import coil.compose.AsyncImage
+import androidx.compose.foundation.text.BasicTextField
+
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
     onLogout: () -> Unit,
     onCartClick: () -> Unit,
     onClosetClick: () -> Unit,
 ) {
-    var weeklyGoal by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadHomeData()
+    }
 
     Box(
         modifier = Modifier
@@ -36,239 +51,385 @@ fun HomeScreen(
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
-            // Frame 156: 메인 노란색 카드 (359x589)
-            Column(
+        when {
+            uiState.isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            uiState.errorMessage != null -> {
+                Text(
+                    text = uiState.errorMessage ?: "알 수 없는 오류가 발생했습니다.",
+                    color = Color.Red,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            uiState.homeData != null -> {
+                // `homeData`가 null이 아닐 때만 UI를 표시
+                val homeData = uiState.homeData!!
+                HomeContent(
+                    homeData = homeData,
+                    isEditingWeeklyGoal = uiState.isEditingWeeklyGoal,
+                    weeklyGoalInput = uiState.weeklyGoalInput,
+                    onWeeklyGoalInputChange = viewModel::onWeeklyGoalInputChange,
+                    onStartEditingWeeklyGoal = viewModel::startEditingWeeklyGoal,
+                    onSaveWeeklyGoal = viewModel::saveWeeklyGoal,
+                    onCartClick = onCartClick,
+                    onClosetClick = onClosetClick
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeContent(
+    homeData: HomeData,
+    isEditingWeeklyGoal: Boolean,
+    weeklyGoalInput: String,
+    onWeeklyGoalInputChange: (String) -> Unit,
+    onStartEditingWeeklyGoal: () -> Unit,
+    onSaveWeeklyGoal: () -> Unit,
+    onCartClick: () -> Unit,
+    onClosetClick: () -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(isEditingWeeklyGoal) {
+        if (isEditingWeeklyGoal) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+    // Frame 156: 메인 노란색 카드 (359x589)
+    Column(
+        modifier = Modifier
+            .width(359.dp)
+            .height(589.dp)
+            .hardShadow(
+                DitoHardShadow.Modal.copy(
+                    cornerRadius = 0.dp,
+                    offsetX = 6.dp,
+                    offsetY = 6.dp
+                )
+            )
+            .background(Primary, RectangleShape)
+            .border(2.dp, Color.Black, RectangleShape)
+            .padding(top = 25.dp, bottom = 25.dp, start = 16.dp, end = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Frame 159: 흰색 내부 카드 (327x477)
+        Column(
+            modifier = Modifier
+                .width(327.dp)
+                .height(477.dp)
+                .background(Color.White)
+                .border(2.dp, Color.Black),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 상단 블랙 바 (Frame 165)
+            Row(
                 modifier = Modifier
-                    .width(359.dp)
-                    .height(589.dp)
-                    .hardShadow(
-                        DitoHardShadow.Modal.copy(
-                            cornerRadius = 0.dp,
-                            offsetX = 6.dp,
-                            offsetY = 6.dp
-                        )
-                    )
-                    .background(Primary, RectangleShape)
-                    .border(2.dp, Color.Black, RectangleShape)
-                    .padding(top = 25.dp, bottom = 25.dp, start = 16.dp, end = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(Color.Black)
+                    .padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Frame 159: 흰색 내부 카드 (327x477)
+                // 왼쪽 아이콘 2개 (Frame 164)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(24.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.cart),
+                        contentDescription = "Cart",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { onCartClick() },
+                        contentScale = ContentScale.Fit
+                    )
+                    Image(
+                        painter = painterResource(id = R.drawable.closet),
+                        contentDescription = "Closet",
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable { onClosetClick() },
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                // 오른쪽 아이콘 1개
+                Image(
+                    painter = painterResource(id = R.drawable.mail_home),
+                    contentDescription = "Mail",
+                    modifier = Modifier.size(24.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+
+            // Frame 162 - 내부 컨텐츠
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                if (!homeData.backgroundUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = homeData.backgroundUrl,
+                        contentDescription = "Background",
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        alpha = 0.3f,
+                        onError = { error ->
+                            android.util.Log.e(
+                                "HomeScreen",
+                                "배경 이미지 로딩 실패: ${homeData.backgroundUrl}",
+                                error.result.throwable
+                            )
+                        },
+                        onSuccess = {
+                            android.util.Log.d(
+                                "HomeScreen",
+                                "배경 이미지 로딩 성공: ${homeData.backgroundUrl}"
+                            )
+                        }
+                    )
+                }
                 Column(
                     modifier = Modifier
-                        .width(327.dp)
-                        .height(477.dp)
-                        .background(Color.White)
-                        .border(2.dp, Color.Black),
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(top = 16.dp, bottom = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 상단 블랙 바 (Frame 165)
+                    // 주간 목표 입력 필드 (Frame 177)
+                    Row(
+                        modifier = Modifier
+                            .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 4.dp))
+                            .width(261.dp)
+                            .height(52.dp)
+                            .background(Color.White)
+                            .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        if (isEditingWeeklyGoal) {
+                            // ✅ 편집 모드: TextField + 체크 아이콘
+                            Box(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                BasicTextField(
+                                    value = weeklyGoalInput,
+                                    onValueChange = onWeeklyGoalInputChange,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(focusRequester),
+                                    textStyle = DitoCustomTextStyles.titleDSmall.copy(color = Color.Black, textAlign = TextAlign.Center),
+                                    singleLine = true
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // 체크 아이콘
+                            Image(
+                                painter = painterResource(id = R.drawable.checkbox),
+                                contentDescription = "Save",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable { onSaveWeeklyGoal() },
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            // ✅ 일반 모드: 텍스트 + 연필 아이콘 (목표 없을 때만)
+                            Text(
+                                text = if (homeData.weeklyGoal.isNullOrEmpty()) "주간 목표를 입력해주세요!" else homeData.weeklyGoal,
+                                style = DitoCustomTextStyles.titleDSmall,
+                                color = if (homeData.weeklyGoal.isNullOrEmpty()) Color(0xFFBDBDBD) else Color.Black,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+
+                            // 연필 아이콘 (목표가 없을 때만 표시)
+                            if (homeData.weeklyGoal.isNullOrEmpty()) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.pencil),
+                                    contentDescription = "Edit",
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable { onStartEditingWeeklyGoal() },
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp)) // Increased space
+
+                    // 캐릭터 이미지 + 배경
+                    Box(
+                        modifier = Modifier.size(110.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // 캐릭터 이미지
+                        if (homeData.costumeUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = homeData.costumeUrl,
+                                contentDescription = "Character",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit,
+                                onError = { error ->
+                                    android.util.Log.e(
+                                        "HomeScreen", "이미지 로딩 실패: ${homeData.costumeUrl}",
+                                        error.result.throwable
+                                    )
+                                },
+                                onSuccess = {
+                                    android.util.Log.d(
+                                        "HomeScreen",
+                                        "이미지 로딩 성공: ${homeData.costumeUrl}"
+                                    )
+                                }
+                            )
+
+                        } else {
+                            // fallback 이미지
+                            Image(
+                                painter = painterResource(id = R.drawable.dito),
+                                contentDescription = "Character",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp)) // Original space
+
+                    // 코인 표시
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(40.dp)
-                            .background(Color.Black)
-                            .padding(start = 12.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                            .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 왼쪽 아이콘 2개 (Frame 164)
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .width(80.dp)
-                                .height(24.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.cart),
-                                contentDescription = "Cart",
-                                modifier = Modifier.size(24.dp).clickable { onCartClick() },
-                                contentScale = ContentScale.Fit
-                            )
-                            Image(
-                                painter = painterResource(id = R.drawable.closet),
-                                contentDescription = "Closet",
-                                modifier = Modifier.size(20.dp).clickable { onClosetClick() },
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-
-                        // 오른쪽 아이콘 1개
-                        Image(
-                            painter = painterResource(id = R.drawable.mail_home),
-                            contentDescription = "Mail",
-                            modifier = Modifier.size(24.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-
-                    // Frame 162 - 내부 컨텐츠
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight()
-                            .padding(top = 16.dp, bottom = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // 주간 목표 입력 필드 (Frame 177)
+                        // 코인 박스
                         Row(
                             modifier = Modifier
-                                .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 4.dp))
-                                .width(261.dp)
-                                .height(52.dp)
-                                .background(Color.White)
-                                .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 24.dp, vertical = 16.dp),
+                                .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
+                                .widthIn(min = 97.dp) // 최소 너비 설정
+                                .height(36.dp)
+                                .background(Color.White, RoundedCornerShape(48.dp))
+                                .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = if (weeklyGoal.isEmpty()) "주간 목표를 입력해주세요!" else weeklyGoal,
-                                style = DitoCustomTextStyles.titleDSmall, // 14sp
-                                color = if (weeklyGoal.isEmpty()) Color(0xFFBDBDBD) else Color.Black,
-                                modifier = Modifier.weight(1f)
+                                text = homeData.coinBalance.toString(),
+                                style = DitoCustomTextStyles.titleDLarge, // 22sp
+                                color = Color.Black
                             )
-                            Box(
-                                modifier = Modifier.size(20.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                // 연필 아이콘 (Vector들로 구성)
-                                Image(
-                                    painter = painterResource(id = R.drawable.pencil),
-                                    contentDescription = "Edit",
-                                    modifier = Modifier.size(20.dp),
-                                    contentScale = ContentScale.Fit
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp)) // Increased space
-
-                        // 캐릭터 이미지
-                        Image(
-                            painter = painterResource(id = R.drawable.dito),
-                            contentDescription = "Character",
-                            modifier = Modifier.size(110.dp),
-                            contentScale = ContentScale.Fit
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp)) // Original space
-
-                        // 코인 표시
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(40.dp)
-                                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // 코인 박스
-                            Row(
-                                modifier = Modifier
-                                    .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
-                                    .width(97.dp)
-                                    .height(36.dp)
-                                    .background(Color.White, RoundedCornerShape(48.dp))
-                                    .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
-                                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "100",
-                                    style = DitoCustomTextStyles.titleDLarge, // 22sp
-                                    color = Color.Black
-                                )
-                                Image(
-                                    painter = painterResource(id = R.drawable.lemon),
-                                    contentDescription = "Coin",
-                                    modifier = Modifier.size(28.dp),
-                                    contentScale = ContentScale.Fit
-                                )
-                            }
-                        }
-                    }
-
-                    // 프로그레스 바 섹션
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(191.dp)
-                            .background(Color.White),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // border-top
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(Color.Black)
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center // Center the content vertically
-                        ) {
-                            // Add a nested column to group the items with their own spacing
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                ProgressBarItem(label = "자기관리", progress = 0.7f)
-                                ProgressBarItem(label = "집중", progress = 0.7f)
-                                ProgressBarItem(label = "수면", progress = 0.7f)
-                            }
+                            Image(
+                                painter = painterResource(id = R.drawable.lemon),
+                                contentDescription = "Coin",
+                                modifier = Modifier.size(28.dp),
+                                contentScale = ContentScale.Fit
+                            )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // 하단 닉네임
-                Row(
+            }
+            // 프로그레스 바 섹션
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(191.dp)
+                    .background(Color.White),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // border-top
+                Spacer(
                     modifier = Modifier
-                        .width(310.dp)
-                        .height(52.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.Black)
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center // Center the content vertically
                 ) {
-                    // 닉네임 영역
+                    // Add a nested column to group the items with their own spacing
                     Column(
-                        modifier = Modifier
-                            .width(252.dp)
-                            .height(52.dp)
-                            .padding(8.dp),
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "낙동강오리알",
-                            style = DitoTypography.headlineMedium, // 28sp
-                            color = Color.Black
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        // border-bottom
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .background(Color.Black)
-                        )
+                        ProgressBarItem(label = "자기관리", progress = homeData.selfCareStatus / 100.0f)
+                        ProgressBarItem(label = "집중", progress = homeData.focusStatus / 100.0f)
+                        ProgressBarItem(label = "수면", progress = homeData.sleepStatus / 100.0f)
                     }
-
-                    // 원형 꾸밈
-                    Box(
-                        modifier = Modifier
-                            .size(45.dp)
-                            .background(Surface, CircleShape)
-                            .border(3.dp, Color.Black, CircleShape)
-                    )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 하단 닉네임
+        Row(
+            modifier = Modifier
+                .width(310.dp)
+                .height(52.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 닉네임 영역
+            Column(
+                modifier = Modifier
+                    .width(252.dp)
+                    .height(52.dp)
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = homeData.nickname,
+                    style = DitoTypography.headlineMedium, // 28sp
+                    color = Color.Black
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                // border-bottom
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(Color.Black)
+                )
+            }
+
+            // 원형 꾸밈
+            Box(
+                modifier = Modifier
+                    .size(45.dp)
+                    .background(Surface, CircleShape)
+                    .border(3.dp, Color.Black, CircleShape)
+            )
+        }
     }
+}
 
 @Composable
 private fun ProgressBarItem(label: String, progress: Float) {
@@ -324,17 +485,10 @@ private fun ProgressBarItem(label: String, progress: Float) {
             // Line 1 - 프로그레스 (노란색)
             Box(
                 modifier = Modifier
-                    .height(12.dp) // Explicitly set height
-                    .fillMaxWidth(), // Fill width of parent
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize() // Fill the 12.dp height and full width of its parent
-                        .fillMaxWidth(progress)
-                        .background(Primary, RectangleShape)
-                )
-            }
+                    .height(12.dp)
+                    .fillMaxWidth(progress)
+                    .background(Primary, RectangleShape)
+            )
         }
     }
 }
@@ -342,5 +496,26 @@ private fun ProgressBarItem(label: String, progress: Float) {
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    HomeScreen(onLogout = {}, onCartClick = {}, onClosetClick = {})
+    // Preview에서는 ViewModel을 직접 주입할 수 없으므로,
+    // 실제 데이터가 있는 HomeContent를 직접 호출하거나 가짜 데이터를 만듭니다.
+    val fakeHomeData = HomeData(
+        nickname = "낙동강오리알",
+        costumeUrl = "",
+        backgroundUrl = null,
+        coinBalance = 100,
+        weeklyGoal = "주간 목표 예시",
+        selfCareStatus = 70,
+        focusStatus = 50,
+        sleepStatus = 90
+    )
+    HomeContent(
+        homeData = fakeHomeData,
+        isEditingWeeklyGoal = false,
+        weeklyGoalInput = "",
+        onWeeklyGoalInputChange = {},
+        onStartEditingWeeklyGoal = {},
+        onSaveWeeklyGoal = {},
+        onCartClick = {},
+        onClosetClick = {}
+    )
 }
