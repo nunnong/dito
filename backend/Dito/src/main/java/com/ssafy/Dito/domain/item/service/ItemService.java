@@ -40,7 +40,9 @@ public class ItemService {
                     item.ItemId(),
                     item.name(),
                     item.price(),
-                    addSuffixToImageUrl(item.imageUrl(), "_3"),
+                        type == Type.COSTUME
+                                ? addSuffixToImageUrl(item.imageUrl(), "_3")
+                                : item.imageUrl(),
                     item.onSale(),
                     item.isPurchased()
                 ))

@@ -121,6 +121,6 @@ public class User extends IdentifiableEntity {
     }
 
     public void updateCoin(int coin){
-        this.coinBalance += coin;
+        this.coinBalance -= coin;
     }
 }
