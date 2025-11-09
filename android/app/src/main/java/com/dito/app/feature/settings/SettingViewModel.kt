@@ -29,6 +29,7 @@ class SettingViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingUiState())
     val uiState: StateFlow<SettingUiState> = _uiState.asStateFlow()
 
+
     /**
      * 닉네임 변경
      */
