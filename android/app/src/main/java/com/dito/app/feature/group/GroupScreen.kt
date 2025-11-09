@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Text
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +48,29 @@ fun GroupScreen(
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // 챌린지 상태에 따라 다른 화면 표시
+    when (uiState.challengeStatus) {
+        ChallengeStatus.WAITING_TO_START, ChallengeStatus.IN_PROGRESS -> {
+            GroupLeaderScreen(
+                groupName = uiState.groupName,
+                entryCode = uiState.entryCode,
+                period = uiState.period,
+                goal = uiState.goal,
+                penalty = uiState.penalty,
+                startDate = uiState.startDate,
+                endDate = uiState.endDate,
+                participants = uiState.participants,
+                isStarted = uiState.challengeStatus == ChallengeStatus.IN_PROGRESS,
+                onStartChallenge = { viewModel.onChallengeStarted() },
+                onLoadParticipants = { viewModel.loadParticipants() }
+            )
+            return
+        }
+        ChallengeStatus.NO_CHALLENGE -> {
+            // 기존 화면 표시
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -94,7 +119,7 @@ fun GroupScreen(
                 Text(
                     text = "아직 참여 중인 챌린지가 없어요",
                     color = OnPrimary,
-                    style = DitoCustomTextStyles.titleKLarge
+                    style = DitoCustomTextStyles.titleKMedium
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
@@ -102,7 +127,7 @@ fun GroupScreen(
                 Text(
                     text = "함께 디지털 휴식에 도전해볼까요?",
                     color = OnPrimary,
-                    style = DitoCustomTextStyles.titleKLarge
+                    style = DitoCustomTextStyles.titleKMedium
                 )
             }
 
@@ -193,7 +218,7 @@ fun GroupScreen(
                 viewModel.onBackToNameDialog()
             },
             onCreateChallenge = { name, goal, penalty, period, bet ->
-                viewModel.onDialogClose()
+                viewModel.onChallengeCreated(name, goal, penalty, period, bet)
             }
         )
     }
