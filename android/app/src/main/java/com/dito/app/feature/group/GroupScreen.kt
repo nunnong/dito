@@ -59,25 +59,29 @@ fun GroupScreen(
     // 챌린지 상태에 따라 다른 화면 표시
     when (uiState.challengeStatus) {
         ChallengeStatus.IN_PROGRESS -> {
-            OngoingChallengeScreen(
-                onNavigateToTab = { /* TODO: 탭 이동 처리 */ }
-            )
+            OngoingChallengeScreen(viewModel = viewModel)
             return
         }
         ChallengeStatus.WAITING_TO_START -> {
-            GroupLeaderScreen(
-                groupName = uiState.groupName,
-                entryCode = uiState.entryCode,
-                period = uiState.period,
-                goal = uiState.goal,
-                penalty = uiState.penalty,
-                startDate = uiState.startDate,
-                endDate = uiState.endDate,
-                participants = uiState.participants,
-                isStarted = false,
-                onStartChallenge = { viewModel.onChallengeStarted() },
-                onLoadParticipants = { viewModel.loadParticipants() }
-            )
+            if (uiState.isLeader) {
+                // 방장 화면
+                GroupLeaderScreen(
+                    groupName = uiState.groupName,
+                    entryCode = uiState.entryCode,
+                    period = uiState.period,
+                    goal = uiState.goal,
+                    penalty = uiState.penalty,
+                    startDate = uiState.startDate,
+                    endDate = uiState.endDate,
+                    participants = uiState.participants,
+                    isStarted = false,
+                    onStartChallenge = { viewModel.onChallengeStarted() },
+                    onLoadParticipants = { viewModel.loadParticipants() }
+                )
+            } else {
+                // 참가자 화면
+                GroupMemberScreen()
+            }
             return
         }
         ChallengeStatus.NO_CHALLENGE -> {
@@ -237,9 +241,29 @@ fun GroupScreen(
     }
 
     if (uiState.showJoinDialog) {
-        JoinWithCodeDialog(onDismiss = {
-            viewModel.onDialogClose()
-        })
+        JoinWithCodeDialog(
+            onDismiss = {
+                viewModel.onDialogClose()
+            },
+            onJoinWithCode = { inviteCode ->
+                viewModel.joinGroupWithCode(inviteCode)
+            }
+        )
+    }
+
+    if (uiState.showBetInputDialog) {
+        JoinGroupInfoDialog(
+            groupName = uiState.joinedGroupName,
+            goal = uiState.joinedGroupGoal,
+            penalty = uiState.joinedGroupPenalty,
+            period = uiState.joinedGroupPeriod,
+            onDismiss = {
+                viewModel.onDialogClose()
+            },
+            onConfirm = { betAmount ->
+                viewModel.enterGroupWithBet(betAmount)
+            }
+        )
     }
 }
 

@@ -2,14 +2,20 @@ package com.dito.app.feature.group
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dito.app.core.data.group.GroupInfo
 import com.dito.app.core.data.group.Participant
+import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 enum class ChallengeStatus {
@@ -23,6 +29,7 @@ data class GroupChallengeUiState(
     val showCreateDialog: Boolean = false,
     val showJoinDialog: Boolean = false,
     val showChallengeDialog: Boolean = false,
+    val showBetInputDialog: Boolean = false,
     val showSplash: Boolean = false,
     val groupName: String = "",
     val goal: String = "",
@@ -32,8 +39,16 @@ data class GroupChallengeUiState(
     val entryCode: String = "",
     val startDate: String = "",
     val endDate: String = "",
+    val isLeader: Boolean = false,
+    val joinedGroupId: Long? = null,
+    val joinedGroupName: String = "",
+    val joinedGroupGoal: String = "",
+    val joinedGroupPenalty: String = "",
+    val joinedGroupPeriod: Int = 0,
     val challengeStatus: ChallengeStatus = ChallengeStatus.NO_CHALLENGE,
     val participants: List<Participant> = emptyList(),
+    val groupInfo: GroupInfo? = null,
+    val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null
 )
 
@@ -47,8 +62,19 @@ class GroupChallengeViewModel @Inject constructor(
 
     val uiState: StateFlow<GroupChallengeUiState> = _uiState.asStateFlow()
 
+    private var updateRankingJob: Job? = null
+
     init {
         loadChallengeState()
+        // 챌린지가 진행 중이면 자동 갱신 시작
+        if (_uiState.value.challengeStatus == ChallengeStatus.IN_PROGRESS) {
+            startAutoRefresh()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopAutoRefresh()
     }
 
     private fun loadChallengeState() {
@@ -67,7 +93,8 @@ class GroupChallengeViewModel @Inject constructor(
             bet = groupManager.getBet(),
             entryCode = groupManager.getEntryCode(),
             startDate = groupManager.getStartDate(),
-            endDate = groupManager.getEndDate()
+            endDate = groupManager.getEndDate(),
+            isLeader = groupManager.isLeader()
         )
     }
 
@@ -84,6 +111,7 @@ class GroupChallengeViewModel @Inject constructor(
             showCreateDialog = false,
             showJoinDialog = false,
             showChallengeDialog = false,
+            showBetInputDialog = false,
             groupName = ""
         )
     }
@@ -145,7 +173,8 @@ class GroupChallengeViewModel @Inject constructor(
                             bet = betCoins,
                             entryCode = inviteCode,
                             startDate = startDate,
-                            endDate = endDate
+                            endDate = endDate,
+                            isLeader = true
                         )
 
                         // UI 상태 업데이트
@@ -160,6 +189,7 @@ class GroupChallengeViewModel @Inject constructor(
                             entryCode = inviteCode,
                             startDate = startDate,
                             endDate = endDate,
+                            isLeader = true,
                             showChallengeDialog = false
                         )
                     } else {
@@ -208,6 +238,11 @@ class GroupChallengeViewModel @Inject constructor(
                             showSplash = false,
                             challengeStatus = ChallengeStatus.IN_PROGRESS
                         )
+
+                        // 챌린지 시작 시 자동 갱신 시작
+                        startAutoRefresh()
+                        // 최초 순위 조회
+                        loadRanking()
                     }
                 },
                 onFailure = { error ->
@@ -222,6 +257,7 @@ class GroupChallengeViewModel @Inject constructor(
 
     fun onChallengeEnded() {
         groupManager.endChallenge()
+        stopAutoRefresh() // 자동 갱신 중단
         _uiState.value = _uiState.value.copy(
             challengeStatus = ChallengeStatus.NO_CHALLENGE,
             groupName = "",
@@ -232,7 +268,9 @@ class GroupChallengeViewModel @Inject constructor(
             entryCode = "",
             startDate = "",
             endDate = "",
-            participants = emptyList()
+            participants = emptyList(),
+            groupInfo = null,
+            rankings = emptyList()
         )
     }
 
@@ -250,6 +288,148 @@ class GroupChallengeViewModel @Inject constructor(
                 onSuccess = { response ->
                     _uiState.value = _uiState.value.copy(
                         participants = response.participants
+                    )
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                    )
+                }
+            )
+        }
+    }
+
+    /**
+     * 초대 코드로 그룹 정보 조회
+     */
+    fun joinGroupWithCode(inviteCode: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            groupRepository.getGroupInfo(inviteCode).fold(
+                onSuccess = { response ->
+                    // startDate와 endDate로부터 기간 계산 (null이면 기본값 7일)
+                    val period = if (response.startDate != null && response.endDate != null) {
+                        try {
+                            val start = LocalDate.parse(response.startDate)
+                            val end = LocalDate.parse(response.endDate)
+                            java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
+                        } catch (e: Exception) {
+                            7 // 파싱 실패 시 기본값
+                        }
+                    } else {
+                        7 // null이면 기본값
+                    }
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        showJoinDialog = false,
+                        showBetInputDialog = true,
+                        joinedGroupId = response.groupId,
+                        joinedGroupName = response.groupName,
+                        joinedGroupGoal = response.goalDescription,
+                        joinedGroupPenalty = response.penaltyDescription,
+                        joinedGroupPeriod = period
+                    )
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "그룹 정보 조회에 실패했습니다"
+                    )
+                }
+            )
+        }
+    }
+
+    /**
+     * 배팅 금액 입력 후 그룹 입장
+     */
+    fun enterGroupWithBet(betCoin: Int) {
+        val groupId = _uiState.value.joinedGroupId
+        if (groupId == null) {
+            _uiState.value = _uiState.value.copy(
+                errorMessage = "그룹 정보를 찾을 수 없습니다"
+            )
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            groupRepository.enterGroup(groupId, betCoin).fold(
+                onSuccess = { response ->
+                    // GroupManager에 저장
+                    groupManager.saveGroupInfo(
+                        groupId = groupId,
+                        groupName = _uiState.value.joinedGroupName,
+                        goal = _uiState.value.joinedGroupGoal,
+                        penalty = _uiState.value.joinedGroupPenalty,
+                        period = _uiState.value.joinedGroupPeriod,
+                        bet = betCoin,
+                        entryCode = "",
+                        startDate = "",
+                        endDate = "",
+                        isLeader = false
+                    )
+
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        showBetInputDialog = false,
+                        challengeStatus = ChallengeStatus.WAITING_TO_START,
+                        groupName = _uiState.value.joinedGroupName,
+                        goal = _uiState.value.joinedGroupGoal,
+                        penalty = _uiState.value.joinedGroupPenalty,
+                        period = _uiState.value.joinedGroupPeriod,
+                        bet = betCoin,
+                        isLeader = false
+                    )
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "그룹 입장에 실패했습니다"
+                    )
+                }
+            )
+        }
+    }
+
+    /**
+     * 5분마다 순위 자동 갱신 시작
+     */
+    private fun startAutoRefresh() {
+        stopAutoRefresh() // 기존 작업이 있으면 중단
+
+        updateRankingJob = viewModelScope.launch {
+            while (true) {
+                loadRanking() // 5분마다 순위 조회
+                delay(5 * 60 * 1000L) // 5분 대기
+            }
+        }
+    }
+
+    /**
+     * 자동 갱신 중단
+     */
+    private fun stopAutoRefresh() {
+        updateRankingJob?.cancel()
+        updateRankingJob = null
+    }
+
+    /**
+     * 순위 조회
+     */
+    fun loadRanking() {
+        val groupId = groupManager.getGroupId()
+        if (groupId == 0L) return
+
+        viewModelScope.launch {
+            groupRepository.getRanking(groupId).fold(
+                onSuccess = { response ->
+                    _uiState.value = _uiState.value.copy(
+                        groupInfo = response.groupInfo,
+                        rankings = response.rankings
                     )
                 },
                 onFailure = { error ->

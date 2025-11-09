@@ -31,6 +31,7 @@ class GroupManager @Inject constructor(
         private const val KEY_ENTRY_CODE = "entry_code"
         private const val KEY_START_DATE = "start_date"
         private const val KEY_END_DATE = "end_date"
+        private const val KEY_IS_LEADER = "is_leader"
 
         const val STATUS_NO_CHALLENGE = "NO_CHALLENGE"
         const val STATUS_WAITING_TO_START = "WAITING_TO_START"
@@ -63,7 +64,8 @@ class GroupManager @Inject constructor(
         bet: Int,
         entryCode: String = "",
         startDate: String = "",
-        endDate: String = ""
+        endDate: String = "",
+        isLeader: Boolean = false
     ) {
         prefs.edit {
             putLong(KEY_GROUP_ID, groupId)
@@ -75,6 +77,7 @@ class GroupManager @Inject constructor(
             putString(KEY_ENTRY_CODE, entryCode)
             putString(KEY_START_DATE, startDate)
             putString(KEY_END_DATE, endDate)
+            putBoolean(KEY_IS_LEADER, isLeader)
             putString(KEY_CHALLENGE_STATUS, STATUS_WAITING_TO_START)
         }
     }
@@ -182,5 +185,12 @@ class GroupManager @Inject constructor(
      */
     fun isInProgress(): Boolean {
         return getChallengeStatus() == STATUS_IN_PROGRESS
+    }
+
+    /**
+     * 방장 여부 확인
+     */
+    fun isLeader(): Boolean {
+        return prefs.getBoolean(KEY_IS_LEADER, false)
     }
 }

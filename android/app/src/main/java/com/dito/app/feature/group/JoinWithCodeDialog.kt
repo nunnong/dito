@@ -55,7 +55,8 @@ import com.dito.app.core.ui.component.DitoModalContainer
 
 @Composable
 fun JoinWithCodeDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onJoinWithCode: (String) -> Unit
 ) {
     var code1 by remember { mutableStateOf("") }
     var code2 by remember { mutableStateOf("") }
@@ -184,9 +185,8 @@ fun JoinWithCodeDialog(
                             .border(1.dp, Outline, DitoShapes.small)
                             .background(if (isCodeComplete) Primary else Color.White)
                             .clickable(enabled = isCodeComplete) {
-                                // TODO: API 호출하여 코드로 그룹 참여
                                 val entryCode = code1 + code2 + code3 + code4
-                                // viewModel.joinGroupWithCode(entryCode)
+                                onJoinWithCode(entryCode)
                             }
                             .padding(vertical = m),
                         contentAlignment = Alignment.Center

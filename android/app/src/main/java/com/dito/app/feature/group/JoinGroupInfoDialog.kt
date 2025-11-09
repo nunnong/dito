@@ -12,20 +12,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
-fun JoinGroupInfoDialog() {
+fun JoinGroupInfoDialog(
+    groupName: String,
+    goal: String,
+    penalty: String,
+    period: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
     var bet by remember { mutableStateOf("") }
 
     Box(
@@ -71,6 +78,7 @@ fun JoinGroupInfoDialog() {
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.TopStart)
+                        .clickable { onDismiss() }
                 )
             }
 
@@ -107,7 +115,7 @@ fun JoinGroupInfoDialog() {
                 )
                 Column {
                     Text(
-                        text = "방 정보",
+                        text = "${groupName} 정보",
                         color = Color.Black,
                         style = DitoCustomTextStyles.titleDMedium
                     )
@@ -130,7 +138,7 @@ fun JoinGroupInfoDialog() {
             ) {
                 ChallengeInfoField(
                     title = "기간(일수)",
-                    content = "7일",
+                    content = "${period}일",
                     iconRes = R.drawable.period
                 )
 
@@ -138,7 +146,7 @@ fun JoinGroupInfoDialog() {
 
                 ChallengeInfoField(
                     title = "목표",
-                    content = "유튜브 하루 2시간 이하",
+                    content = goal,
                     iconRes = R.drawable.goal
                 )
 
@@ -146,7 +154,7 @@ fun JoinGroupInfoDialog() {
 
                 ChallengeInfoField(
                     title = "벌칙",
-                    content = "커피 사주기",
+                    content = penalty,
                     iconRes = R.drawable.penalty
                 )
 
@@ -162,6 +170,8 @@ fun JoinGroupInfoDialog() {
 
                 Spacer(Modifier.height(Spacing.xl))
 
+                val isValidBet = bet.toIntOrNull()?.let { it >= 10 } ?: false
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
@@ -173,7 +183,12 @@ fun JoinGroupInfoDialog() {
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
+                        .background(if (isValidBet) Primary else Color.White)
+                        .clickable(enabled = isValidBet) {
+                            bet.toIntOrNull()?.let { betAmount ->
+                                onConfirm(betAmount)
+                            }
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

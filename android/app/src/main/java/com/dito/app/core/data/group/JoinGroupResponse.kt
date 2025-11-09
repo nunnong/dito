@@ -14,9 +14,9 @@ data class JoinGroupResponse(
     @SerialName("group_name")
     val groupName: String,
     @SerialName("startDate")
-    val startDate: String,
+    val startDate: String? = null,
     @SerialName("endDate")
-    val endDate: String,
+    val endDate: String? = null,
     @SerialName("goalDescription")
     val goalDescription: String,
     @SerialName("penaltyDescription")

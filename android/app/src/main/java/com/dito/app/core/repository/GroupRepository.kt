@@ -98,7 +98,8 @@ class GroupRepository @Inject constructor(
                 Log.d(TAG, "응답 성공 여부: ${response.isSuccessful}")
 
                 if (response.isSuccessful && response.body() != null) {
-                    val groupData = response.body()!!
+                    val apiResponse = response.body()!!
+                    val groupData = apiResponse.data
                     Log.d(
                         TAG,
                         "그룹 정보 조회 성공: groupId=${groupData.groupId}, groupName=${groupData.groupName}"

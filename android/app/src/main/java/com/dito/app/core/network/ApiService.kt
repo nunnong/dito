@@ -101,10 +101,10 @@ interface ApiService {
     suspend fun getGroupInfo(
         @Body request: JoinGroupRequest,
         @Header("Authorization") token: String
-    ): Response<JoinGroupResponse>
+    ): Response<ApiResponse<JoinGroupResponse>>
 
     // 방 정보 확인 후 최종 입장
-    @PUT("challenges/groups/{group_id}/start")
+    @PUT("challenges/groups/create/participant")
     suspend fun joinGroup(
         @Body request: EnterGroupRequest,
         @Header("Authorization") token: String
