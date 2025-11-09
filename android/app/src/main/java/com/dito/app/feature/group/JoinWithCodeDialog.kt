@@ -1,8 +1,10 @@
 package com.dito.app.feature.group
 
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,9 +39,10 @@ import com.dito.app.core.ui.designsystem.Spacing.m
 import com.dito.app.core.ui.designsystem.hardShadow
 import com.dito.app.core.ui.component.DitoModalContainer
 
-@Preview(showBackground = true)
 @Composable
-fun JoinWithCodeDialog() {
+fun JoinWithCodeDialog(
+    onDismiss: () -> Unit
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -59,6 +62,7 @@ fun JoinWithCodeDialog() {
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.TopEnd)
+                        .clickable { onDismiss() }
                 )
 
                 // 컨텐츠

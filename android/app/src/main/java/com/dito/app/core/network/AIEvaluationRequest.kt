@@ -84,6 +84,18 @@ data class BehaviorLogEntry(
 
 @Serializable
 data class AIEvaluationResponse(
+    @SerialName("message")
+    val message: String? = null,
+
+    @SerialName("data")
+    val data: AIEvaluationData,
+
+    @SerialName("error")
+    val error: Boolean
+)
+
+@Serializable
+data class AIEvaluationData(
     @SerialName("run_id")
     val runId: String,
 
@@ -92,4 +104,13 @@ data class AIEvaluationResponse(
 
     @SerialName("status")
     val status: String
+)
+
+@Serializable
+data class AIEvaluationErrorResponse(
+    @SerialName("error")
+    val error: Boolean,
+
+    @SerialName("message")
+    val message: String
 )

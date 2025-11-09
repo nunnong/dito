@@ -2,14 +2,13 @@ package com.dito.app.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.dito.app.MainActivity
+import com.dito.app.PermissionTestScreen
 import com.dito.app.MainScreen
 import com.dito.app.feature.auth.AuthViewModel
 import com.dito.app.feature.auth.LoginScreen
@@ -17,11 +16,10 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
-import com.dito.app.feature.shop.ShopScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
-@Composable
+ @Composable
 fun DitoNavGraph(
     navController: NavHostController,
     startDestination: String = Route.Splash.path,
@@ -46,19 +44,13 @@ fun DitoNavGraph(
         composable(Route.Login.path) {
             LoginScreen(
                 onLoginSuccess = {
-                    // 테스트용: 로그인 성공 시 Test 화면으로 이동
-//                    navController.navigate(Route.Test.path) {
-//                        popUpTo(Route.Login.path) { inclusive = true }
-//                        launchSingleTop = true
-//                    }
-                    // 로그인 성공 시 Home 화면으로 이동
+
                     navController.navigate(Route.Home.path){
                         popUpTo(Route.Login.path){ inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
-                    // TODO: 회원가입 라우트 추가시 열기
                      navController.navigate(Route.SignupCredential.path)
                 }
             )
@@ -200,54 +192,26 @@ fun DitoNavGraph(
             val authViewModel: AuthViewModel = hiltViewModel()
             MainScreen(
                 onLogout = {
-                    authViewModel.signOut()
-                    navController.navigate(Route.Login.path) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
+                    authViewModel.logout(
+                        onSuccess = {
+                            navController.navigate(Route.Login.path) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
-                        launchSingleTop = true
-                    }
+                    )
                 },
-                onNavigateToShop = {
-                    // Shop 화면은 MainScreen 내부에서 처리됨
-                },
-                initialShowShop = false,
-                onBackFromShop = {
-                    // Shop에서 뒤로가기 시 처리 (필요시)
-                }
+                outerNavController = navController
             )
         }
 
-        // ShopScreen Composable - MainScreen을 통해 표시
-        composable(Route.Shop.path) {
-            val authViewModel: AuthViewModel = hiltViewModel()
-            MainScreen(
-                onLogout = {
-                    authViewModel.signOut()
-                    navController.navigate(Route.Login.path) {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToShop = {
-                    // 이미 Shop 화면
-                },
-                initialShowShop = true,
-                onBackFromShop = {
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // 7) 테스트 화면 (권한 설정, Realm 확인 등)
+        // 7) 테스트 화면 (권한 테스트)
         composable(Route.Test.path) {
-            val activity = LocalContext.current as MainActivity
-            MainScreen(
-                activity = activity,
-                onNavigateToHealth = {}
-            )
+            PermissionTestScreen()
         }
+
+
     }
 }

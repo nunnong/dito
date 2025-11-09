@@ -11,6 +11,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.service.phone.PlaybackProbe
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -26,8 +27,8 @@ class MediaSessionListenerService : NotificationListenerService() {
 
     @Inject
     lateinit var missionTracker: MissionTracker
-    private lateinit var sessionManager: SessionStateManager
 
+    private lateinit var sessionManager: SessionStateManager
     private val activeControllers = mutableMapOf<String, MediaController>()
 
     override fun onCreate() {
@@ -44,18 +45,18 @@ class MediaSessionListenerService : NotificationListenerService() {
             val packageName = sbn.packageName
 
             Log.d(TAG, "알림 수신: $packageName")
-
             if (!isMediaApp(packageName)) return
 
-            val mediaToken: MediaSession.Token? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                notification.extras.getParcelable(
-                    Notification.EXTRA_MEDIA_SESSION,
-                    MediaSession.Token::class.java
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                notification.extras.getParcelable(Notification.EXTRA_MEDIA_SESSION)
-            }
+            val mediaToken: MediaSession.Token? =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notification.extras.getParcelable(
+                        Notification.EXTRA_MEDIA_SESSION,
+                        MediaSession.Token::class.java
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    notification.extras.getParcelable(Notification.EXTRA_MEDIA_SESSION)
+                }
 
             if (mediaToken == null) {
                 Log.d(TAG, "MediaSession 토큰 없음")
@@ -69,8 +70,28 @@ class MediaSessionListenerService : NotificationListenerService() {
             controller.registerCallback(mediaCallback)
 
             Log.d(TAG, "MediaController 등록: $packageName")
-
             logMediaInfo(controller)
+
+            // 등록 직후에도 이미 메타데이터/상태가 유효할 수 있음 → 즉시 반영
+            val state = controller.playbackState?.state
+            val md = controller.metadata
+            if (md != null) {
+                val title = md.getString(MediaMetadata.METADATA_KEY_TITLE)
+                val hasValidTitle = !title.isNullOrBlank() && !title.equals("YouTube", true)
+                when {
+                    state == PlaybackState.STATE_PLAYING && hasValidTitle -> {
+                        // 재생 상태 이벤트가 아직 안 와도 세션 시작을 보장
+                        sessionManager.handlePlaybackStarted(md, controller.packageName)
+                    }
+                    hasValidTitle -> {
+                        // 최소한 채널/타이틀은 세션에 반영
+                        sessionManager.updateMetadata(md)
+                    }
+                    else -> {
+                        // 타이틀이 아직 비었으면 후속 콜백에서 처리
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "❌ 알림 처리 실패", e)
         }
@@ -105,7 +126,6 @@ class MediaSessionListenerService : NotificationListenerService() {
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         Log.d(TAG, "NotificationListener 연결 해제됨")
-
         try {
             activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
             activeControllers.clear()
@@ -114,20 +134,15 @@ class MediaSessionListenerService : NotificationListenerService() {
         }
     }
 
-
     override fun onDestroy() {
         super.onDestroy()
-
         try {
-
             sessionManager.cleanup()
-
             activeControllers.values.forEach { it.unregisterCallback(mediaCallback) }
             activeControllers.clear()
         } catch (e: Exception) {
             Log.e(TAG, "❌ onDestroy 처리 실패", e)
         }
-
         Log.i(TAG, "🛑 MediaSessionListenerService 종료")
     }
 
@@ -181,7 +196,6 @@ class MediaSessionListenerService : NotificationListenerService() {
     }
 
     private val mediaCallback = object : MediaController.Callback() {
-
         override fun onPlaybackStateChanged(state: PlaybackState?) {
             super.onPlaybackStateChanged(state)
             try {
@@ -197,6 +211,11 @@ class MediaSessionListenerService : NotificationListenerService() {
                 if (metadata == null) {
                     Log.d(TAG, "메타데이터 없음")
                     return
+                }
+
+                // PlaybackProbe 기록
+                if (state?.state == PlaybackState.STATE_PLAYING) {
+                    PlaybackProbe.recordPlayback()
                 }
 
                 when (state?.state) {

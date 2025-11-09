@@ -1,8 +1,8 @@
 package com.dito.app.feature.group
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,7 +18,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.component.DitoModalContainer
@@ -32,9 +31,12 @@ import com.dito.app.core.ui.designsystem.PrimaryContainer
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
-fun ChallengeDialog() {
+fun CreateChallengeDialog(
+    groupName: String,
+    onDismiss: () -> Unit,
+    onCreateChallenge: (String, String, String, Int, Int) -> Unit = { _, _, _, _, _ -> }
+) {
     var period by remember { mutableStateOf("") }
     var goal by remember { mutableStateOf("") }
     var penalty by remember { mutableStateOf("") }
@@ -80,6 +82,7 @@ fun ChallengeDialog() {
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.TopStart)
+                        .clickable { onDismiss() }
                 )
             }
 
@@ -189,6 +192,13 @@ fun ChallengeDialog() {
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
                         .background(Background)
+                        .clickable {
+                            val periodInt = period.toIntOrNull() ?: 0
+                            val betInt = bet.toIntOrNull() ?: 0
+                            if (goal.isNotEmpty() && penalty.isNotEmpty() && periodInt > 0 && betInt >= 10) {
+                                onCreateChallenge(groupName, goal, penalty, periodInt, betInt)
+                            }
+                        }
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {

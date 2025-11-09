@@ -25,6 +25,7 @@ class AuthTokenManager @Inject constructor(
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_PERSONAL_ID = "personal_id"
+        private const val KEY_FREQUENCY = "frequency"
     }
 
     /**

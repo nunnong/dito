@@ -2,6 +2,7 @@ package com.dito.app.feature.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -15,13 +16,16 @@ import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.ErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true)
 @Composable
-fun WithrawalDialog() {
+fun WithdrawDialog(
+    onDismiss: () -> Unit = {},
+    onConfirm: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -34,7 +38,7 @@ fun WithrawalDialog() {
             backgroundColor = Color.White,
             borderColor = Color.Black,
             shadowColor = Color.Black,
-            contentPadding = PaddingValues(vertical = Spacing.xl, horizontal = Spacing.l)
+            contentPadding = PaddingValues(vertical = Spacing.l, horizontal = Spacing.l)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -47,11 +51,11 @@ fun WithrawalDialog() {
                     style = DitoCustomTextStyles.titleKLarge
                 )
 
-                Spacer(Modifier.height(Spacing.xl))
+                Spacer(Modifier.height(Spacing.l))
 
                 // 버튼 Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(0.8f),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.m)
                 ) {
                     // 취소 버튼
@@ -67,6 +71,7 @@ fun WithrawalDialog() {
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(Color.White)
+                            .clickable { onDismiss() }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -77,6 +82,7 @@ fun WithrawalDialog() {
                         )
                     }
 
+                    // 탈퇴 버튼
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -88,7 +94,8 @@ fun WithrawalDialog() {
                             )
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
-                            .background(Color.White)
+                            .background(ErrorContainer)
+                            .clickable { onConfirm() }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
