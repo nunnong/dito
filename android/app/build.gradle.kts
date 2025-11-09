@@ -75,6 +75,9 @@ dependencies {
     // ========== Navigation ==========
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // ========== Coil (Image Loading) ==========
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
     // ========== Hilt (DI) ==========
     implementation("com.google.dagger:hilt-android:2.57.2")
     implementation(libs.androidx.room.ktx)
