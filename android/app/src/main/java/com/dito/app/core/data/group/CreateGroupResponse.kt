@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class CreateGroupResponse(
+    @SerialName("id")
     val id: Long? = null,
     @SerialName("group_name")
     val groupName: String? = null,

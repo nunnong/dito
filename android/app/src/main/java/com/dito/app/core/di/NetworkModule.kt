@@ -49,7 +49,7 @@ object NetworkModule {
     private fun createLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
             // 디버그: 본문까지, 릴리스: 로그 끔
-            level = HttpLoggingInterceptor.Level.NONE
+            level = HttpLoggingInterceptor.Level.BODY
 
             // 민감 헤더 마스킹
             redactHeader("Authorization")

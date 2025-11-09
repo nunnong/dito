@@ -69,7 +69,6 @@ fun GroupLeaderScreen(
     val context = LocalContext.current
     val participantCount = participants.size
 
-    // 날짜 형식 변환: "2025-11-09" -> "25.11.09"
     fun formatDate(date: String): String {
         return try {
             if (date.isEmpty()) return ""
@@ -107,7 +106,7 @@ fun GroupLeaderScreen(
     ) {
         // 배경 도로 이미지
         Image(
-            painter = painterResource(id = R.drawable.waitingroom),
+            painter = painterResource(id = R.drawable.race4),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
