@@ -8,18 +8,28 @@ import jakarta.validation.constraints.NotNull;
 
 /**
  * AI Intervention 요청 DTO
- * Phase 0: Echo Server 테스트용
+ * Phase 1: AI Integration
  *
  * 요청 형식:
  * {
  *   "user_id": "catch",
  *   "behavior_log": {
- *     "app_name": "YouTube Shorts",
+ *     "app_name": "YouTube",
  *     "duration_seconds": 1200,
- *     "usage_timestamp": "2025-01-03T23:45:00"
+ *     "usage_timestamp": "2025-01-10T15:30:00"
  *   }
  * }
  */
+@Schema(description = "AI 개입 요청 DTO", example = """
+    {
+      "user_id": "catch",
+      "behavior_log": {
+        "app_name": "YouTube",
+        "duration_seconds": 1200,
+        "usage_timestamp": "2025-01-10T15:30:00"
+      }
+    }
+    """)
 public record InterventionRequest(
         @NotBlank(message = "사용자 ID는 필수입니다")
         @JsonProperty("user_id")
