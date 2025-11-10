@@ -30,19 +30,26 @@ import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
 import com.dito.app.core.util.PermissionHelper
 
-/** 회원가입 화면 - 4단계: 사용 권한 허용 */
+enum class PermissionScreenMode {
+    SIGNUP,      // 회원가입 모드
+    RECHECK      // 권한 재확인 모드
+}
+
+/** 회원가입 화면 - 4단계: 사용 권한 허용 / 권한 재확인 화면 */
 @Composable
 fun SignUpPermissionScreen(
-    username: String,
-    password: String,
-    nickname: String,
-    birthYear: Int,
-    birthMonth: Int,
-    birthDay: Int,
-    gender: String,
-    job: String,
-    onNavigateBack: () -> Unit,
-    onPermissionsGranted: (username: String, password: String, nickname: String, birthYear: Int, birthMonth: Int, birthDay: Int, gender: String, job: String) -> Unit,
+    mode: PermissionScreenMode = PermissionScreenMode.SIGNUP,
+    username: String = "",
+    password: String = "",
+    nickname: String = "",
+    birthYear: Int = 0,
+    birthMonth: Int = 0,
+    birthDay: Int = 0,
+    gender: String = "",
+    job: String = "",
+    onNavigateBack: () -> Unit = {},
+    onPermissionsGranted: (username: String, password: String, nickname: String, birthYear: Int, birthMonth: Int, birthDay: Int, gender: String, job: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onPermissionsRecheckComplete: () -> Unit = {},
     viewModel: SignUpPermissionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,8 +75,9 @@ fun SignUpPermissionScreen(
         viewModel.checkPermissions(context)
     }
 
+    // SIGNUP 모드: 회원가입 완료 후 다음으로 이동
     LaunchedEffect(uiState.navigateToNext) {
-        if (uiState.navigateToNext) {
+        if (mode == PermissionScreenMode.SIGNUP && uiState.navigateToNext) {
             onPermissionsGranted(
                 username,
                 password,
@@ -81,6 +89,16 @@ fun SignUpPermissionScreen(
                 job
             )
             viewModel.onNavigated()
+        }
+    }
+
+    // RECHECK 모드: 권한이 모두 부여되면 자동으로 완료
+    LaunchedEffect(uiState.accessibilityPermission, uiState.usageStatsPermission, uiState.notificationPermission) {
+        if (mode == PermissionScreenMode.RECHECK &&
+            uiState.accessibilityPermission &&
+            uiState.usageStatsPermission &&
+            uiState.notificationPermission) {
+            onPermissionsRecheckComplete()
         }
     }
 
@@ -99,30 +117,32 @@ fun SignUpPermissionScreen(
     Scaffold(
         containerColor = Color.White,
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                    .padding(start = 32.dp, end = 32.dp, bottom = 90.dp)
-            ) {
-                LargeStartButton(
-                    text = if (uiState.isLoading) "가입 중..." else "Let's Start!",
-                    enabled = isFormValid && !uiState.isLoading,
-                    onClick = {
-                        focusManager.clearFocus()
-                        viewModel.onLetsStartClicked(
-                            username = username,
-                            password = password,
-                            nickname = nickname,
-                            birthYear = birthYear,
-                            birthMonth = birthMonth,
-                            birthDay = birthDay,
-                            gender = gender,
-                            job = job
-                        )
-                    },
+            if (mode == PermissionScreenMode.SIGNUP) {
+                Box(
                     modifier = Modifier
-                )
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
+                        .padding(start = 32.dp, end = 32.dp, bottom = 90.dp)
+                ) {
+                    LargeStartButton(
+                        text = if (uiState.isLoading) "가입 중..." else "Let's Start!",
+                        enabled = isFormValid && !uiState.isLoading,
+                        onClick = {
+                            focusManager.clearFocus()
+                            viewModel.onLetsStartClicked(
+                                username = username,
+                                password = password,
+                                nickname = nickname,
+                                birthYear = birthYear,
+                                birthMonth = birthMonth,
+                                birthDay = birthDay,
+                                gender = gender,
+                                job = job
+                            )
+                        },
+                        modifier = Modifier
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -142,17 +162,19 @@ fun SignUpPermissionScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 뒤로가기 버튼
-                Image(
-                    painter = painterResource(id = R.drawable.angle_left),
-                    contentDescription = "뒤로가기",
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clickable { onNavigateBack() }
-                )
+                // 뒤로가기 버튼 (SIGNUP 모드일 때만 표시)
+                if (mode == PermissionScreenMode.SIGNUP) {
+                    Image(
+                        painter = painterResource(id = R.drawable.angle_left),
+                        contentDescription = "뒤로가기",
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clickable { onNavigateBack() }
+                    )
+                }
 
                 Text(
-                    text = "사용권한",
+                    text = if (mode == PermissionScreenMode.SIGNUP) "사용권한" else "권한 재확인",
                     style = DitoTypography.headlineMedium,
                     color = Color.Black
                 )
@@ -160,7 +182,10 @@ fun SignUpPermissionScreen(
 
             // 설명 텍스트
             Text(
-                text = "디토 이용을 위해 꼭 필요한 권한만 모았어요.",
+                text = if (mode == PermissionScreenMode.SIGNUP)
+                    "디토 이용을 위해 꼭 필요한 권한만 모았어요."
+                else
+                    "앱 사용에 필요한 권한이\n해제되어 있습니다.\n권한을 다시 허용해주세요.",
                 style = DitoCustomTextStyles.titleDMedium,
                 color = Color.Black,
                 modifier = Modifier
@@ -168,7 +193,9 @@ fun SignUpPermissionScreen(
                     .padding(horizontal = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(
+                if (mode == PermissionScreenMode.RECHECK) 80.dp else 32.dp
+            ))
 
             // 권한 목록
             Column(
@@ -208,7 +235,8 @@ fun SignUpPermissionScreen(
                             PermissionHelper.openNotificationSettings(context)
                         }
                     },
-                    showTopBorder = true
+                    showTopBorder = true,
+                    showBottomBorder = mode == PermissionScreenMode.RECHECK
                 )
             }
         }
@@ -222,24 +250,32 @@ private fun PermissionItem(
     description: String,
     isGranted: Boolean,
     onToggle: (Boolean) -> Unit,
-    showTopBorder: Boolean = false
+    showTopBorder: Boolean = false,
+    showBottomBorder: Boolean = false
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(94.dp)
             .background(Color.White)
-            .then(
-                if (showTopBorder) Modifier.border(
-                    width = 1.5.dp,
-                    color = Color.Black,
-                    shape = RoundedCornerShape(0.dp)
-                ).padding(top = 1.5.dp) else Modifier
-            )
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
     ) {
+        // Top border
+        if (showTopBorder) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.5.dp)
+                    .background(Color.Black)
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(94.dp)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -265,6 +301,17 @@ private fun PermissionItem(
             checked = isGranted,
             onCheckedChange = onToggle
         )
+        }
+
+        // Bottom border
+        if (showBottomBorder) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.5.dp)
+                    .background(Color.Black)
+            )
+        }
     }
 }
 
