@@ -11,6 +11,7 @@ import com.ssafy.Dito.domain.mission.dto.response.MissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.QAiMissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.QMissionRes;
 import com.ssafy.Dito.domain.mission.entity.QMission;
+import com.ssafy.Dito.domain.missionResult.entity.QMissionResult;
 import com.ssafy.Dito.global.util.PageUtils;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class MissionQueryRepository {
 
     private final int PAGE_SIZE = 10;
     private final QMission mission = QMission.mission;
+    private final QMissionResult missionResult = QMissionResult.missionResult;
 
     public Page<MissionRes> getMissionPage(long pageNum) {
 
@@ -42,9 +44,11 @@ public class MissionQueryRepository {
                         mission.missionType,
                         mission.missionText,
                         mission.coinReward,
-                        mission.status
+                        mission.status,
+                        missionResult.result
                 ))
                 .from(mission)
+                .leftJoin(missionResult).on(missionResult.mission.eq(mission))
                 .offset(pageNum * PAGE_SIZE)
                 .limit(PAGE_SIZE)
                 .orderBy(mission.id.desc())
