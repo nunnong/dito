@@ -217,11 +217,13 @@ fun DitoNavGraph(
             )
         }
 
-        // 8) 테스트 화면 (권한 테스트)
-        composable(Route.Test.path) {
-            PermissionTestScreen()
-        }
+                        // 8) 테스트 화면 (권한 테스트)
 
+                        composable(Route.Test.path) {
 
-    }
+                            PermissionTestScreen()
+
+                        }
+
+                    }
 }

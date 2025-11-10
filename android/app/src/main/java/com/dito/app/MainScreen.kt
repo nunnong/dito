@@ -21,6 +21,7 @@ import com.dito.app.core.util.PermissionHelper
 import com.dito.app.feature.closet.ClosetScreen
 import com.dito.app.feature.group.GroupScreen
 import com.dito.app.feature.home.HomeScreen
+import com.dito.app.feature.missionNotification.MissionNotificationScreen
 import com.dito.app.feature.settings.SettingScreen
 import com.dito.app.feature.settings.EditNotiCount
 import com.dito.app.feature.settings.ChangeNickName
@@ -116,7 +117,8 @@ fun MainScreen(
                 HomeScreen(
                     onLogout = onLogout,
                     onCartClick  = { innerNavController.navigate("shop") },
-                    onClosetClick = { innerNavController.navigate("closet") }
+                    onClosetClick = { innerNavController.navigate("closet") },
+                    onNotificationClick = { innerNavController.navigate("mission_notification")}
                 )
             }
             composable("shop") {
@@ -124,6 +126,9 @@ fun MainScreen(
             }
             composable("closet") {
                 ClosetScreen(onBackClick = { innerNavController.popBackStack() })
+            }
+            composable("mission_notification"){
+                MissionNotificationScreen(onBackClick = { innerNavController.popBackStack() })
             }
             composable(Route.GroupRoot.path) {
                 GroupScreen(navController = innerNavController)

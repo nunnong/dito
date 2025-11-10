@@ -35,6 +35,9 @@ sealed class Route(val path: String) {
 
     // Main
     data object Home : Route("home")
+    data object Closet : Route("closet")
+    data object Shop : Route("shop")
+    data object MissionNotification : Route("mission_notification")
     data object PermissionRecheck : Route("permission_recheck")
 
     // Test
