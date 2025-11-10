@@ -20,7 +20,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
-import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 
@@ -340,23 +339,6 @@ private fun ProgressBarItem(label: String, progress: Float) {
                         .fillMaxWidth(progress)
                         .background(Primary, RectangleShape)
                 )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Home Screen", style = MaterialTheme.typography.headlineLarge)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 테스트용: 스크린타임 즉시 동기화
-                    Button(onClick = {
-                        ScreenTimeSyncWorker.triggerImmediateSync(context)
-                    }) {
-                        Text("📊 스크린타임 동기화 (테스트)")
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(onClick = onLogout) {
-                        Text("Logout (Temporary)")
-                    }
-                }
             }
         }
     }
