@@ -34,8 +34,8 @@ public class MissionService {
     public Long createMission(MissionReq req) {
         long userId = req.userId();
 
-        // 진행 중인 미션이 이미 있는지 확인
-        Optional<Mission> existingMission = missionRepository.findByUser_IdAndStatus(userId, Status.IN_PROGRESS);
+        // 가장 최근 진행 중인 미션이 있는지 확인 (trigger_time 기준 내림차순)
+        Optional<Mission> existingMission = missionRepository.findFirstByUser_IdAndStatusOrderByTriggerTimeDesc(userId, Status.IN_PROGRESS);
 
         if (existingMission.isPresent()) {
             Mission mission = existingMission.get();

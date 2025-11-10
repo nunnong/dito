@@ -18,4 +18,6 @@ public interface MissionRepository extends JpaRepository<Mission, Long>{
     boolean existsByUser_IdAndStatus(Long userId, Status status);
 
     Optional<Mission> findByUser_IdAndStatus(Long userId, Status status);
+
+    Optional<Mission> findFirstByUser_IdAndStatusOrderByTriggerTimeDesc(Long userId, Status status);
 }
