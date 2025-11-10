@@ -154,18 +154,16 @@ private fun TabAndCoinSection(
     onTabSelected: (ShopTab) -> Unit,
     coins: Int
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(78.dp)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
+        // 중앙 정렬된 탭
         Row(
             modifier = Modifier
-                .wrapContentSize()
-                .padding(end = 23.dp),
+                .align(Alignment.Center),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -187,33 +185,40 @@ private fun TabAndCoinSection(
                 modifier = Modifier.clickable { onTabSelected(ShopTab.BACKGROUND) }
             )
         }
-        CoinDisplay(coins = coins)
+
+        // 오른쪽 정렬된 잔액 표시
+        CoinDisplay(
+            coins = coins,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
     }
 }
 
 @Composable
-private fun CoinDisplay(coins: Int) {
+private fun CoinDisplay(
+    coins: Int,
+    modifier: Modifier = Modifier
+) {
     Row(
-        modifier = Modifier
-            .width(81.dp)
+        modifier = modifier
+            .widthIn(min = 81.dp)
             .height(36.dp)
             .hardShadow(DitoHardShadow.ButtonSmall.copy(cornerRadius = 48.dp))
             .background(Primary, CircleShape)
             .border(2.dp, Color.Black, CircleShape)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = coins.toString(),
-            style = DitoCustomTextStyles.titleDLarge,
+            style = DitoCustomTextStyles.titleDMedium,
             color = Color.Black
         )
-        Spacer(modifier = Modifier.width(4.dp))
         Image(
             painter = painterResource(id = R.drawable.lemon),
             contentDescription = "Coin",
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(20.dp),
             contentScale = ContentScale.Fit
         )
     }

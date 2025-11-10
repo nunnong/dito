@@ -47,8 +47,8 @@ fun ClosetScreen(
 
         CharacterPreview(
             selectedTab = uiState.selectedTab,
-            equippedCostumeImageUrl = uiState.items.firstOrNull { it.isEquipped && uiState.selectedTab == ClosetTab.COSTUME }?.imageUrl,
-            equippedBackgroundImageUrl = uiState.items.firstOrNull { it.isEquipped && uiState.selectedTab == ClosetTab.BACKGROUND }?.imageUrl
+            equippedCostumeImageUrl = uiState.equippedCostumeUrl,
+            equippedBackgroundImageUrl = uiState.equippedBackgroundUrl
         )
 
         TabSection(
@@ -136,19 +136,20 @@ private fun CharacterPreview(
             Spacer(modifier = Modifier.fillMaxSize().background(Color(0xFFF5EBD2)))
         }
 
-        // Character Base Image (e.g., Dito)
-        Image(
-            painter = painterResource(id = R.drawable.dito),
-            contentDescription = "Character Base",
-            modifier = Modifier.size(146.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        // Costume Image
+        // Costume Image or Character Base Image
         if (equippedCostumeImageUrl != null) {
+            // Show equipped costume
             AsyncImage(
                 model = equippedCostumeImageUrl,
                 contentDescription = "Equipped Costume",
+                modifier = Modifier.size(146.dp),
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            // Show default character when no costume is equipped
+            Image(
+                painter = painterResource(id = R.drawable.dito),
+                contentDescription = "Character Base",
                 modifier = Modifier.size(146.dp),
                 contentScale = ContentScale.Fit
             )
@@ -260,7 +261,7 @@ private fun ClosetItemCard(
     Column(
         modifier = Modifier
             .width(120.67.dp)
-            .height(141.dp)
+            .height(139.dp)
             .background(Color.White, RoundedCornerShape(4.dp))
             .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -269,7 +270,8 @@ private fun ClosetItemCard(
     ) {
         Box(
             modifier = Modifier
-                .size(85.dp)
+                .aspectRatio(1f)
+                .fillMaxWidth()
                 .background(Color(0xFFF5EBD2)),
             contentAlignment = Alignment.Center
         ) {
