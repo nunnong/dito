@@ -33,14 +33,14 @@ data class Participant(
 
 @Serializable
 data class EquipedItem(
-    @SerialName("userItemId")
+    @SerialName("user_item_id")
     val userItemId: String,
-    @SerialName("itemId")
+    @SerialName("item_id")
     val itemId: Long,
     @SerialName("type")
     val type: String,
     @SerialName("name")
     val name: String,
-    @SerialName("imgUrl")
+    @SerialName("img_url")
     val imgUrl: String
 )
