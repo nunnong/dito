@@ -4,6 +4,7 @@ import android.util.Log
 import com.dito.app.core.data.mission.MissionTrackingLog
 import com.dito.app.core.data.phone.AppUsageEvent
 import com.dito.app.core.data.phone.MediaSessionEvent
+import com.dito.app.core.data.screentime.ScreenTimeLocalLog
 import io.realm.kotlin.Realm
 import io.realm.kotlin.RealmConfiguration
 
@@ -20,7 +21,8 @@ object RealmConfig {
                 schema = setOf(
                     AppUsageEvent::class,
                     MediaSessionEvent::class,
-                    MissionTrackingLog::class
+                    MissionTrackingLog::class,
+                    ScreenTimeLocalLog::class
                 )
             )
                 .name("dito.realm")                     // 파일명
