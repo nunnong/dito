@@ -44,8 +44,12 @@ class MediaSessionListenerService : NotificationListenerService() {
             val notification = sbn?.notification ?: return
             val packageName = sbn.packageName
 
-            Log.d(TAG, "알림 수신: $packageName")
-            if (!isMediaApp(packageName)) return
+            Log.d(TAG, "📢 알림 수신: $packageName")
+            if (!isMediaApp(packageName)) {
+                Log.d(TAG, "   ⏭️ 미디어 앱 아님, 무시")
+                return
+            }
+            Log.d(TAG, "   ✅ 미디어 앱 감지!")
 
             val mediaToken: MediaSession.Token? =
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

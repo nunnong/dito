@@ -52,8 +52,9 @@ fun MainScreen(
                 val hasAccessibility = PermissionHelper.isAccessibilityPermissionGranted(context)
                 val hasUsageStats = PermissionHelper.isUsageStatsPermissionGranted(context)
                 val hasNotification = PermissionHelper.isNotificationPermissionGranted(context)
+                val hasNotificationListener = PermissionHelper.isNotificationListenerPermissionGranted(context)
 
-                if (!hasAccessibility || !hasUsageStats || !hasNotification) {
+                if (!hasAccessibility || !hasUsageStats || !hasNotification || !hasNotificationListener) {
                     isCheckingPermissions = true
                     outerNavController?.navigate(Route.PermissionRecheck.path) {
                         launchSingleTop = true

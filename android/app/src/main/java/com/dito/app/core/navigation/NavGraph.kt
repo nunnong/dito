@@ -45,7 +45,7 @@ fun DitoNavGraph(
             LoginScreen(
                 onLoginSuccess = {
 
-                    navController.navigate(Route.Test.path){
+                    navController.navigate(Route.Home.path){
                         popUpTo(Route.Login.path){ inclusive = true }
                         launchSingleTop = true
                     }
