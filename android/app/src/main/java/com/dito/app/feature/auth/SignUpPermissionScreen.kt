@@ -124,7 +124,7 @@ fun SignUpPermissionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                        .padding(start = 32.dp, end = 32.dp, bottom = 90.dp)
+                        .padding(start = 32.dp, end = 32.dp, bottom = 40.dp)
                 ) {
                     LargeStartButton(
                         text = if (uiState.isLoading) "가입 중..." else "Let's Start!",
@@ -361,7 +361,7 @@ private fun LargeStartButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(84.dp)
+            .height(68.dp)
             .hardShadow(DitoHardShadow.ButtonLarge.copy(cornerRadius = 8.dp))
             .clip(RoundedCornerShape(8.dp))
             .background(if (enabled) Primary else Color.White)
