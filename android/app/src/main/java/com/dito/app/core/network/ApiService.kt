@@ -136,7 +136,7 @@ interface ApiService {
 
     // Group
 
-    // 소속 그룹 데이터
+    // 그룹 상세 정보
     @GET("/challenges/groups/detail")
     suspend fun getGroupDetail(
         @Header("Authorization") token: String

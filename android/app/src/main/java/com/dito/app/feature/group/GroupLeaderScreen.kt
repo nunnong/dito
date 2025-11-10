@@ -51,12 +51,9 @@ fun GroupLeaderScreen(
     period: Int,
     goal: String,
     penalty: String,
-    startDate: String,
-    endDate: String,
     participants: List<Participant> = emptyList(),
     isStarted: Boolean = false,
-    onStartChallenge: () -> Unit = {},
-    onLoadParticipants: () -> Unit = {},
+    onStartChallenge: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val participantCount = participants.size
@@ -75,18 +72,6 @@ fun GroupLeaderScreen(
             }
         } catch (e: Exception) {
             date
-        }
-    }
-
-    val formattedStartDate = formatDate(startDate)
-    val formattedEndDate = formatDate(endDate)
-
-    // 화면 진입 시 참여자 목록 조회 + 5초마다 polling
-    LaunchedEffect(Unit) {
-        onLoadParticipants() // 초기 로드
-        while (true) {
-            delay(5000L) // 5초 대기
-            onLoadParticipants() // 갱신
         }
     }
 
@@ -337,13 +322,13 @@ fun GroupLeaderScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "PERIOD : $formattedStartDate - $formattedEndDate",
+                            text = "PERIOD : ${period}일",
                             style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
 
                         Text(
-                            text = "GOAL : {}",
+                            text = "GOAL : $goal",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )

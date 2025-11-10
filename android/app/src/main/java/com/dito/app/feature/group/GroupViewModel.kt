@@ -68,7 +68,6 @@ class GroupChallengeViewModel @Inject constructor(
 
     init {
         // 서버에서 최신 그룹 정보 불러오기
-        loadGroupInfoFromServer()
     }
 
     override fun onCleared() {
@@ -110,7 +109,7 @@ class GroupChallengeViewModel @Inject constructor(
      * 서버에서 최신 그룹 정보 불러오기
      * ViewModel 초기화 시 자동 호출됨
      */
-    private fun loadGroupInfoFromServer() {
+    fun refreshGroupInfo() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -167,7 +166,7 @@ class GroupChallengeViewModel @Inject constructor(
                         )
 
                         // 참여자 목록 조회
-                        loadParticipants()
+                        loadParticipants(groupDetail.groupId)
 
                         // 진행 중이면 자동 갱신 시작
                         if (status == ChallengeStatus.IN_PROGRESS) {
@@ -376,8 +375,7 @@ class GroupChallengeViewModel @Inject constructor(
     /**
      * 참여자 목록 조회
      */
-    fun loadParticipants() {
-        val groupId = groupManager.getGroupId()
+    fun loadParticipants(groupId: Long) {
         if (groupId == 0L) {
             return
         }

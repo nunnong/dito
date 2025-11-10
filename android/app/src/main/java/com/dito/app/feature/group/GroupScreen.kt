@@ -50,6 +50,10 @@ fun GroupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(key1 = Unit) {
+        viewModel.refreshGroupInfo()
+    }
+
     // 스플래시 화면 표시
     if (uiState.showSplash) {
         ChallengeSplashScreen()
@@ -71,12 +75,9 @@ fun GroupScreen(
                     period = uiState.period,
                     goal = uiState.goal,
                     penalty = uiState.penalty,
-                    startDate = uiState.startDate,
-                    endDate = uiState.endDate,
                     participants = uiState.participants,
                     isStarted = false,
-                    onStartChallenge = { viewModel.onChallengeStarted() },
-                    onLoadParticipants = { viewModel.loadParticipants() }
+                    onStartChallenge = { viewModel.onChallengeStarted() }
                 )
             } else {
                 // 참가자 화면
@@ -86,8 +87,7 @@ fun GroupScreen(
                     period = uiState.period,
                     goal = uiState.goal,
                     penalty = uiState.penalty,
-                    participants = uiState.participants,
-                    onLoadParticipants = { viewModel.loadParticipants() }
+                    participants = uiState.participants
                 )
             }
             return
