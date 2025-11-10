@@ -38,7 +38,11 @@ public class GroupChallengeQueryRepository {
             ))
             .from(groupParticipant)
             .join(groupParticipant.id.group, groupChallenge)
-            .where(groupParticipant.id.user.id.eq(userId))
-            .fetchOne();
+            .where(
+                groupParticipant.id.user.id.eq(userId),
+                groupChallenge.status.in("pending", "in_progress")  // 활성 상태의 그룹만
+            )
+            .orderBy(groupChallenge.createdAt.desc())  // 최신 그룹 우선
+            .fetchFirst();  // 첫 번째 결과만
     }
 }
