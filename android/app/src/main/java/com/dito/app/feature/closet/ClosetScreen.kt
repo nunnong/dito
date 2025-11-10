@@ -261,7 +261,7 @@ private fun ClosetItemCard(
     Column(
         modifier = Modifier
             .width(120.67.dp)
-            .height(141.dp)
+            .height(139.dp)
             .background(Color.White, RoundedCornerShape(4.dp))
             .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -270,7 +270,8 @@ private fun ClosetItemCard(
     ) {
         Box(
             modifier = Modifier
-                .size(85.dp)
+                .aspectRatio(1f)
+                .fillMaxWidth()
                 .background(Color(0xFFF5EBD2)),
             contentAlignment = Alignment.Center
         ) {
