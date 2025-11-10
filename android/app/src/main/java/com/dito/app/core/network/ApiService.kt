@@ -17,8 +17,6 @@ import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
-import com.dito.app.core.data.group.UpdateScreenTimeRequest
-import com.dito.app.core.data.group.UpdateScreenTimeResponse
 import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
