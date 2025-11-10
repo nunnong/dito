@@ -5,18 +5,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class EnterGroupResponse(
-    @SerialName("group_id")
+    @SerialName("groupId")
     val groupId: Long,
-
     @SerialName("status")
     val status: String,
-
-    @SerialName("start_date")
+    @SerialName("startDate")
     val startDate: String,
-
-    @SerialName("end_date")
+    @SerialName("endDate")
     val endDate: String,
-
-    @SerialName("total_bet_coins")
-    val TotalBetCoins: Int
+    @SerialName("totalBetCoins")
+    val totalBetCoins: Int
 )

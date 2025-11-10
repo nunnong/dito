@@ -323,18 +323,7 @@ class GroupChallengeViewModel @Inject constructor(
 
             groupRepository.getGroupInfo(inviteCode).fold(
                 onSuccess = { response ->
-                    // startDate와 endDate로부터 기간 계산 (null이면 기본값 7일)
-                    val period = if (response.startDate != null && response.endDate != null) {
-                        try {
-                            val start = LocalDate.parse(response.startDate)
-                            val end = LocalDate.parse(response.endDate)
-                            java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
-                        } catch (e: Exception) {
-                            7 // 파싱 실패 시 기본값
-                        }
-                    } else {
-                        7 // null이면 기본값
-                    }
+                    val period = response.period
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

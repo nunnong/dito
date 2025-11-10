@@ -5,16 +5,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UpdateScreenTimeResponse(
-
-    @SerialName("group_id")
+    @SerialName("groupId")
     val groupId: Int,
-    @SerialName("user_id")
+    @SerialName("userId")
     val userId: Int,
     @SerialName("date")
     val date: String,
-    @SerialName("total_minutes")
+    @SerialName("totalMinutes")
     val totalMinutes: Int,
     @SerialName("status")
     val status: String
-
 )
