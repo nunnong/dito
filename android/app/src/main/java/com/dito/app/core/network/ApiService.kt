@@ -137,7 +137,7 @@ interface ApiService {
     ): Response<ApiResponse<JoinGroupResponse>>
 
     // 방 정보 확인 후 최종 입장
-    @PUT("challenges/groups/create/participant")
+    @PUT("/challenges/groups/create/participant")
     suspend fun joinGroup(
         @Body request: EnterGroupRequest,
         @Header("Authorization") token: String
@@ -159,7 +159,6 @@ interface ApiService {
 
 
     // Setting
-
     @POST("/logout")
     suspend fun logout(
         @Header("Authorization") token: String

@@ -39,7 +39,7 @@ fun CreateGroupNameDialog(
     onNavigateNext: (String) -> Unit
 ) {
     var groupName by remember { mutableStateOf(initialGroupName) }
-    val isValid = groupName.length in 1..7 && groupName.matches("^[a-zA-Z가-힣]+$".toRegex())
+    val isValid = groupName.length in 1..10 && groupName.matches("^[a-zA-Z가-힣]+$".toRegex())
 
     Box(
         modifier = Modifier
@@ -106,8 +106,8 @@ fun CreateGroupNameDialog(
                     BasicTextField(
                         value = groupName,
                         onValueChange = { input ->
-                            val regex = "^[a-zA-Z가-힣]{0,7}$".toRegex()
-                            if (regex.matches(input)) {
+                            // 길이만 체크하여 한글 조합형 입력 허용
+                            if (input.length <= 10) {
                                 groupName = input
                             }
                         },

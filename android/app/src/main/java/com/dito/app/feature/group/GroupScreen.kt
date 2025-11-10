@@ -85,7 +85,6 @@ fun GroupScreen(
             return
         }
         ChallengeStatus.NO_CHALLENGE -> {
-            // 기존 화면 표시
         }
     }
 
