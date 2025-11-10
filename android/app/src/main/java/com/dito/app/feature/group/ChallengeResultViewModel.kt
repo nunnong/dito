@@ -1,5 +1,11 @@
 package com.dito.app.feature.group
 
+import android.content.ContentValues
+import android.content.Context
+import android.graphics.Bitmap
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dito.app.core.data.group.GetRankingResponse
@@ -8,10 +14,12 @@ import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.OutputStream
 import javax.inject.Inject
 
 data class ChallengeResultUiState(
@@ -24,11 +32,15 @@ data class ChallengeResultUiState(
 @HiltViewModel
 class ChallengeResultViewModel @Inject constructor(
     private val groupRepository: GroupRepository,
-    private val groupManager: GroupManager
+    private val groupManager: GroupManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChallengeResultUiState())
     val uiState: StateFlow<ChallengeResultUiState> = _uiState.asStateFlow()
+
+    private val _saveSuccess = MutableStateFlow<Boolean?>(null)
+    val saveSuccess: StateFlow<Boolean?> = _saveSuccess.asStateFlow()
 
     init {
         loadRanking()
@@ -67,5 +79,42 @@ class ChallengeResultViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun saveScreenshot(bitmap: Bitmap) {
+        viewModelScope.launch {
+            try {
+                val filename = "challenge_result_${System.currentTimeMillis()}.png"
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                    put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Dito")
+                    }
+                }
+
+                val uri = context.contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    contentValues
+                )
+
+                uri?.let {
+                    val outputStream: OutputStream? = context.contentResolver.openOutputStream(it)
+                    outputStream?.use { stream ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                    }
+                    _saveSuccess.value = true
+                } ?: run {
+                    _saveSuccess.value = false
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _saveSuccess.value = false
+            }
+        }
+    }
+
+    fun resetSaveSuccess() {
+        _saveSuccess.value = null
     }
 }
