@@ -42,7 +42,7 @@ fun ChangeNickName(
     viewModel: SettingViewModel = hiltViewModel()
 ) {
     var nickName by remember { mutableStateOf("") }
-    val isValid = nickName.length in 1..7 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
+    val isValid = nickName.length in 1..10 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
     val uiState by viewModel.uiState.collectAsState()
 
     // 로그인 필요 에러 발생 시 로그인 페이지로 이동
@@ -109,8 +109,8 @@ fun ChangeNickName(
                     BasicTextField(
                         value = nickName,
                         onValueChange = { input ->
-                            val regex = "^[a-zA-Z가-힣]{0,7}$".toRegex()
-                            if (regex.matches(input)) {
+                            // 길이만 체크하여 한글 조합형 입력 허용
+                            if (input.length <= 7) {
                                 nickName = input
                             }
                         },
