@@ -8,7 +8,8 @@ public record MissionRes (
         String missionType,
         String missionText,
         int coinReward,
-        Status status) {
+        Status status
+) {
     @QueryProjection
     public MissionRes {
     }

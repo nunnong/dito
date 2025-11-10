@@ -123,4 +123,9 @@ public class User extends IdentifiableEntity {
     public void updateCoin(int coin){
         this.coinBalance -= coin;
     }
+
+    public void deletePersonalId() {
+        this.personalId = "감자고구마빵꾸똥꾸" + this.id;
+        this.nickname = "중독자";
+    }
 }

@@ -53,8 +53,8 @@ public class AuthService {
         Status status = Status.of(user);
         statusRepository.save(status);
 
-        Item costume = itemRepository.getById(3);
-        Item background = itemRepository.getById(14);
+        Item costume = itemRepository.getById(10);
+        Item background = itemRepository.getById(11);
 
         UserItem defaultCostume = UserItem.of(user, costume, true);
         UserItem defaultBackground = UserItem.of(user, background, true);
@@ -106,10 +106,13 @@ public class AuthService {
     @Transactional
     public void deleteUser(String accessToken) {
         long userId = JwtAuthentication.getUserId();
+        User user = userRepository.getById(userId);
+
+        user.deletePersonalId();
 
         deleteAccessToken(accessToken, userId);
 
-        userRepository.deleteById(userId);
+        // userRepository.deleteById(userId);
     }
 
     private SignInRes createToken(long userId){
