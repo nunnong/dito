@@ -253,12 +253,12 @@ def create_mission(mission_data: MissionData) -> str | None:
 
 
 def send_fcm_with_mission(
-    personal_id: str, mission_id: str, message: str
+    user_id: int, mission_id: str, message: str
 ) -> bool:
     """FCM 알림 전송 (미션 ID 포함)
 
     Args:
-        personal_id: 사용자 personalId (디바이스 토큰 조회용)
+        user_id: DB user ID (int)
         mission_id: 미션 ID (백엔드가 Mission 테이블에서 enrichment)
         message: 알림 메시지
 
@@ -277,7 +277,7 @@ def send_fcm_with_mission(
     }
 
     fcm_payload = {
-        "user_id": personal_id,
+        "user_id": user_id,
         "title": "디토",
         "message": message,
         "mission_id": mission_id,
@@ -316,32 +316,21 @@ def create_and_notify_mission(state: InterventionState) -> MissionNotificationRe
     """미션 생성 및 FCM 알림 전송 (Orchestrator)
 
     역할:
-    1. personalId로 DB user_id 조회
-    2. 미션 생성
-    3. FCM 알림 전송
+    1. 미션 생성
+    2. FCM 알림 전송
 
     각 단계별로 에러 처리 및 결과 추적
 
     Args:
-        state: Intervention state containing user_id, nudge_message, etc.
+        state: Intervention state containing user_id (int), nudge_message, etc.
 
     Returns:
         MissionNotificationResult with detailed success/failure info
     """
-    # Step 1: User ID lookup
-    personal_id = state["user_id"]
-    db_user_id = get_db_user_id(personal_id)
+    # user_id는 이미 DB user ID (int)
+    db_user_id = state["user_id"]
 
-    if db_user_id is None:
-        return MissionNotificationResult(
-            success=False,
-            mission_id=None,
-            fcm_sent=False,
-            db_user_id=None,
-            error_stage="user_lookup",
-        )
-
-    # Step 2: Mission creation
+    # Step 1: Mission creation
     target_app = "All Apps"
     if "behavior_log" in state and state["behavior_log"]:
         target_app = state["behavior_log"].get("app_name", "All Apps")
@@ -370,8 +359,8 @@ def create_and_notify_mission(state: InterventionState) -> MissionNotificationRe
             error_stage="mission_create",
         )
 
-    # Step 3: FCM send
-    fcm_sent = send_fcm_with_mission(personal_id, mission_id, state["nudge_message"])
+    # Step 2: FCM send
+    fcm_sent = send_fcm_with_mission(db_user_id, mission_id, state["nudge_message"])
 
     if not fcm_sent:
         # Mission created but FCM failed - partial success

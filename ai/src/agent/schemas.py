@@ -18,7 +18,7 @@ class InterventionState(TypedDict):
     """실시간 개입 에이전트의 상태"""
 
     # 필수 입력 필드 (초기 상태에서 제공되어야 함)
-    user_id: str  # DB user ID (스프링에서 변환후에 전달함)
+    user_id: int  # DB user ID (int)
     behavior_log: dict  # app_usage_logs 데이터
 
     # Optional - 워크플로우 중 생성되는 필드
@@ -158,4 +158,4 @@ class MissionNotificationResult:
     db_user_id: int | None  # DB user ID
     error_stage: (
         str | None
-    )  # 실패 단계: "user_lookup" | "mission_create" | "fcm_send" | None
+    )  # 실패 단계: "mission_create" | "fcm_send" | None
