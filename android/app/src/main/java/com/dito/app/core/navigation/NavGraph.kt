@@ -16,6 +16,7 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
+import com.dito.app.feature.group.ChallengeResultScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
@@ -217,13 +218,17 @@ fun DitoNavGraph(
             )
         }
 
-                        // 8) 테스트 화면 (권한 테스트)
+        // 8) 테스트 화면 (권한 테스트)
+        composable(Route.Test.path) {
+            PermissionTestScreen()
+        }
 
-                        composable(Route.Test.path) {
-
-                            PermissionTestScreen()
-
-                        }
-
-                    }
+        // 9) 챌린지 결과 화면
+        composable(Route.ChallengeResult.path) {
+            ChallengeResultScreen(
+                onNavigateToTab = { /* 탭 이동 */ },
+                onClose = { navController.popBackStack() }
+            )
+        }
+    }
 }

@@ -1,29 +1,44 @@
 package com.dito.app.feature.group
 
+import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.drawToBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.dito.app.R
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
@@ -51,7 +66,8 @@ private fun formatDateRange(startDate: String, endDate: String): String {
 
     return "${formatDate(startDate)} - ${formatDate(endDate)}"
 }
-@Preview(showBackground=true)
+
+@Preview(showBackground = true)
 @Composable
 fun ChallengeResultScreen(
     onNavigateToTab: (BottomTab) -> Unit = {},
@@ -59,6 +75,23 @@ fun ChallengeResultScreen(
     viewModel: ChallengeResultViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val saveSuccess by viewModel.saveSuccess.collectAsState()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var captureView by remember { mutableStateOf<ComposeView?>(null) }
+
+    // 저장 성공/실패 메시지
+    LaunchedEffect(saveSuccess) {
+        saveSuccess?.let { success ->
+            if (success) {
+                Toast.makeText(context, "갤러리에 저장되었습니다", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "저장에 실패했습니다", Toast.LENGTH_SHORT).show()
+            }
+            viewModel.resetSaveSuccess()
+        }
+    }
 
     if (uiState.isLoading) {
         Box(
@@ -86,23 +119,118 @@ fun ChallengeResultScreen(
         }
         return
     }
-    Scaffold(
-        bottomBar = {
-            DitoBottomAppBar(
-                selectedTab = BottomTab.GROUP,
-                onTabSelected = onNavigateToTab
+
+    val onSaveClick: () -> Unit = {
+        coroutineScope.launch(Dispatchers.Default) {
+            captureView?.let { view ->
+                try {
+                    // View가 측정되고 그려질 때까지 대기
+                    withContext(Dispatchers.Main) {
+                        view.post {
+                            // View 크기 강제 측정
+                            if (view.width == 0 || view.height == 0) {
+                                val widthSpec = android.view.View.MeasureSpec.makeMeasureSpec(
+                                    1080,
+                                    android.view.View.MeasureSpec.EXACTLY
+                                )
+                                val heightSpec = android.view.View.MeasureSpec.makeMeasureSpec(
+                                    0,
+                                    android.view.View.MeasureSpec.UNSPECIFIED
+                                )
+                                view.measure(widthSpec, heightSpec)
+                                view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+                            }
+
+                            if (view.width > 0 && view.height > 0) {
+                                val bitmap = view.drawToBitmap()
+                                viewModel.saveScreenshot(bitmap)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "캡처에 실패했습니다", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    Box {
+        Scaffold(
+            bottomBar = {
+                DitoBottomAppBar(
+                    selectedTab = BottomTab.GROUP,
+                    onTabSelected = onNavigateToTab
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(Background)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = l)
+            ) {
+                ChallengeResultContent(
+                    groupInfo = groupInfo,
+                    rankings = rankings,
+                    onClose = onClose,
+                    onSave = onSaveClick
+                )
+            }
+        }
+
+        // 캡처용 뷰 (투명하게 숨김)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .offset(y = (-10000).dp) // 화면 위로 이동
+        ) {
+            AndroidView(
+                factory = { ctx ->
+                    ComposeView(ctx).apply {
+                        captureView = this
+                        setContent {
+                            Box(
+                                modifier = Modifier
+                                    .width(1080.dp)
+                                    .background(Background)
+                                    .padding(horizontal = 24.dp)
+                            ) {
+                                ChallengeResultContent(
+                                    groupInfo = groupInfo,
+                                    rankings = rankings,
+                                    onClose = {},
+                                    onSave = {},
+                                    isCapture = true
+                                )
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .width(1080.dp)
+                    .wrapContentHeight()
             )
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Background)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = l)
-        ) {
-            // 닫기 버튼
+    }
+}
+
+@Composable
+fun ChallengeResultContent(
+    groupInfo: com.dito.app.core.data.group.GroupInfo,
+    rankings: List<com.dito.app.core.data.group.RankingItem>,
+    onClose: () -> Unit,
+    onSave: () -> Unit,
+    isCapture: Boolean = false
+) {
+    Column {
+        // 닫기 버튼 (캡처 모드에서는 숨김)
+        if (!isCapture) {
             Image(
                 painter = painterResource(R.drawable.close),
                 contentDescription = "닫기",
@@ -112,6 +240,7 @@ fun ChallengeResultScreen(
                     .clickable { onClose() }
                     .padding(top = m)
             )
+        }
 
             Spacer(modifier = Modifier.height(l))
 
@@ -160,14 +289,47 @@ fun ChallengeResultScreen(
 
             Spacer(modifier = Modifier.height(xl))
 
-            // 랭킹 리스트
-            rankings.forEach { ranking ->
-                RankingItem(
-                    rank = ranking.rank,
-                    nickname = ranking.nickname,
-                    time = ranking.totalScreenTimeFormatted,
-                    profileImage = ranking.profileImage
+            // 상단 레몬 아이콘
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.lemon),
+                    contentDescription = "레몬",
+                    modifier = Modifier.size(40.dp)
                 )
+            }
+
+            Spacer(modifier = Modifier.height(xl))
+
+            // WIN/LOSE 카드
+            if (rankings.isNotEmpty()) {
+                val winner = rankings.first()
+                val loser = rankings.last()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(m)
+                ) {
+                    // WIN 카드
+                    WinLoseCard(
+                        modifier = Modifier.weight(1f),
+                        isWin = true,
+                        nickname = winner.nickname,
+                        time = winner.totalScreenTimeFormatted,
+                        profileImage = winner.profileImage
+                    )
+
+                    // LOSE 카드
+                    WinLoseCard(
+                        modifier = Modifier.weight(1f),
+                        isWin = false,
+                        nickname = loser.nickname,
+                        time = loser.totalScreenTimeFormatted,
+                        profileImage = loser.profileImage
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(xl))
@@ -186,97 +348,100 @@ fun ChallengeResultScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(xl))
+        Spacer(modifier = Modifier.height(xl))
 
-            // 저장 버튼
-            SaveButton()
+        // 저장 버튼
+        SaveButton(
+            onSave = onSave
+        )
 
-            Spacer(modifier = Modifier.height(l))
-        }
+        Spacer(modifier = Modifier.height(l))
     }
 }
 
 @Composable
-fun RankingItem(
-    rank: Int,
+fun WinLoseCard(
+    modifier: Modifier = Modifier,
+    isWin: Boolean,
     nickname: String,
     time: String,
     profileImage: String? = null
 ) {
-    val rankText = when (rank) {
-        1 -> "1st"
-        2 -> "2nd"
-        3 -> "3rd"
-        else -> "${rank}th"
-    }
+    val backgroundColor = if (isWin) Primary else Color(0xFFE0E0E0)
+    val textColor = if (isWin) OnPrimary else OnSurface
+    val label = if (isWin) "WIN" else "LOSE"
 
-    val backgroundColor = when (rank) {
-        1 -> Primary
-        else -> Color.White
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = m)
+    Column(
+        modifier = modifier
             .hardShadow(
                 offsetX = 4.dp,
                 offsetY = 4.dp,
-                cornerRadius = 8.dp,
+                cornerRadius = 12.dp,
                 color = Color.Black
             )
-            .clip(DitoShapes.small)
-            .border(1.dp, Color.Black, DitoShapes.small)
+            .clip(DitoShapes.medium)
+            .border(2.dp, Color.Black, DitoShapes.medium)
             .background(backgroundColor)
-            .padding(vertical = m, horizontal = l)
+            .padding(vertical = l, horizontal = m),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 순위
+        // WIN/LOSE 텍스트
         Text(
-            text = rankText,
+            text = label,
             style = DitoCustomTextStyles.titleDLarge,
-            color = if (rank == 1) OnPrimary else OnSurface,
-            modifier = Modifier.width(60.dp)
+            color = textColor
         )
 
-        Spacer(modifier = Modifier.width(l))
+        Spacer(modifier = Modifier.height(m))
 
         // 프로필 이미지
-        if (profileImage != null) {
-            AsyncImage(
-                model = profileImage,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
-            )
-        } else {
-            Image(
-                painter = painterResource(R.drawable.dito),
-                contentDescription = null,
-                modifier = Modifier.size(40.dp)
-            )
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .border(2.dp, Color.Black, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (profileImage != null) {
+                AsyncImage(
+                    model = profileImage,
+                    contentDescription = null,
+                    modifier = Modifier.size(70.dp)
+                )
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.dito),
+                    contentDescription = null,
+                    modifier = Modifier.size(70.dp)
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.width(m))
+        Spacer(modifier = Modifier.height(m))
 
-        // 닉네임과 시간
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = nickname,
-                style = DitoTypography.bodyLarge,
-                color = if (rank == 1) OnPrimary else OnSurface
-            )
-            Spacer(modifier = Modifier.height(xs))
-            Text(
-                text = time,
-                style = DitoTypography.labelMedium,
-                color = if (rank == 1) OnPrimary else OnSurfaceVariant
-            )
-        }
+        // 닉네임
+        Text(
+            text = nickname,
+            style = DitoCustomTextStyles.titleKMedium,
+            color = textColor
+        )
+
+        Spacer(modifier = Modifier.height(xs))
+
+        // 시간
+        Text(
+            text = time,
+            style = DitoCustomTextStyles.titleKMedium,
+            color = textColor
+        )
     }
 }
 
 @Composable
-fun SaveButton() {
+fun SaveButton(
+    onSave: () -> Unit = {}
+) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -292,7 +457,7 @@ fun SaveButton() {
                 .clip(DitoShapes.small)
                 .border(1.dp, Color.Black, DitoShapes.small)
                 .background(Color.White)
-                .clickable { /* TODO: 저장 로직 */ }
+                .clickable { onSave() }
                 .padding(vertical = m, horizontal = xl),
             contentAlignment = Alignment.Center
         ) {
