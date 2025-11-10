@@ -42,7 +42,7 @@ fun ChangeNickName(
     viewModel: SettingViewModel = hiltViewModel()
 ) {
     var nickName by remember { mutableStateOf("") }
-    val isValid = nickName.length in 1..7 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
+    val isValid = nickName.length in 1..10 && nickName.matches("^[a-zA-Z가-힣]+$".toRegex())
     val uiState by viewModel.uiState.collectAsState()
 
     // 로그인 필요 에러 발생 시 로그인 페이지로 이동

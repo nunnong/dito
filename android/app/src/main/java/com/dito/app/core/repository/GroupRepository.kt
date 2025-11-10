@@ -13,6 +13,8 @@ import com.dito.app.core.data.group.UpdateScreenTimeRequest
 import com.dito.app.core.data.group.UpdateScreenTimeResponse
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
+import com.dito.app.feature.group.ChallengeStatus
+import com.dito.app.feature.group.GroupScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -235,6 +237,10 @@ class GroupRepository @Inject constructor(
                 Result.failure(e)
             }
         }
+
+    // 소속 그룹 조회
+//    suspend fun
+
 
     // 그룹 챌린지 참여자 목록 조회
     suspend fun getParticipants(groupId: Long): Result<GetParticipantsResponse> =
