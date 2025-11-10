@@ -9,14 +9,11 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class JoinGroupResponse(
-    @SerialName("group_id")
+    @SerialName("groupId")
     val groupId: Long,
-    @SerialName("group_name")
+    @SerialName("groupName")
     val groupName: String,
-    @SerialName("startDate")
-    val startDate: String? = null,
-    @SerialName("endDate")
-    val endDate: String? = null,
+    val period: Int,
     @SerialName("goalDescription")
     val goalDescription: String,
     @SerialName("penaltyDescription")

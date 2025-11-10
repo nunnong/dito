@@ -5,20 +5,28 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GetGroupDetailResponse(
-
-    // api 받기 전 임시로 작성
-    // 소속 그룹 정보 가져오기
+    @SerialName("groupId")
     val groupId: Long? = null,
+    @SerialName("groupName")
     val groupName: String? = null,
-    val inviteCode: String? = null,
-    val startDate: String? = null,
-    val endDate: String? = null,
-    val period: Int? = null,
+    @SerialName("goalDescription")
     val goalDescription: String? = null,
+    @SerialName("penaltyDescription")
     val penaltyDescription: String? = null,
+    @SerialName("period")
+    val period: Int? = null,
+    @SerialName("betCoin")
+    val betCoin: Int? = null,
+    @SerialName("totalBetCoin")
+    val totalBetCoin: Int? = null,
+    @SerialName("inviteCode")
+    val inviteCode: String? = null,
+    @SerialName("startDate")
+    val startDate: String? = null,
+    @SerialName("endDate")
+    val endDate: String? = null,
+    @SerialName("status")
     val status: String? = null,
-    val betCoins: Int? = null,
-    val totalBetCoins: Int? = null,
-    val createdAt: String? = null,
-    val host: GroupHost? = null
+    @SerialName("isHost")
+    val isHost: Boolean? = null
 )

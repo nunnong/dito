@@ -9,28 +9,38 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class GetParticipantsResponse(
+    @SerialName("groupId")
     val groupId: Long,
+    @SerialName("count")
     val count: Int,
+    @SerialName("participants")
     val participants: List<Participant>
 )
 
 @Serializable
 data class Participant(
+    @SerialName("userId")
     val userId: Long,
+    @SerialName("nickname")
     val nickname: String,
+    @SerialName("role")
     val role: String,
+    @SerialName("betAmount")
     val betAmount: Int,
+    @SerialName("equipedItems")
     val equipedItems: List<EquipedItem>
 )
 
 @Serializable
 data class EquipedItem(
-    @SerialName("user_item_id")
+    @SerialName("userItemId")
     val userItemId: String,
-    @SerialName("item_id")
+    @SerialName("itemId")
     val itemId: Long,
+    @SerialName("type")
     val type: String,
+    @SerialName("name")
     val name: String,
-    @SerialName("img_url")
+    @SerialName("imgUrl")
     val imgUrl: String
 )

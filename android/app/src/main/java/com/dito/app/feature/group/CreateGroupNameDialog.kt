@@ -132,7 +132,7 @@ fun CreateGroupNameDialog(
                             ) {
                                 if (groupName.isEmpty()) {
                                     Text(
-                                        text = "영문/한글 1~7자",
+                                        text = "영문/한글 1~10자",
                                         color = Color.Gray,
                                         style = DitoTypography.bodyMedium
                                     )

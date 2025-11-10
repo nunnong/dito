@@ -33,9 +33,14 @@ class GroupManager @Inject constructor(
         private const val KEY_END_DATE = "end_date"
         private const val KEY_IS_LEADER = "is_leader"
 
+        // 프론트엔드 전용 상태 (그룹에 참여하지 않음)
         const val STATUS_NO_CHALLENGE = "NO_CHALLENGE"
-        const val STATUS_WAITING_TO_START = "WAITING_TO_START"
-        const val STATUS_IN_PROGRESS = "IN_PROGRESS"
+
+        // 백엔드 API 상태와 동일하게 매칭
+        const val STATUS_PENDING = "pending"           // 생성했지만 START 전
+        const val STATUS_IN_PROGRESS = "in_progress"   // 진행 중
+        const val STATUS_COMPLETED = "completed"       // 종료됨
+        const val STATUS_CANCELLED = "cancelled"       // 취소됨
     }
 
     /**
@@ -78,7 +83,7 @@ class GroupManager @Inject constructor(
             putString(KEY_START_DATE, startDate)
             putString(KEY_END_DATE, endDate)
             putBoolean(KEY_IS_LEADER, isLeader)
-            putString(KEY_CHALLENGE_STATUS, STATUS_WAITING_TO_START)
+            putString(KEY_CHALLENGE_STATUS, STATUS_PENDING)
         }
     }
 
@@ -174,10 +179,10 @@ class GroupManager @Inject constructor(
     }
 
     /**
-     * 챌린지가 대기 중인지 확인
+     * 챌린지가 대기 중인지 확인 (pending 상태)
      */
-    fun isWaitingToStart(): Boolean {
-        return getChallengeStatus() == STATUS_WAITING_TO_START
+    fun isPending(): Boolean {
+        return getChallengeStatus() == STATUS_PENDING
     }
 
     /**
@@ -185,6 +190,20 @@ class GroupManager @Inject constructor(
      */
     fun isInProgress(): Boolean {
         return getChallengeStatus() == STATUS_IN_PROGRESS
+    }
+
+    /**
+     * 챌린지가 완료되었는지 확인
+     */
+    fun isCompleted(): Boolean {
+        return getChallengeStatus() == STATUS_COMPLETED
+    }
+
+    /**
+     * 챌린지가 취소되었는지 확인
+     */
+    fun isCancelled(): Boolean {
+        return getChallengeStatus() == STATUS_CANCELLED
     }
 
     /**

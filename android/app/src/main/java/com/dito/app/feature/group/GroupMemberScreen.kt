@@ -292,7 +292,7 @@ fun GroupMemberScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "팀 이름",
+                            text = groupName.ifEmpty { "팀 이름" },
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )
@@ -304,25 +304,25 @@ fun GroupMemberScreen(
                             .padding(horizontal = m, vertical = m)
                     ) {
                         Text(
-                            text = "PERIOD : {}",
+                            text = "PERIOD : ${period}일",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )
 
                         Text(
-                            text = "GOAL : {}",
+                            text = "GOAL : ${goal.ifEmpty { "-" }}",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )
 
                         Text(
-                            text = "PENALTY : {}",
+                            text = "PENALTY : ${penalty.ifEmpty { "-" }}",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )
 
                         Text(
-                            text = "현재 참여 인원 : {}명",
+                            text = "현재 참여 인원 : ${participantCount}명",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )

@@ -8,9 +8,6 @@ import com.dito.app.core.data.auth.AuthResponse
 import com.dito.app.core.data.auth.CheckUsernameResponse
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
-import com.dito.app.core.data.screentime.GroupRankingResponse
-import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
-import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
 import com.dito.app.core.data.closet.ClosetResponse
 import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
@@ -20,12 +17,13 @@ import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
-import com.dito.app.core.data.group.UpdateScreenTimeRequest
-import com.dito.app.core.data.group.UpdateScreenTimeResponse
 import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
 import com.dito.app.core.data.missionNotification.MissionNotificationResponse
+import com.dito.app.core.data.screentime.GroupRankingResponse
+import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
+import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -39,7 +37,6 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
-import retrofit2.http.Path
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -139,6 +136,12 @@ interface ApiService {
 
     // Group
 
+    // 소속 그룹 데이터
+    @GET("/challenges/groups/detail")
+    suspend fun getGroupDetail(
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<com.dito.app.core.data.group.GetGroupDetailResponse>>
+
     // 그룹 챌린지 생성
     @POST("/challenges/groups")
     suspend fun createChallenge(
@@ -153,7 +156,7 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<Unit>
 
-
+    
     // 초대 코드로 입장
     @POST("/challenges/groups/join")
     suspend fun getGroupInfo(
@@ -174,7 +177,7 @@ interface ApiService {
         @Path("group_id") groupId: Long,
         @Header("Authorization") token: String
     ): Response<ApiResponse<GetRankingResponse>>
-
+    
     // 그룹 챌린지 참여자 목록 조회
     @GET("/challenges/groups/{group_id}/participants")
     suspend fun getGroupParticipants(
@@ -206,15 +209,6 @@ interface ApiService {
         @Body request: UpdateFrequencyRequest,
         @Header("Authorization") token: String
     ): Response<ApiResponse<UpdateFrequencyResponse>>
-
-
-    // 스크린타임 갱신
-    @POST("/screen-time/update")
-    suspend fun updateScreenTime(
-        @Body request: UpdateScreenTimeRequest,
-        @Header("Authorization") token: String
-    ): Response<ApiResponse<UpdateScreenTimeResponse>>
-
 
 
 }

@@ -25,6 +25,9 @@ class AuthRepository @Inject constructor(
     private val groupManager: GroupManager,
     private val json: Json
 ) {
+    // GroupRepository는 lazy로 주입받아 순환 참조 방지
+    @Inject
+    lateinit var groupRepository: GroupRepository
     companion object {
         private const val TAG = "AuthRepository"
     }
@@ -175,6 +178,52 @@ class AuthRepository @Inject constructor(
             Log.e(TAG, "로그아웃 예외", e)
             Result.failure(e)
         }
+    }
+
+    /**
+     * 현재 참여 중인 그룹 정보 조회 및 저장
+     * 로그인 성공 시 자동으로 호출됨
+     */
+    private suspend fun loadAndSaveGroupInfo() {
+        groupRepository.getGroupDetail().fold(
+            onSuccess = { groupDetail ->
+                // 그룹에 참여 중인 경우에만 저장
+                if (groupDetail.groupId != null && groupDetail.groupName != null) {
+                    Log.d(TAG, "그룹 정보 저장: ${groupDetail.groupName}")
+
+                    val status = when (groupDetail.status) {
+                        "pending" -> GroupManager.STATUS_PENDING
+                        "in_progress" -> GroupManager.STATUS_IN_PROGRESS
+                        "completed" -> GroupManager.STATUS_COMPLETED
+                        "cancelled" -> GroupManager.STATUS_CANCELLED
+                        else -> GroupManager.STATUS_NO_CHALLENGE
+                    }
+
+                    groupManager.saveGroupInfo(
+                        groupId = groupDetail.groupId,
+                        groupName = groupDetail.groupName,
+                        goal = groupDetail.goalDescription ?: "",
+                        penalty = groupDetail.penaltyDescription ?: "",
+                        period = groupDetail.period ?: 0,
+                        bet = groupDetail.betCoin ?: 0,
+                        entryCode = groupDetail.inviteCode ?: "",
+                        startDate = groupDetail.startDate ?: "",
+                        endDate = groupDetail.endDate ?: "",
+                        isLeader = groupDetail.isHost ?: false
+                    )
+
+                    // 상태 저장
+                    groupManager.saveChallengeStatus(status)
+                    Log.d(TAG, "그룹 상태 저장 완료: $status")
+                } else {
+                    Log.d(TAG, "참여 중인 그룹 없음")
+                }
+            },
+            onFailure = { error ->
+                Log.w(TAG, "그룹 정보 조회 실패: ${error.message}")
+                throw error
+            }
+        )
     }
 
     /**

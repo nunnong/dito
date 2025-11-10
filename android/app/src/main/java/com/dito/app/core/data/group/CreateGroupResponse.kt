@@ -11,32 +11,36 @@ import kotlinx.serialization.Serializable
 data class CreateGroupResponse(
     @SerialName("id")
     val id: Long? = null,
-    @SerialName("group_name")
+    @SerialName("groupName")
     val groupName: String? = null,
-    @SerialName("invite_code")
+    @SerialName("inviteCode")
     val inviteCode: String? = null,
-    @SerialName("start_date")
+    @SerialName("startDate")
     val startDate: String? = null,
-    @SerialName("end_date")
+    @SerialName("endDate")
     val endDate: String? = null,
+    @SerialName("period")
     val period: Int? = null,
-    @SerialName("goal_description")
+    @SerialName("goalDescription")
     val goalDescription: String? = null,
-    @SerialName("penalty_description")
+    @SerialName("penaltyDescription")
     val penaltyDescription: String? = null,
+    @SerialName("status")
     val status: String? = null,
-    @SerialName("bet_coins")
+    @SerialName("betCoins")
     val betCoins: Int? = null,
-    @SerialName("total_bet_coins")
+    @SerialName("totalBetCoins")
     val totalBetCoins: Int? = null,
-    @SerialName("created_at")
+    @SerialName("createdAt")
     val createdAt: String? = null,
+    @SerialName("host")
     val host: GroupHost? = null
 )
 
 @Serializable
 data class GroupHost(
-    @SerialName("user_id")
+    @SerialName("userId")
     val userId: Long? = null,
+    @SerialName("role")
     val role: String? = null
 )
