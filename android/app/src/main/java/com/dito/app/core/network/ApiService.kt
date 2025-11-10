@@ -22,6 +22,7 @@ import com.dito.app.core.data.group.UpdateScreenTimeResponse
 import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
+import com.dito.app.core.data.missionNotification.MissionNotificationResponse
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -98,6 +99,13 @@ interface ApiService {
         @Query("type") type: String,
         @Query("page_number") pageNumber: Int
     ): Response<ClosetResponse>
+
+    // ========== MissionNotification ==========
+    @GET("/mission/{page_number}")
+    suspend fun getMissionNotifications(
+        @Header("Authorization") token: String,
+        @Path("page_number") pageNumber: Int,
+    ): Response<MissionNotificationResponse>
 
     // ========== Events ==========
     @POST("/event/app-usage")
