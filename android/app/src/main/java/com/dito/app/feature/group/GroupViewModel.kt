@@ -67,11 +67,8 @@ class GroupChallengeViewModel @Inject constructor(
     private var updateRankingJob: Job? = null
 
     init {
-        loadChallengeState()
-        // 챌린지가 진행 중이면 자동 갱신 시작
-        if (_uiState.value.challengeStatus == ChallengeStatus.IN_PROGRESS) {
-            startAutoRefresh()
-        }
+        // 서버에서 최신 그룹 정보 불러오기
+        loadGroupInfoFromServer()
     }
 
     override fun onCleared() {
@@ -107,6 +104,93 @@ class GroupChallengeViewModel @Inject constructor(
             endDate = groupManager.getEndDate(),
             isLeader = groupManager.isLeader()
         )
+    }
+
+    /**
+     * 서버에서 최신 그룹 정보 불러오기
+     * ViewModel 초기화 시 자동 호출됨
+     */
+    private fun loadGroupInfoFromServer() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            groupRepository.getGroupDetail().fold(
+                onSuccess = { groupDetail ->
+                    // 그룹에 참여 중인 경우
+                    if (groupDetail.groupId != null && groupDetail.groupName != null) {
+                        android.util.Log.d("GroupViewModel", "그룹 정보 불러오기 성공: ${groupDetail.groupName}")
+
+                        val status = when (groupDetail.status) {
+                            "pending" -> ChallengeStatus.PENDING
+                            "in_progress" -> ChallengeStatus.IN_PROGRESS
+                            "completed" -> ChallengeStatus.COMPLETED
+                            "cancelled" -> ChallengeStatus.CANCELLED
+                            else -> ChallengeStatus.NO_CHALLENGE
+                        }
+
+                        // GroupManager에 저장
+                        groupManager.saveGroupInfo(
+                            groupId = groupDetail.groupId,
+                            groupName = groupDetail.groupName,
+                            goal = groupDetail.goalDescription ?: "",
+                            penalty = groupDetail.penaltyDescription ?: "",
+                            period = groupDetail.period ?: 0,
+                            bet = groupDetail.betCoin ?: 0,
+                            entryCode = groupDetail.inviteCode ?: "",
+                            startDate = groupDetail.startDate ?: "",
+                            endDate = groupDetail.endDate ?: "",
+                            isLeader = groupDetail.isHost ?: false
+                        )
+                        groupManager.saveChallengeStatus(
+                            when (status) {
+                                ChallengeStatus.PENDING -> GroupManager.STATUS_PENDING
+                                ChallengeStatus.IN_PROGRESS -> GroupManager.STATUS_IN_PROGRESS
+                                ChallengeStatus.COMPLETED -> GroupManager.STATUS_COMPLETED
+                                ChallengeStatus.CANCELLED -> GroupManager.STATUS_CANCELLED
+                                else -> GroupManager.STATUS_NO_CHALLENGE
+                            }
+                        )
+
+                        // UI 상태 업데이트
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            challengeStatus = status,
+                            groupName = groupDetail.groupName,
+                            goal = groupDetail.goalDescription ?: "",
+                            penalty = groupDetail.penaltyDescription ?: "",
+                            period = groupDetail.period ?: 0,
+                            bet = groupDetail.betCoin ?: 0,
+                            entryCode = groupDetail.inviteCode ?: "",
+                            startDate = groupDetail.startDate ?: "",
+                            endDate = groupDetail.endDate ?: "",
+                            isLeader = groupDetail.isHost ?: false
+                        )
+
+                        // 참여자 목록 조회
+                        loadParticipants()
+
+                        // 진행 중이면 자동 갱신 시작
+                        if (status == ChallengeStatus.IN_PROGRESS) {
+                            startAutoRefresh()
+                            loadRanking()
+                        }
+                    } else {
+                        // 그룹에 참여하지 않음
+                        android.util.Log.d("GroupViewModel", "참여 중인 그룹 없음")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            challengeStatus = ChallengeStatus.NO_CHALLENGE
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    android.util.Log.w("GroupViewModel", "그룹 정보 불러오기 실패: ${error.message}")
+                    // 로컬에 저장된 정보로 복원 시도
+                    loadChallengeState()
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                }
+            )
+        }
     }
 
     fun onCreateDialogOpen() {

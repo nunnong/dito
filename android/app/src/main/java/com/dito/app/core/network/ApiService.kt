@@ -136,6 +136,12 @@ interface ApiService {
 
     // Group
 
+    // 소속 그룹 데이터
+    @GET("/challenges/groups/detail")
+    suspend fun getGroupDetail(
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<com.dito.app.core.data.group.GetGroupDetailResponse>>
+
     // 그룹 챌린지 생성
     @POST("/challenges/groups")
     suspend fun createChallenge(

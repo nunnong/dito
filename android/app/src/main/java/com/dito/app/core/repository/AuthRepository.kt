@@ -62,14 +62,6 @@ class AuthRepository @Inject constructor(
                     authTokenManager.savePersonalId(username)
 
                     Log.d(TAG, "✅ 로그인 성공: username=$username")
-
-                    // 로그인 성공 후 현재 참여 중인 그룹 정보 조회 및 저장
-                    try {
-                        loadAndSaveGroupInfo()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "그룹 정보 조회 실패 (계속 진행): ${e.message}")
-                    }
-
                     Result.success(Unit)
                 } else {
                     Log.e(TAG, "❌ 로그인 실패: 응답 데이터 없음")
