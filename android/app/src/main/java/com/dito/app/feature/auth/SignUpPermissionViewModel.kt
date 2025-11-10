@@ -17,6 +17,7 @@ data class SignUpPermissionUiState(
     val accessibilityPermission: Boolean = false,
     val usageStatsPermission: Boolean = false,
     val notificationPermission: Boolean = false,
+    val notificationListenerPermission: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val navigateToNext: Boolean = false
@@ -38,7 +39,8 @@ class SignUpPermissionViewModel @Inject constructor(
             it.copy(
                 accessibilityPermission = PermissionHelper.isAccessibilityPermissionGranted(context),
                 usageStatsPermission = PermissionHelper.isUsageStatsPermissionGranted(context),
-                notificationPermission = PermissionHelper.isNotificationPermissionGranted(context)
+                notificationPermission = PermissionHelper.isNotificationPermissionGranted(context),
+                notificationListenerPermission = PermissionHelper.isNotificationListenerPermissionGranted(context)
             )
         }
     }
@@ -98,6 +100,7 @@ class SignUpPermissionViewModel @Inject constructor(
         val currentState = _uiState.value
         return currentState.accessibilityPermission &&
                 currentState.usageStatsPermission &&
-                currentState.notificationPermission
+                currentState.notificationPermission &&
+                currentState.notificationListenerPermission
     }
 }

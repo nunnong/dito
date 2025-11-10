@@ -67,6 +67,17 @@ object PermissionHelper {
     }
 
     /**
+     * Notification Listener 권한이 허용되었는지 확인
+     */
+    fun isNotificationListenerPermissionGranted(context: Context): Boolean {
+        val enabledListeners = Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        )
+        return enabledListeners?.contains(context.packageName) == true
+    }
+
+    /**
      * 접근성 설정 화면 열기
      */
     fun openAccessibilitySettings(context: Context) {
@@ -111,6 +122,15 @@ object PermissionHelper {
                 data = android.net.Uri.parse("package:${context.packageName}")
             }
         }
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        context.startActivity(intent)
+    }
+
+    /**
+     * Notification Listener 설정 화면 열기
+     */
+    fun openNotificationListenerSettings(context: Context) {
+        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         context.startActivity(intent)
     }
