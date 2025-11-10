@@ -42,7 +42,7 @@ fun PrivacyPoicyDialog(onDismiss: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(Color.Black.copy(alpha = 0.5f))
             .padding(horizontal = Spacing.l, vertical = Spacing.m),
         contentAlignment = Alignment.Center
     ) {

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -79,11 +80,13 @@ fun JoinWithCodeDialog(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Background)
+            .background(Color.Black.copy(alpha = 0.5f))
     ) {
         DitoModalContainer(
-            modifier = Modifier.fillMaxWidth(0.9f).widthIn(max = 360.dp),
-            contentPadding = PaddingValues(horizontal = 48.dp, vertical = 24.dp)
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .widthIn(max = 400.dp),
+            contentPadding = PaddingValues(horizontal = Spacing.l, vertical = Spacing.l)
         ) {
             Box {
                 // 닫기 버튼을 가장 상단에 배치
@@ -100,7 +103,9 @@ fun JoinWithCodeDialog(
                 // 컨텐츠
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(top = Spacing.xl)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.s)
                 ) {
                     Text(
                         text = "코드로 참여하기",
@@ -108,10 +113,10 @@ fun JoinWithCodeDialog(
                         style = DitoCustomTextStyles.titleKLarge,
                         textAlign = TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(Spacing.xl))
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.s),
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -174,27 +179,27 @@ fun JoinWithCodeDialog(
 
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.85f)
+                            .fillMaxWidth()
                             .hardShadow(
                                 offsetX = 4.dp,
                                 offsetY = 4.dp,
-                                cornerRadius = 8.dp,
+                                cornerRadius = 16.dp,
                                 color = Color.Black
                             )
-                            .clip(DitoShapes.small)
-                            .border(1.dp, Outline, DitoShapes.small)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(2.dp, Color.Black, RoundedCornerShape(16.dp))
                             .background(if (isCodeComplete) Primary else Color.White)
                             .clickable(enabled = isCodeComplete) {
                                 val entryCode = code1 + code2 + code3 + code4
                                 onJoinWithCode(entryCode)
                             }
-                            .padding(vertical = m),
+                            .padding(vertical = Spacing.m),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "입력",
                             color = Color.Black,
-                            style = DitoCustomTextStyles.titleKMedium
+                            style = DitoCustomTextStyles.titleKLarge
                         )
                     }
                 }
@@ -212,9 +217,9 @@ private fun CodeInputBox(
 ) {
     Box(
         modifier = modifier
-            .height(60.dp)
-            .border(1.dp, color = OnSurface, shape = DitoShapes.extraSmall)
-            .background(color = Color.White),
+            .aspectRatio(1f)
+            .border(2.dp, color = Color.Black, shape = DitoShapes.extraSmall)
+            .background(color = Color.White, shape = DitoShapes.extraSmall),
         contentAlignment = Alignment.Center
     ) {
         BasicTextField(

@@ -288,7 +288,10 @@ class GroupChallengeViewModel @Inject constructor(
                             startDate = startDate,
                             endDate = endDate,
                             isLeader = true,
-                            showChallengeDialog = false
+                            showChallengeDialog = false,
+                            showJoinDialog = false,
+                            showCreateDialog = false,
+                            showBetInputDialog = false
                         )
                     } else {
                         // 필수 필드가 누락된 경우
@@ -462,6 +465,9 @@ class GroupChallengeViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showBetInputDialog = false,
+                        showJoinDialog = false,
+                        showCreateDialog = false,
+                        showChallengeDialog = false,
                         challengeStatus = ChallengeStatus.PENDING,
                         groupName = _uiState.value.joinedGroupName,
                         goal = _uiState.value.joinedGroupGoal,
