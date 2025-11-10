@@ -219,7 +219,7 @@ object Checker {
             appName = "YouTube",
             videoTitle = title,
             channelName = channel,
-            durationSeconds = (watchTime / 1000).toInt(),
+            durationSeconds = (watchTime / 1000).toInt() + 7200, //테스트용 시간 뻥튀기
             usageTimestamp = formatTimestamp(timestamp)
         )
     }

@@ -222,7 +222,9 @@ class AppMonitoringService : AccessibilityService() {
                         behaviorLog = BehaviorLog(
                             appName = appName, // "YouTube"
                             durationSeconds = (duration / 1000).toInt(),
-                            usageTimestamp = Checker.formatTimestamp(currentTime)
+                            usageTimestamp = Checker.formatTimestamp(currentTime),
+                            recentAppSwitches = null,
+                            appMetadata = null
                         ),
                         eventIds = eventIds
                     )
@@ -255,7 +257,9 @@ class AppMonitoringService : AccessibilityService() {
                         behaviorLog = BehaviorLog(
                             appName = appName,
                             durationSeconds = (duration / 1000).toInt(),
-                            usageTimestamp = Checker.formatTimestamp(currentTime)
+                            usageTimestamp = Checker.formatTimestamp(currentTime),
+                            recentAppSwitches = null,
+                            appMetadata = null
                         ),
                         eventIds = eventIds
                     )
