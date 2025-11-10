@@ -88,15 +88,16 @@ public class FcmService {
      */
     public void sendInterventionNotification(FcmSendRequest request) {
         // 1. 사용자 조회
-        User user = userRepository.getByPersonalId(request.personalId());
+        User user = userRepository.getById(request.userId());
 
         if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
-            log.warn("User {} has no FCM token. Skipping notification.", user.getPersonalId());
+            log.warn("User {} (ID: {}) has no FCM token. Skipping notification.",
+                    user.getPersonalId(), user.getId());
 
             // Log failure - no FCM token
             FcmLogDocument fcmLog = FcmLogDocument.builder()
                     .userId(user.getId())
-                    .personalId(request.personalId())
+                    .personalId(user.getPersonalId())
                     .title(request.title())
                     .message(request.message())
                     .missionId(request.missionId())
@@ -117,7 +118,7 @@ public class FcmService {
         // 3. Create log document before sending
         FcmLogDocument fcmLog = FcmLogDocument.builder()
                 .userId(user.getId())
-                .personalId(request.personalId())
+                .personalId(user.getPersonalId())
                 .title(request.title())
                 .message(request.message())
                 .missionId(request.missionId())
@@ -135,8 +136,9 @@ public class FcmService {
             fcmLog.markSuccess(response);
             fcmLogRepository.save(fcmLog);
 
-            log.info("FCM sent successfully - user: {}, missionId: {}, hasMission: {}, response: {}",
-                    request.personalId(),
+            log.info("FCM sent successfully - user: {} (ID: {}), missionId: {}, hasMission: {}, response: {}",
+                    user.getPersonalId(),
+                    request.userId(),
                     request.missionId() != null ? request.missionId() : "none",
                     request.missionId() != null,
                     response);
@@ -149,8 +151,9 @@ public class FcmService {
             fcmLog.markFailure(errorCode, e.getMessage());
             fcmLogRepository.save(fcmLog);
 
-            log.error("FCM send failed - user: {}, missionId: {}, error: {}",
-                    request.personalId(),
+            log.error("FCM send failed - user: {} (ID: {}), missionId: {}, error: {}",
+                    user.getPersonalId(),
+                    request.userId(),
                     request.missionId() != null ? request.missionId() : "none",
                     e.getMessage(), e);
             handleMessagingException(e, user);
