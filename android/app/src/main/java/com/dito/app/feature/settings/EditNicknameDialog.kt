@@ -109,8 +109,8 @@ fun ChangeNickName(
                     BasicTextField(
                         value = nickName,
                         onValueChange = { input ->
-                            val regex = "^[a-zA-Z가-힣]{0,7}$".toRegex()
-                            if (regex.matches(input)) {
+                            // 길이만 체크하여 한글 조합형 입력 허용
+                            if (input.length <= 7) {
                                 nickName = input
                             }
                         },
