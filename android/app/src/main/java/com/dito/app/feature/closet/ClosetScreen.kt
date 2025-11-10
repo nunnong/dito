@@ -136,19 +136,20 @@ private fun CharacterPreview(
             Spacer(modifier = Modifier.fillMaxSize().background(Color(0xFFF5EBD2)))
         }
 
-        // Character Base Image (e.g., Dito)
-        Image(
-            painter = painterResource(id = R.drawable.dito),
-            contentDescription = "Character Base",
-            modifier = Modifier.size(146.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        // Costume Image
+        // Costume Image or Character Base Image
         if (equippedCostumeImageUrl != null) {
+            // Show equipped costume
             AsyncImage(
                 model = equippedCostumeImageUrl,
                 contentDescription = "Equipped Costume",
+                modifier = Modifier.size(146.dp),
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            // Show default character when no costume is equipped
+            Image(
+                painter = painterResource(id = R.drawable.dito),
+                contentDescription = "Character Base",
                 modifier = Modifier.size(146.dp),
                 contentScale = ContentScale.Fit
             )
