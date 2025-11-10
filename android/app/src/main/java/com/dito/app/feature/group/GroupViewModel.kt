@@ -78,11 +78,18 @@ class GroupChallengeViewModel @Inject constructor(
     }
 
     private fun loadChallengeState() {
-        val status = when (groupManager.getChallengeStatus()) {
+        val savedStatus = groupManager.getChallengeStatus()
+        android.util.Log.d("GroupViewModel", "loadChallengeState - savedStatus: $savedStatus")
+        android.util.Log.d("GroupViewModel", "loadChallengeState - groupName: ${groupManager.getGroupName()}")
+        android.util.Log.d("GroupViewModel", "loadChallengeState - isLeader: ${groupManager.isLeader()}")
+
+        val status = when (savedStatus) {
             GroupManager.STATUS_WAITING_TO_START -> ChallengeStatus.WAITING_TO_START
             GroupManager.STATUS_IN_PROGRESS -> ChallengeStatus.IN_PROGRESS
             else -> ChallengeStatus.NO_CHALLENGE
         }
+
+        android.util.Log.d("GroupViewModel", "loadChallengeState - final status: $status")
 
         _uiState.value = _uiState.value.copy(
             challengeStatus = status,
@@ -154,7 +161,6 @@ class GroupChallengeViewModel @Inject constructor(
                     val period = response.period
                     val betCoins = response.betCoins
 
-                    // Nullable 필드 (기본값 사용)
                     val goalDescription = response.goalDescription ?: ""
                     val penaltyDescription = response.penaltyDescription ?: ""
                     val startDate = response.startDate ?: ""
@@ -162,6 +168,9 @@ class GroupChallengeViewModel @Inject constructor(
 
                     if (id != null && groupName != null && inviteCode != null &&
                         period != null && betCoins != null) {
+
+                        android.util.Log.d("GroupViewModel", "챌린지 생성 성공 - 저장 시작")
+                        android.util.Log.d("GroupViewModel", "groupId: $id, groupName: $groupName, isLeader: true")
 
                         // GroupManager에 저장
                         groupManager.saveGroupInfo(
@@ -176,6 +185,8 @@ class GroupChallengeViewModel @Inject constructor(
                             endDate = endDate,
                             isLeader = true
                         )
+
+                        android.util.Log.d("GroupViewModel", "저장 완료 - status: ${groupManager.getChallengeStatus()}")
 
                         // UI 상태 업데이트
                         _uiState.value = _uiState.value.copy(

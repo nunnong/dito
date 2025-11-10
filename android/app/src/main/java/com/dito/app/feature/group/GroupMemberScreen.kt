@@ -38,9 +38,26 @@ import com.dito.app.core.ui.designsystem.Spacing.m
 import com.dito.app.core.ui.designsystem.Spacing.s
 import com.dito.app.core.ui.designsystem.hardShadow
 
-@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun GroupMemberScreen() {
+fun GroupMemberScreen(
+    groupName: String = "",
+    entryCode: String = "",
+    period: Int = 0,
+    goal: String = "",
+    penalty: String = "",
+    participants: List<com.dito.app.core.data.group.Participant> = emptyList(),
+    onLoadParticipants: () -> Unit = {}
+) {
+    val participantCount = participants.size
+
+    // 화면 진입 시 참여자 목록 조회 + 5초마다 polling
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        onLoadParticipants() // 초기 로드
+        while (true) {
+            kotlinx.coroutines.delay(5000L) // 5초 대기
+            onLoadParticipants() // 갱신
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -89,7 +106,7 @@ fun GroupMemberScreen() {
                         style = DitoCustomTextStyles.titleKMedium
                     )
                     Text(
-                        text = "XR32U1",
+                        text = entryCode.ifEmpty { "-" },
                         color = Color.Black,
                         style = DitoCustomTextStyles.titleKMedium
                     )
@@ -288,6 +305,12 @@ fun GroupMemberScreen() {
                     ) {
                         Text(
                             text = "PERIOD : {}",
+                            color = Color.Black,
+                            style = DitoCustomTextStyles.titleKSmall
+                        )
+
+                        Text(
+                            text = "GOAL : {}",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )

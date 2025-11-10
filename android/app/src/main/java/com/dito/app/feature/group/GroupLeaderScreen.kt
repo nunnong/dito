@@ -17,18 +17,13 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.animation.core.*
 import androidx.compose.ui.Alignment
 import com.dito.app.core.data.group.Participant
 import kotlinx.coroutines.delay
@@ -346,6 +341,13 @@ fun GroupLeaderScreen(
                             style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
+
+                        Text(
+                            text = "GOAL : {}",
+                            color = Color.Black,
+                            style = DitoCustomTextStyles.titleKSmall
+                        )
+
                         Text(
                             text = "PENALTY : $penalty",
                             style = DitoCustomTextStyles.titleKSmall,
