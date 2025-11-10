@@ -24,7 +24,9 @@ data class ClosetUiState(
     val equipMessage: String? = null,
     val canPaginate: Boolean = false,
     val currentPage: Int = 0,
-    val selectedTab: ClosetTab = ClosetTab.COSTUME
+    val selectedTab: ClosetTab = ClosetTab.COSTUME,
+    val equippedCostumeUrl: String? = null,
+    val equippedBackgroundUrl: String? = null
 )
 
 @HiltViewModel
@@ -77,11 +79,17 @@ class ClosetViewModel @Inject constructor(
                                 item
                             }
                         }
+
+                        // Get newly equipped item URL
+                        val newlyEquippedUrl = updatedItems.firstOrNull { it.itemId == itemId }?.imageUrl
+
                         currentState.copy(
                             isLoading = false,
                             items = updatedItems, // Optimistically update
                             equipMessage = equipResponse.message,
-                            error = null
+                            error = null,
+                            equippedCostumeUrl = if (currentState.selectedTab == ClosetTab.COSTUME) newlyEquippedUrl else currentState.equippedCostumeUrl,
+                            equippedBackgroundUrl = if (currentState.selectedTab == ClosetTab.BACKGROUND) newlyEquippedUrl else currentState.equippedBackgroundUrl
                         )
                     }
                     // After optimistic update, trigger a full reload to get accurate item status
@@ -116,14 +124,19 @@ class ClosetViewModel @Inject constructor(
                     _uiState.update { currentState ->
                         val newItems = if (isInitialLoad) response.data
                                        else currentState.items + response.data
-                        
+
+                        // Find equipped item URL in the new items
+                        val equippedUrl = newItems.firstOrNull { it.isEquipped }?.imageUrl
+
                         currentState.copy(
                             isLoading = false,
                             isLoadingMore = false,
                             items = newItems,
                             canPaginate = response.pageInfo.hasNext,
                             currentPage = response.pageInfo.page,
-                            error = null
+                            error = null,
+                            equippedCostumeUrl = if (currentState.selectedTab == ClosetTab.COSTUME) equippedUrl else currentState.equippedCostumeUrl,
+                            equippedBackgroundUrl = if (currentState.selectedTab == ClosetTab.BACKGROUND) equippedUrl else currentState.equippedBackgroundUrl
                         )
                     }
                 }

@@ -47,8 +47,8 @@ fun ClosetScreen(
 
         CharacterPreview(
             selectedTab = uiState.selectedTab,
-            equippedCostumeImageUrl = uiState.items.firstOrNull { it.isEquipped && uiState.selectedTab == ClosetTab.COSTUME }?.imageUrl,
-            equippedBackgroundImageUrl = uiState.items.firstOrNull { it.isEquipped && uiState.selectedTab == ClosetTab.BACKGROUND }?.imageUrl
+            equippedCostumeImageUrl = uiState.equippedCostumeUrl,
+            equippedBackgroundImageUrl = uiState.equippedBackgroundUrl
         )
 
         TabSection(
