@@ -3,7 +3,6 @@ package com.dito.app.core.repository
 import android.util.Log
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateNicknameRequest
-import com.dito.app.core.data.settings.UpdateNicknameResponse
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import com.dito.app.core.storage.SettingsManager
@@ -34,14 +33,20 @@ class SettingRepository @Inject constructor(
             val request = UpdateNicknameRequest(nickname = nickname)
             val response = apiService.updateNickname(request, "Bearer $token")
 
-            if (response.isSuccessful && response.body()?.error == false) {
-                val message = response.body()?.message ?: "닉네임이 변경되었습니다"
-                Log.d(TAG, "닉네임 변경 성공: $nickname")
-                Result.success(message)
-
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (!apiResponse.error) {
+                    val message = apiResponse.message ?: "닉네임이 변경되었습니다"
+                    Log.d(TAG, "닉네임 변경 성공: $nickname")
+                    Result.success(message)
+                } else {
+                    val errorMessage = apiResponse.message ?: "닉네임 변경에 실패했습니다"
+                    Log.e(TAG, "닉네임 변경 실패: message=$errorMessage")
+                    Result.failure(Exception(errorMessage))
+                }
             } else {
-                val errorMessage = response.body()?.message ?: "닉네임 변경에 실패했습니다"
-                Log.e(TAG, "닉네임 변경 실패: code=${response.code()}, message=$errorMessage")
+                val errorMessage = "닉네임 변경에 실패했습니다"
+                Log.e(TAG, "닉네임 변경 실패: code=${response.code()}")
                 Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {
@@ -63,18 +68,24 @@ class SettingRepository @Inject constructor(
             val request = UpdateFrequencyRequest(frequency = frequency)
             val response = apiService.updateFrequency(request, "Bearer $token")
 
-            if (response.isSuccessful && response.body()?.error == false) {
-                val message = response.body()?.message ?: "미션 빈도가 변경되었습니다"
-                Log.d(TAG, "미션 빈도 변경 성공: $frequency")
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                if (!apiResponse.error) {
+                    val message = apiResponse.message ?: "미션 빈도가 변경되었습니다"
+                    Log.d(TAG, "미션 빈도 변경 성공: $frequency")
 
-                // 서버 요청 성공 시 로컬에도 저장
-                settingsManager.saveFrequency(frequency)
+                    // 서버 요청 성공 시 로컬에도 저장
+                    settingsManager.saveFrequency(frequency)
 
-                Result.success(message)
-
+                    Result.success(message)
+                } else {
+                    val errorMessage = apiResponse.message ?: "미션 빈도 변경에 실패했습니다"
+                    Log.e(TAG, "미션 빈도 변경 실패: message=$errorMessage")
+                    Result.failure(Exception(errorMessage))
+                }
             } else {
-                val errorMessage = response.body()?.message ?: "미션 빈도 변경에 실패했습니다"
-                Log.e(TAG, "미션 빈도 변경 실패: code=${response.code()}, message=$errorMessage")
+                val errorMessage = "미션 빈도 변경에 실패했습니다"
+                Log.e(TAG, "미션 빈도 변경 실패: code=${response.code()}")
                 Result.failure(Exception(errorMessage))
             }
         } catch (e: Exception) {

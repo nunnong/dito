@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,8 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Text
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +49,45 @@ fun GroupScreen(
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // 스플래시 화면 표시
+    if (uiState.showSplash) {
+        ChallengeSplashScreen()
+        return
+    }
+
+    // 챌린지 상태에 따라 다른 화면 표시
+    when (uiState.challengeStatus) {
+        ChallengeStatus.IN_PROGRESS -> {
+            OngoingChallengeScreen(viewModel = viewModel)
+            return
+        }
+        ChallengeStatus.WAITING_TO_START -> {
+            if (uiState.isLeader) {
+                // 방장 화면
+                GroupLeaderScreen(
+                    groupName = uiState.groupName,
+                    entryCode = uiState.entryCode,
+                    period = uiState.period,
+                    goal = uiState.goal,
+                    penalty = uiState.penalty,
+                    startDate = uiState.startDate,
+                    endDate = uiState.endDate,
+                    participants = uiState.participants,
+                    isStarted = false,
+                    onStartChallenge = { viewModel.onChallengeStarted() },
+                    onLoadParticipants = { viewModel.loadParticipants() }
+                )
+            } else {
+                // 참가자 화면
+                GroupMemberScreen()
+            }
+            return
+        }
+        ChallengeStatus.NO_CHALLENGE -> {
+            // 기존 화면 표시
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -94,7 +136,7 @@ fun GroupScreen(
                 Text(
                     text = "아직 참여 중인 챌린지가 없어요",
                     color = OnPrimary,
-                    style = DitoCustomTextStyles.titleKLarge
+                    style = DitoCustomTextStyles.titleKMedium
                 )
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
@@ -102,7 +144,7 @@ fun GroupScreen(
                 Text(
                     text = "함께 디지털 휴식에 도전해볼까요?",
                     color = OnPrimary,
-                    style = DitoCustomTextStyles.titleKLarge
+                    style = DitoCustomTextStyles.titleKMedium
                 )
             }
 
@@ -193,14 +235,72 @@ fun GroupScreen(
                 viewModel.onBackToNameDialog()
             },
             onCreateChallenge = { name, goal, penalty, period, bet ->
-                viewModel.onDialogClose()
+                viewModel.onChallengeCreated(name, goal, penalty, period, bet)
             }
         )
     }
 
     if (uiState.showJoinDialog) {
-        JoinWithCodeDialog(onDismiss = {
-            viewModel.onDialogClose()
-        })
+        JoinWithCodeDialog(
+            onDismiss = {
+                viewModel.onDialogClose()
+            },
+            onJoinWithCode = { inviteCode ->
+                viewModel.joinGroupWithCode(inviteCode)
+            }
+        )
+    }
+
+    if (uiState.showBetInputDialog) {
+        JoinGroupInfoDialog(
+            groupName = uiState.joinedGroupName,
+            goal = uiState.joinedGroupGoal,
+            penalty = uiState.joinedGroupPenalty,
+            period = uiState.joinedGroupPeriod,
+            onDismiss = {
+                viewModel.onDialogClose()
+            },
+            onConfirm = { betAmount ->
+                viewModel.enterGroupWithBet(betAmount)
+            }
+        )
+    }
+}
+
+@Composable
+fun ChallengeSplashScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // 챌린지 시작 이미지/아이콘
+//            Image(
+//                painter = painterResource(id = R.drawable.star),
+//                contentDescription = null,
+//                modifier = Modifier.size(120.dp)
+//            )
+
+            Spacer(modifier = Modifier.height(Spacing.xl))
+
+            Text(
+                text = "챌린지 시작!",
+                style = DitoCustomTextStyles.titleDLarge,
+                color = OnPrimary
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.m))
+
+            Text(
+                text = "함께 디지털 휴식에 도전해요",
+                style = DitoCustomTextStyles.titleKMedium,
+                color = OnPrimary
+            )
+        }
     }
 }

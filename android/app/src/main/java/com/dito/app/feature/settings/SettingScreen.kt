@@ -1,5 +1,7 @@
 package com.dito.app.feature.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -7,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.ui.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
@@ -23,8 +26,10 @@ import com.dito.app.core.ui.designsystem.Spacing
 @Composable
 fun SettingScreen(
     navController: NavController? = null,
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    authViewModel: com.dito.app.feature.auth.AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
 
@@ -83,7 +88,14 @@ fun SettingScreen(
 
             SettingItem(
                 title = "문의하기",
-                onClick = { /* TODO: 문의하기 기능 */ }
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:a708official@gmail.com")
+                        putExtra(Intent.EXTRA_SUBJECT, "[Dito 문의]")
+                        putExtra(Intent.EXTRA_TEXT, "문의 내용을 작성해주세요.\n\n")
+                    }
+                    context.startActivity(Intent.createChooser(intent, "문의 메일 보내기"))
+                }
             )
 
             SettingDivider()
@@ -113,8 +125,10 @@ fun SettingScreen(
             LogoutDialog(
                 onDismiss = { showLogoutDialog = false },
                 onConfirm = {
-                    showLogoutDialog = false
-                    onLogout()
+                    authViewModel.logout {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
                 }
             )
         }
@@ -123,8 +137,9 @@ fun SettingScreen(
             WithdrawDialog(
                 onDismiss = { showWithdrawDialog = false },
                 onConfirm = {
+                    authViewModel.signOut()
                     showWithdrawDialog = false
-                    // TODO: 탈퇴 API 호출
+                    onLogout()
                 }
             )
         }

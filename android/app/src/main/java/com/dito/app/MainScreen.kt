@@ -26,10 +26,21 @@ import com.dito.app.feature.shop.ShopScreen
 @Composable
 fun MainScreen(
     onLogout: () -> Unit = {},
+    onNavigateToShop: () -> Unit = {},
+    initialShowShop: Boolean = false,
+    onBackFromShop: () -> Unit = {},
     outerNavController: NavController? = null
 ) {
     val innerNavController = rememberNavController()
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
+    var showShop by remember { mutableStateOf(initialShowShop) }
+
+    // selectedTab이 변경되면 showShop을 false로 설정
+    LaunchedEffect(selectedTab) {
+        if (showShop) {
+            showShop = false
+        }
+    }
 
     Scaffold(
         bottomBar = {

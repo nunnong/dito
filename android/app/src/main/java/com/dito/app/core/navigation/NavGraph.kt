@@ -19,7 +19,7 @@ import com.dito.app.feature.auth.SignUpProfileScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
-@Composable
+ @Composable
 fun DitoNavGraph(
     navController: NavHostController,
     startDestination: String = Route.Splash.path,
@@ -44,14 +44,13 @@ fun DitoNavGraph(
         composable(Route.Login.path) {
             LoginScreen(
                 onLoginSuccess = {
-                    // 로그인 성공 시 Test 화면으로 이동 (권한 테스트용)
-                    navController.navigate(Route.Test.path){
+
+                    navController.navigate(Route.Home.path){
                         popUpTo(Route.Login.path){ inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
-                    // TODO: 회원가입 라우트 추가시 열기
                      navController.navigate(Route.SignupCredential.path)
                 }
             )
