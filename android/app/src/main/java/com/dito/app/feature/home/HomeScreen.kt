@@ -217,7 +217,7 @@ fun HomeContent(
                             .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 4.dp))
                             .width(261.dp)
                             .height(52.dp)
-                            .background(Color.White)
+                            .background(Color.White, RoundedCornerShape(4.dp))
                             .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
                             .padding(horizontal = 24.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,

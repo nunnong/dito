@@ -99,7 +99,6 @@ interface ApiService {
         @Query("page_number") pageNumber: Int
     ): Response<ClosetResponse>
 
-
     // ========== Events ==========
     @POST("/event/app-usage")
     suspend fun uploadAppUsageEvents(
