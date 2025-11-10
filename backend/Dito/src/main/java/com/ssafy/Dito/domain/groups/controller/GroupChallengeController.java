@@ -4,6 +4,7 @@ import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.GroupParticipantReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
+import com.ssafy.Dito.domain.groups.dto.response.GroupDetailRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
@@ -164,6 +165,17 @@ public class GroupChallengeController {
         JoinGroupRes response = groupChallengeService.joinGroup(request, userId);
         return ApiResponse.of(HttpStatus.OK, "성공적으로 그룹에 참여했습니다!", response);
     }
+    @Operation(
+        summary = "참가자 생성"
+    )
+
+    @PutMapping("/create/participant")
+    public ResponseEntity<CommonResult> createGroupParticipant(
+        @RequestBody GroupParticipantReq req
+    ) {
+        groupChallengeService.createGroupParticipant(req);
+        return ApiResponse.of(HttpStatus.OK, "그룹 참가자 생성 성공");
+    }
 
     @Operation(
         summary = "그룹 챌린지 시작",
@@ -221,15 +233,6 @@ public class GroupChallengeController {
             )
         )
     })
-
-    @PutMapping("/create/participant")
-    public ResponseEntity<CommonResult> createGroupPariticipant(
-            @RequestBody GroupParticipantReq req
-    ) {
-        groupChallengeService.createGroupPariticipant(req);
-        return ApiResponse.of(HttpStatus.OK, "그룹 참가자 생성 성공");
-    }
-
     @PutMapping("/{group_id}/start")
     public ResponseEntity<SingleResult<StartChallengeRes>> startChallenge(
         @io.swagger.v3.oas.annotations.Parameter(
@@ -324,5 +327,12 @@ public class GroupChallengeController {
         Long currentUserId = JwtAuthentication.getUserId();
         GroupRankingRes response = screenTimeService.getGroupRanking(groupId, currentUserId);
         return ApiResponse.of(HttpStatus.OK, "랭킹 조회 성공", response);
+    }
+
+    @Operation(summary = "로그인한 유저가 참여한 그룹 상세 조회")
+    @GetMapping("/detail")
+    public ResponseEntity<SingleResult<GroupDetailRes>> getGroupDetail() {
+        GroupDetailRes res = groupChallengeService.getGroupDetail();
+        return ApiResponse.ok(res);
     }
 }
