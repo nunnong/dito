@@ -53,8 +53,8 @@ public class AuthService {
         Status status = Status.of(user);
         statusRepository.save(status);
 
-        Item costume = itemRepository.getById(10);
-        Item background = itemRepository.getById(11);
+        Item costume = itemRepository.getById(1);
+        Item background = itemRepository.getById(7);
 
         UserItem defaultCostume = UserItem.of(user, costume, true);
         UserItem defaultBackground = UserItem.of(user, background, true);
