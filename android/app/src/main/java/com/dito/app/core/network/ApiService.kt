@@ -13,7 +13,6 @@ import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
 import com.dito.app.core.data.group.EnterGroupRequest
 import com.dito.app.core.data.group.EnterGroupResponse
-import com.dito.app.core.data.group.GetGroupDetailResponse
 import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
@@ -23,6 +22,10 @@ import com.dito.app.core.data.group.UpdateScreenTimeResponse
 import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
+import com.dito.app.core.data.missionNotification.MissionNotificationResponse
+import com.dito.app.core.data.screentime.GroupRankingResponse
+import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
+import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -100,6 +103,13 @@ interface ApiService {
         @Query("page_number") pageNumber: Int
     ): Response<ClosetResponse>
 
+    // ========== MissionNotification ==========
+    @GET("/mission/{page_number}")
+    suspend fun getMissionNotifications(
+        @Header("Authorization") token: String,
+        @Path("page_number") pageNumber: Int,
+    ): Response<MissionNotificationResponse>
+
     // ========== Events ==========
     @POST("/event/app-usage")
     suspend fun uploadAppUsageEvents(
@@ -112,6 +122,19 @@ interface ApiService {
         @Body request: MediaSessionBatchRequest,
         @Header("Authorization") token: String
     ): Response<BatchUploadResponse>
+
+    // ========== Screen Time ==========
+    @POST("/screen-time/update")
+    suspend fun updateScreenTime(
+        @Body request: ScreenTimeUpdateRequest,
+        @Header("Authorization") token: String
+    ): Response<ScreenTimeUpdateResponse>
+
+    @GET("/challenges/groups/{groupId}/ranking")
+    suspend fun getGroupRanking(
+        @Path("groupId") groupId: Long,
+        @Header("Authorization") token: String
+    ): Response<GroupRankingResponse>
 
     // Group
 
@@ -144,18 +167,12 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<ApiResponse<EnterGroupResponse>>
 
-    // 그룹 챌린지 랭킹 조회(스크린 타임 호출)
+    // 그룹 챌린지 랭킹 조회
     @GET("/challenges/groups/{group_id}/ranking")
     suspend fun getRanking(
         @Path("group_id") groupId: Long,
         @Header("Authorization") token: String
     ): Response<ApiResponse<GetRankingResponse>>
-
-    // 소속 그룹 상세 정보 조회
-    @GET("/challenges/groups/detail")
-    suspend fun getGroupDetail(
-        @Header("Authorization") token: String
-    ): Response<ApiResponse<GetGroupDetailResponse>>
     
     // 그룹 챌린지 참여자 목록 조회
     @GET("/challenges/groups/{group_id}/participants")
@@ -188,15 +205,6 @@ interface ApiService {
         @Body request: UpdateFrequencyRequest,
         @Header("Authorization") token: String
     ): Response<ApiResponse<UpdateFrequencyResponse>>
-
-
-    // 스크린타임 갱신 NO
-    @POST("/screen-time/update")
-    suspend fun updateScreenTime(
-        @Body request: UpdateScreenTimeRequest,
-        @Header("Authorization") token: String
-    ): Response<ApiResponse<UpdateScreenTimeResponse>>
-
 
 
 }

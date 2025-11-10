@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
@@ -37,6 +38,7 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onCartClick: () -> Unit,
     onClosetClick: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -78,7 +80,8 @@ fun HomeScreen(
                     onStartEditingWeeklyGoal = viewModel::startEditingWeeklyGoal,
                     onSaveWeeklyGoal = viewModel::saveWeeklyGoal,
                     onCartClick = onCartClick,
-                    onClosetClick = onClosetClick
+                    onClosetClick = onClosetClick,
+                    onNotificationClick = onNotificationClick
                 )
             }
         }
@@ -94,7 +97,8 @@ fun HomeContent(
     onStartEditingWeeklyGoal: () -> Unit,
     onSaveWeeklyGoal: () -> Unit,
     onCartClick: () -> Unit,
-    onClosetClick: () -> Unit
+    onClosetClick: () -> Unit,
+    onNotificationClick: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -170,8 +174,10 @@ fun HomeContent(
                 // 오른쪽 아이콘 1개
                 Image(
                     painter = painterResource(id = R.drawable.mail_home),
-                    contentDescription = "Mail",
-                    modifier = Modifier.size(24.dp),
+                    contentDescription = "missionNotification",
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onNotificationClick() },
                     contentScale = ContentScale.Fit
                 )
             }
@@ -514,6 +520,7 @@ fun HomeScreenPreview() {
         onStartEditingWeeklyGoal = {},
         onSaveWeeklyGoal = {},
         onCartClick = {},
-        onClosetClick = {}
+        onClosetClick = {},
+        onNotificationClick = {}
     )
 }

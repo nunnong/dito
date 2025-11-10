@@ -93,11 +93,12 @@ fun SignUpPermissionScreen(
     }
 
     // RECHECK 모드: 권한이 모두 부여되면 자동으로 완료
-    LaunchedEffect(uiState.accessibilityPermission, uiState.usageStatsPermission, uiState.notificationPermission) {
+    LaunchedEffect(uiState.accessibilityPermission, uiState.usageStatsPermission, uiState.notificationPermission, uiState.notificationListenerPermission) {
         if (mode == PermissionScreenMode.RECHECK &&
             uiState.accessibilityPermission &&
             uiState.usageStatsPermission &&
-            uiState.notificationPermission) {
+            uiState.notificationPermission &&
+            uiState.notificationListenerPermission) {
             onPermissionsRecheckComplete()
         }
     }
@@ -112,7 +113,8 @@ fun SignUpPermissionScreen(
 
     val isFormValid = uiState.accessibilityPermission &&
             uiState.usageStatsPermission &&
-            uiState.notificationPermission
+            uiState.notificationPermission &&
+            uiState.notificationListenerPermission
 
     Scaffold(
         containerColor = Color.White,
@@ -122,7 +124,7 @@ fun SignUpPermissionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
-                        .padding(start = 32.dp, end = 32.dp, bottom = 90.dp)
+                        .padding(start = 32.dp, end = 32.dp, bottom = 40.dp)
                 ) {
                     LargeStartButton(
                         text = if (uiState.isLoading) "가입 중..." else "Let's Start!",
@@ -204,7 +206,7 @@ fun SignUpPermissionScreen(
             ) {
                 PermissionItem(
                     title = "접근성 권한 허용",
-                    description = "앱 사용 패턴을 자동으로 분석하기 위해 필요해요.",
+                    description = "앱 사용 패턴을 자동으로\n분석하기 위해 필요해요.",
                     isGranted = uiState.accessibilityPermission,
                     onToggle = {
                         if (!uiState.accessibilityPermission) {
@@ -216,7 +218,7 @@ fun SignUpPermissionScreen(
 
                 PermissionItem(
                     title = "사용정보 접근 허용",
-                    description = "스크린 타임과 앱 사용 기록을 추적하기 위해 필요해요.",
+                    description = "스크린 타임과 앱 사용 기록을\n추적하기 위해 필요해요.",
                     isGranted = uiState.usageStatsPermission,
                     onToggle = {
                         if (!uiState.usageStatsPermission) {
@@ -228,11 +230,23 @@ fun SignUpPermissionScreen(
 
                 PermissionItem(
                     title = "알림 허용",
-                    description = "디토 AI의 맞춤 조언과 미션 알림을 받을 수 있어요.",
+                    description = "디토 AI의 맞춤 조언과\n미션 알림을 받을 수 있어요.",
                     isGranted = uiState.notificationPermission,
                     onToggle = {
                         if (!uiState.notificationPermission) {
                             PermissionHelper.openNotificationSettings(context)
+                        }
+                    },
+                    showTopBorder = true
+                )
+
+                PermissionItem(
+                    title = "알림 읽기 허용",
+                    description = "앱 알림을 분석하여\n디지털 사용 패턴을 분석해요.",
+                    isGranted = uiState.notificationListenerPermission,
+                    onToggle = {
+                        if (!uiState.notificationListenerPermission) {
+                            PermissionHelper.openNotificationListenerSettings(context)
                         }
                     },
                     showTopBorder = true,
@@ -347,7 +361,7 @@ private fun LargeStartButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(84.dp)
+            .height(68.dp)
             .hardShadow(DitoHardShadow.ButtonLarge.copy(cornerRadius = 8.dp))
             .clip(RoundedCornerShape(8.dp))
             .background(if (enabled) Primary else Color.White)
