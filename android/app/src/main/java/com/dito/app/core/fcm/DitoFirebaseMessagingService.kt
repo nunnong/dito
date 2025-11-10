@@ -178,7 +178,7 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         val targetApps = when(missionType) {
             "REST" -> listOf("com.google.android.youtube",
                 "com.instagram.android",
-                "com.zhiliaoapp.musically")  // TikTok 추가
+                "com.zhiliaoapp.musically")
             "MEDITATION" -> emptyList()  // 명상은 특정 앱 차단 불필요
             else -> listOf("com.google.android.youtube", "com.instagram.android")
         }
@@ -198,7 +198,7 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 instruction = instruction,
                 durationSeconds = duration,
                 targetApps = targetApps,
-                coinReward = coinReward.toIntOrNull() ?: 10  // MissionData에 추가 필요
+                coinReward = coinReward.toIntOrNull() ?: 10
             )
         )
 
