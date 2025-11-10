@@ -7,6 +7,7 @@ import android.os.Looper
 import android.util.Log
 import com.dito.app.core.data.RealmConfig
 import com.dito.app.core.data.phone.MediaSessionEvent
+import com.dito.app.core.network.AppMetadata
 import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
@@ -378,9 +379,6 @@ class SessionStateManager(
                     return@let
                 }
 
-                // ⚠️ 테스트용: YouTube 재생 시간을 4시간으로 강제 설정
-                val adjustedWatchTime = 4 * 60 * 60 * 1000L // 4시간 (밀리초)
-
                 val finalChannel = when {
                     session.bestChannel.isNotBlank() -> session.bestChannel
                     session.channel.isNotBlank() && session.channel != "알 수 없음" -> session.channel
@@ -393,13 +391,13 @@ class SessionStateManager(
                 Log.d(TAG, "  finalChannel: '$finalChannel'")
                 Log.d(TAG, "  session.bestChannel: '${session.bestChannel}'")
                 Log.d(TAG, "  session.channel: '${session.channel}'")
-                Log.d(TAG, "  watchTime: $adjustedWatchTime")
+                Log.d(TAG, "  watchTime: $watchTime")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
                 val checkPoint = Checker.checkMediaSession(
                     title = session.title,
                     channel = finalChannel,
-                    watchTime = adjustedWatchTime,
+                    watchTime = watchTime,
                     timestamp = currentTime,
                     appPackage = session.appPackage
                 )
@@ -418,7 +416,7 @@ class SessionStateManager(
                                 this.appPackage = session.appPackage
                                 this.timestamp = currentTime
                                 this.videoDuration = session.duration
-                                this.watchTime = adjustedWatchTime
+                                this.watchTime = watchTime
                                 this.pauseTime = session.totalPauseTime
                                 this.date = formatDate(currentTime)
                                 this.detectionMethod = "playback-timer"
@@ -438,8 +436,11 @@ class SessionStateManager(
                             appName = checkPoint.appName,
                             durationSeconds = checkPoint.durationSeconds,
                             usageTimestamp = checkPoint.usageTimestamp,
-                            videoTitle = session.title,
-                            channelName = finalChannel
+                            recentAppSwitches = null,
+                            appMetadata = AppMetadata(
+                                title = session.title,
+                                channel = finalChannel
+                            )
                         ),
                         eventIds = eventIds
                     )
@@ -522,7 +523,9 @@ class SessionStateManager(
                 behaviorLog = BehaviorLog(
                     appName = "YouTube",
                     durationSeconds = (duration / 1000).toInt(),
-                    usageTimestamp = Checker.formatTimestamp(System.currentTimeMillis())
+                    usageTimestamp = Checker.formatTimestamp(System.currentTimeMillis()),
+                    recentAppSwitches = null,
+                    appMetadata = null
                 ),
                 eventIds = eventIds
             )
@@ -658,8 +661,11 @@ class SessionStateManager(
                     appName = checkPoint.appName,
                     durationSeconds = checkPoint.durationSeconds,
                     usageTimestamp = checkPoint.usageTimestamp,
-                    videoTitle = session.title,
-                    channelName = finalChannel
+                    recentAppSwitches = null,
+                    appMetadata = AppMetadata(
+                        title = session.title,
+                        channel = finalChannel
+                    )
                 ),
                 eventIds = eventIds
             )
