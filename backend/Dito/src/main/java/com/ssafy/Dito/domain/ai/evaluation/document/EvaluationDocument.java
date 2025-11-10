@@ -36,6 +36,10 @@ public class EvaluationDocument extends MongoBaseDocument {
     @Indexed
     private String userId;
 
+    @Field("personal_id")
+    @Indexed
+    private String personalId;
+
     @Field("mission_id")
     @Indexed
     private String missionId;
@@ -72,13 +76,14 @@ public class EvaluationDocument extends MongoBaseDocument {
     private String status;
 
     @Builder
-    private EvaluationDocument(String evaluationId, String userId, String missionId,
+    private EvaluationDocument(String evaluationId, String userId, String personalId, String missionId,
                                String runId, String threadId, String missionType,
                                Integer score, Boolean success, String feedback,
                                List<Violation> violations, List<String> recommendations,
                                LocalDateTime evaluatedAt, String status) {
         this.evaluationId = evaluationId;
         this.userId = userId;
+        this.personalId = personalId;
         this.missionId = missionId;
         this.runId = runId;
         this.threadId = threadId;
@@ -96,7 +101,8 @@ public class EvaluationDocument extends MongoBaseDocument {
      * Factory method to create EvaluationDocument
      *
      * @param evaluationId Unique evaluation ID
-     * @param userId User ID (personalId)
+     * @param userId User DB ID (from User.id)
+     * @param personalId User personal ID (로그인 ID)
      * @param missionId Mission ID
      * @param runId AI run ID
      * @param threadId AI thread ID
@@ -109,7 +115,7 @@ public class EvaluationDocument extends MongoBaseDocument {
      * @param status Evaluation status
      * @return EvaluationDocument instance
      */
-    public static EvaluationDocument of(String evaluationId, String userId, String missionId,
+    public static EvaluationDocument of(String evaluationId, String userId, String personalId, String missionId,
                                         String runId, String threadId, String missionType,
                                         Integer score, Boolean success, String feedback,
                                         List<Violation> violations, List<String> recommendations,
@@ -117,6 +123,7 @@ public class EvaluationDocument extends MongoBaseDocument {
         return EvaluationDocument.builder()
                 .evaluationId(evaluationId)
                 .userId(userId)
+                .personalId(personalId)
                 .missionId(missionId)
                 .runId(runId)
                 .threadId(threadId)

@@ -95,7 +95,8 @@ public class EvaluationService {
         String evaluationId = UUID.randomUUID().toString();
         EvaluationDocument document = EvaluationDocument.of(
                 evaluationId,
-                request.userId(),
+                String.valueOf(user.getId()),  // userId (DB ID)
+                request.userId(),  // personalId (로그인 ID)
                 request.missionId(),
                 runId,
                 threadId,
@@ -108,7 +109,8 @@ public class EvaluationService {
                 "completed"  // status
         );
         evaluationRepository.save(document);
-        log.info("Evaluation document saved - evaluationId: {}, runId: {}", evaluationId, runId);
+        log.info("Evaluation document saved - evaluationId: {}, runId: {}, userId: {}, personalId: {}",
+                evaluationId, runId, user.getId(), request.userId());
 
         log.info("Evaluation completed - runId: {}, threadId: {}, result: {}",
                 runId, threadId, evaluationResult);

@@ -49,7 +49,19 @@ public class AIInterventionController {
     @PostMapping("/intervention")
     @Operation(
             summary = "AI 개입 요청",
-            description = "행동 로그를 AI 서버에 전달하여 실시간 개입 처리를 요청합니다."
+            description = """
+                행동 로그를 AI 서버에 전달하여 실시간 개입 처리를 요청합니다.
+
+                요청 Body 예시:
+                {
+                  "user_id": "catch",
+                  "behavior_log": {
+                    "app_name": "YouTube",
+                    "duration_seconds": 1200,
+                    "usage_timestamp": "2025-01-10T15:30:00"
+                  }
+                }
+                """
     )
     public ResponseEntity<InterventionResponse> handleIntervention(
             @Valid @RequestBody InterventionRequest request
@@ -69,10 +81,12 @@ public class AIInterventionController {
                 "recent_app_switches", 2  // TODO: MongoDB에서 조회
         );
 
+        
+
         Map<String, Object> aiRequest = Map.of(
                 "assistant_id", "intervention",
                 "input", Map.of(
-                        "user_id", personalId,  // personalId (문자열) 직접 전달
+                        "user_id", user.getId(),  // User의 userId (Long) 전달
                         "behavior_log", behaviorLog
                 )
         );
