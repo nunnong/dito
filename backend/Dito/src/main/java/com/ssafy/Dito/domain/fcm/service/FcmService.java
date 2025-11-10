@@ -3,6 +3,8 @@ package com.ssafy.Dito.domain.fcm.service;
 import com.google.firebase.messaging.*;
 import com.ssafy.Dito.domain.fcm.dto.FcmNotificationRequest;
 import com.ssafy.Dito.domain.fcm.dto.FcmSendRequest;
+import com.ssafy.Dito.domain.log.fcm.document.FcmLogDocument;
+import com.ssafy.Dito.domain.log.fcm.repository.FcmLogRepository;
 import com.ssafy.Dito.domain.mission.entity.Mission;
 import com.ssafy.Dito.domain.mission.repository.MissionRepository;
 import com.ssafy.Dito.domain.user.entity.User;
@@ -12,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,7 @@ public class FcmService {
     private final FirebaseMessaging firebaseMessaging;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
+    private final FcmLogRepository fcmLogRepository;
 
     /**
      * 특정 사용자에게 FCM 알림 전송
@@ -84,28 +88,72 @@ public class FcmService {
      */
     public void sendInterventionNotification(FcmSendRequest request) {
         // 1. 사용자 조회
-        User user = userRepository.getByPersonalId(request.personalId());
+        User user = userRepository.getById(request.userId());
 
         if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
-            log.warn("User {} has no FCM token. Skipping notification.", user.getPersonalId());
+            log.warn("User {} (ID: {}) has no FCM token. Skipping notification.",
+                    user.getPersonalId(), user.getId());
+
+            // Log failure - no FCM token
+            FcmLogDocument fcmLog = FcmLogDocument.builder()
+                    .userId(user.getId())
+                    .personalId(user.getPersonalId())
+                    .title(request.title())
+                    .message(request.message())
+                    .missionId(request.missionId())
+                    .hasMission(request.missionId() != null)
+                    .fcmToken(null)
+                    .success(false)
+                    .errorCode("NO_FCM_TOKEN")
+                    .errorMessage("User has no FCM token")
+                    .sentAt(LocalDateTime.now())
+                    .build();
+            fcmLogRepository.save(fcmLog);
             return;
         }
 
         // 2. Data payload 구성
         Map<String, String> data = buildDataPayload(request);
 
-        // 3. FCM 전송
+        // 3. Create log document before sending
+        FcmLogDocument fcmLog = FcmLogDocument.builder()
+                .userId(user.getId())
+                .personalId(user.getPersonalId())
+                .title(request.title())
+                .message(request.message())
+                .missionId(request.missionId())
+                .hasMission(request.missionId() != null)
+                .fcmToken(user.getFcmToken())
+                .success(false)  // Default to false, will update on success
+                .sentAt(LocalDateTime.now())
+                .build();
+
+        // 4. FCM 전송
         try {
             String response = sendDataMessage(user, data);
-            log.info("FCM sent successfully - user: {}, missionId: {}, hasMission: {}, response: {}",
-                    request.personalId(),
+
+            // Mark as success
+            fcmLog.markSuccess(response);
+            fcmLogRepository.save(fcmLog);
+
+            log.info("FCM sent successfully - user: {} (ID: {}), missionId: {}, hasMission: {}, response: {}",
+                    user.getPersonalId(),
+                    request.userId(),
                     request.missionId() != null ? request.missionId() : "none",
                     request.missionId() != null,
                     response);
 
         } catch (FirebaseMessagingException e) {
-            log.error("FCM send failed - user: {}, missionId: {}, error: {}",
-                    request.personalId(),
+            // Mark as failure
+            String errorCode = e.getMessagingErrorCode() != null
+                    ? e.getMessagingErrorCode().name()
+                    : "UNKNOWN";
+            fcmLog.markFailure(errorCode, e.getMessage());
+            fcmLogRepository.save(fcmLog);
+
+            log.error("FCM send failed - user: {} (ID: {}), missionId: {}, error: {}",
+                    user.getPersonalId(),
+                    request.userId(),
                     request.missionId() != null ? request.missionId() : "none",
                     e.getMessage(), e);
             handleMessagingException(e, user);

@@ -13,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
  */
 @Schema(description = "AI 서버 FCM 알림 요청", example = """
 {
-  "user_id": "user123",
+  "user_id": 123,
   "title": "디토",
   "message": "잠시 휴식을 취해보는 건 어떨까요?",
   "mission_id": 42
@@ -22,8 +22,8 @@ import jakarta.validation.constraints.NotNull;
 public record FcmSendRequest(
         @NotNull(message = "user_id는 필수입니다")
         @JsonProperty("user_id")
-        @Schema(description = "사용자 Personal ID", example = "user123")
-        String personalId,
+        @Schema(description = "사용자 DB ID", example = "123")
+        Long userId,
 
         @NotBlank(message = "title은 필수입니다")
         @Schema(description = "알림 제목", example = "디토")

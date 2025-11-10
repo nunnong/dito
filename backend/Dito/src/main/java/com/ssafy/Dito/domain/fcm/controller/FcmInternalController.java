@@ -35,7 +35,7 @@ public class FcmInternalController {
      * - mission_id가 없으면: title, message만 전송
      *
      * @param apiKey  X-API-Key 헤더 (ApiKeyAuthFilter에서 검증)
-     * @param request 알림 요청 (personalId, title, message, missionId)
+     * @param request 알림 요청 (userId, title, message, missionId)
      * @return 성공 응답 (hasMission 포함)
      */
     @PostMapping("/send")
@@ -53,8 +53,8 @@ public class FcmInternalController {
             @RequestHeader("X-API-Key") String apiKey,
             @Valid @RequestBody FcmSendRequest request
     ) {
-        log.info("FCM request - user: {}, missionId: {}, hasMission: {}",
-                request.personalId(),
+        log.info("FCM request - userId: {}, missionId: {}, hasMission: {}",
+                request.userId(),
                 request.missionId(),
                 request.missionId() != null);
 
@@ -64,7 +64,7 @@ public class FcmInternalController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Notification sent successfully",
-                    "personalId", request.personalId(),
+                    "userId", request.userId(),
                     "missionId", request.missionId() != null ? request.missionId() : "none",
                     "hasMission", request.missionId() != null
             ));
