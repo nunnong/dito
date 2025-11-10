@@ -207,7 +207,17 @@ fun DitoNavGraph(
             )
         }
 
-        // 7) 테스트 화면 (권한 테스트)
+        // 7) 권한 재확인 화면
+        composable(Route.PermissionRecheck.path) {
+            SignUpPermissionScreen(
+                mode = com.dito.app.feature.auth.PermissionScreenMode.RECHECK,
+                onPermissionsRecheckComplete = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 8) 테스트 화면 (권한 테스트)
         composable(Route.Test.path) {
             PermissionTestScreen()
         }
