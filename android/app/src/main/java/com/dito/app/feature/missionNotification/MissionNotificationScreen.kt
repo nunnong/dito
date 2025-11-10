@@ -15,7 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +100,7 @@ fun MissionNotificationScreen(
             .fillMaxSize()
             .background(Background)
     ) {
-        Header(onBackClick = onBackClick)
+        MissionNotificationHeader(onBackClick = onBackClick)
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -117,40 +119,32 @@ fun MissionNotificationScreen(
 
 // 상단 헤더: 왼쪽 화살표 + 가운데 정렬 제목
 @Composable
-fun Header(onBackClick: () -> Unit) {
-    Box(
+private fun MissionNotificationHeader(onBackClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(52.dp)
             .background(Color.Black)
-            .padding(vertical = 16.dp)
+            .padding(horizontal = 32.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // 왼쪽 화살표
         Image(
             painter = painterResource(id = R.drawable.angle_left),
-            contentDescription = "뒤로가기",
+            contentDescription = "Back",
             modifier = Modifier
-                .padding(start = 16.dp)
-                .size(24.dp)
-                .align(Alignment.CenterStart)
+                .size(28.dp)
                 .clickable { onBackClick() },
+            contentScale = ContentScale.Fit,
             colorFilter = ColorFilter.tint(Color.White)
         )
-
-        // 가운데 제목
         Text(
             text = "알림",
+            style = DitoTypography.headlineMedium,
             color = Color.White,
-            style = DitoTypography.headlineLarge.copy(fontSize = 20.sp),
-            modifier = Modifier.align(Alignment.Center)
+            textAlign = TextAlign.Center
         )
-
-        // 오른쪽 균형 맞추는 placeholder
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .align(Alignment.CenterEnd)
-                .padding(end = 16.dp)
-        )
+        Spacer(modifier = Modifier.size(28.dp))
     }
 }
 
@@ -174,7 +168,7 @@ fun NotificationItem(notification: MissionNotification) {
                     text = notification.title,
                     color = OnSurface,
                     // style = DitoTypography.titleLarge.copy(fontSize = 16.sp)
-                    style = DitoCustomTextStyles.titleDLarge.copy(fontSize = 16.sp)
+                    style = DitoCustomTextStyles.titleKMedium.copy(fontSize = 16.sp)
                 )
 
                 // 제목과 설명 간격
@@ -183,7 +177,7 @@ fun NotificationItem(notification: MissionNotification) {
                 // 설명 (30 레몬)
                 Text(
                     text = notification.description,
-                    color = OnSurface.copy(alpha = 0.7f),
+                    color = OnSurface,
                     style = DitoTypography.bodyMedium.copy(fontSize = 14.sp)
                 )
             }
@@ -219,7 +213,7 @@ fun StatusBadge(type: NotificationType) {
         Text(
             text = type.label,
             color = Color.Black,
-            style = DitoTypography.labelLarge.copy(fontSize = 12.sp)
+            style = DitoTypography.labelSmall.copy(fontSize = 12.sp)
         )
     }
 }
