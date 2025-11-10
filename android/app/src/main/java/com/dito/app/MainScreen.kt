@@ -35,6 +35,15 @@ fun MainScreen(
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
     var showShop by remember { mutableStateOf(initialShowShop) }
 
+    // MainScreen이 처음 로드될 때 항상 home으로 초기화
+    LaunchedEffect(Unit) {
+        selectedTab = BottomTab.HOME
+        innerNavController.navigate("home") {
+            popUpTo("home") { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
     // selectedTab이 변경되면 showShop을 false로 설정
     LaunchedEffect(selectedTab) {
         if (showShop) {
