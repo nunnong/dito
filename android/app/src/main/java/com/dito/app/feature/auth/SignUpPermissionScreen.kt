@@ -185,7 +185,7 @@ fun SignUpPermissionScreen(
                 text = if (mode == PermissionScreenMode.SIGNUP)
                     "디토 이용을 위해 꼭 필요한 권한만 모았어요."
                 else
-                    "앱 사용에 필요한 권한이 해제되어 있습니다.\n권한을 다시 허용해주세요.",
+                    "앱 사용에 필요한 권한이\n해제되어 있습니다.\n권한을 다시 허용해주세요.",
                 style = DitoCustomTextStyles.titleDMedium,
                 color = Color.Black,
                 modifier = Modifier
@@ -193,7 +193,9 @@ fun SignUpPermissionScreen(
                     .padding(horizontal = 4.dp)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(
+                if (mode == PermissionScreenMode.RECHECK) 80.dp else 32.dp
+            ))
 
             // 권한 목록
             Column(
@@ -233,7 +235,8 @@ fun SignUpPermissionScreen(
                             PermissionHelper.openNotificationSettings(context)
                         }
                     },
-                    showTopBorder = true
+                    showTopBorder = true,
+                    showBottomBorder = mode == PermissionScreenMode.RECHECK
                 )
             }
         }
@@ -247,24 +250,32 @@ private fun PermissionItem(
     description: String,
     isGranted: Boolean,
     onToggle: (Boolean) -> Unit,
-    showTopBorder: Boolean = false
+    showTopBorder: Boolean = false,
+    showBottomBorder: Boolean = false
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(94.dp)
             .background(Color.White)
-            .then(
-                if (showTopBorder) Modifier.border(
-                    width = 1.5.dp,
-                    color = Color.Black,
-                    shape = RoundedCornerShape(0.dp)
-                ).padding(top = 1.5.dp) else Modifier
-            )
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
     ) {
+        // Top border
+        if (showTopBorder) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.5.dp)
+                    .background(Color.Black)
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(94.dp)
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -290,6 +301,17 @@ private fun PermissionItem(
             checked = isGranted,
             onCheckedChange = onToggle
         )
+        }
+
+        // Bottom border
+        if (showBottomBorder) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.5.dp)
+                    .background(Color.Black)
+            )
+        }
     }
 }
 
