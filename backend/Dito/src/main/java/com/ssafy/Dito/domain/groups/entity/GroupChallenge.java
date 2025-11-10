@@ -92,8 +92,7 @@ public class GroupChallenge {
         return new JoinGroupRes(
             this.id,
             this.groupName,
-            this.startDate,
-            this.endDate,
+            this.period,
             this.goalDescription,
             this.penaltyDescription
         );

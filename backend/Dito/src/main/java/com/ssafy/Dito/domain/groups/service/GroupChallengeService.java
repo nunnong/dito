@@ -4,6 +4,7 @@ import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.GroupParticipantReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
+import com.ssafy.Dito.domain.groups.dto.response.GroupDetailRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.JoinGroupRes;
 import com.ssafy.Dito.domain.groups.dto.response.StartChallengeRes;
@@ -15,6 +16,7 @@ import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.exception.InsufficientCoinsException;
 import com.ssafy.Dito.domain.groups.exception.InvalidInviteCodeException;
 import com.ssafy.Dito.domain.groups.exception.UnauthorizedStartChallengeException;
+import com.ssafy.Dito.domain.groups.repository.GroupChallengeQueryRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantQueryRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
@@ -32,6 +34,7 @@ public class GroupChallengeService {
 
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
+    private final GroupChallengeQueryRepository groupChallengeQueryRepository;
     private final GroupParticipantQueryRepository groupParticipantQueryRepository;
     private final UserRepository userRepository;
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
@@ -159,7 +162,7 @@ public class GroupChallengeService {
     }
 
     @Transactional
-    public void createGroupPariticipant(GroupParticipantReq req) {
+    public void createGroupParticipant(GroupParticipantReq req) {
         long userId = JwtAuthentication.getUserId();
         User user = userRepository.getById(userId);
 
@@ -179,5 +182,12 @@ public class GroupChallengeService {
         );
 
         groupParticipantRepository.save(participant);
+    }
+
+    public GroupDetailRes getGroupDetail() {
+        long userId = JwtAuthentication.getUserId();
+
+        return groupChallengeQueryRepository.getGroupDetail(userId);
+
     }
 }

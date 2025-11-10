@@ -7,12 +7,9 @@ import java.time.LocalDate;
 public record JoinGroupRes(
     @JsonProperty("group_id")
     Long groupId,
-
     @JsonProperty("group_name")
     String groupName,
-
-    LocalDate startDate,
-    LocalDate endDate,
+    int period,
     String goalDescription,
     String penaltyDescription
 
