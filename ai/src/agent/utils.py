@@ -16,6 +16,7 @@ from agent.schemas import (
     EffectivenessAnalysis,
     InterventionDecision,
     InterventionState,
+    Mission,
     MissionData,
     MissionNotificationResult,
     NudgeMessage,
@@ -32,9 +33,14 @@ llm = ChatAnthropic(model="claude-sonnet-4-5")
 # 구조화된 출력을 위한 LLM들
 behavior_analyzer = llm.with_structured_output(BehaviorAnalysis)
 intervention_decider = llm.with_structured_output(InterventionDecision)
-nudge_generator = llm.with_structured_output(NudgeMessage)
+
+mission_generator = llm.with_structured_output(Mission)
+message_generator = llm.with_structured_output(NudgeMessage)
+
+
 effectiveness_analyzer = llm.with_structured_output(EffectivenessAnalysis)
 strategy_adjuster = llm.with_structured_output(StrategyAdjustment)
+
 
 # Checkpointer (상태 영속성)
 checkpointer = MemorySaver()
@@ -176,9 +182,7 @@ def get_db_user_id(personal_id: str) -> int | None:
             response.raise_for_status()
             user_data = response.json()
 
-            db_user_id = (
-                user_data.get("data", {}).get("profile", {}).get("userId")
-            )
+            db_user_id = user_data.get("data", {}).get("profile", {}).get("userId")
             if not db_user_id:
                 print("     ❌ DB user_id 조회 실패: 응답에 userId 없음")
                 return None
@@ -252,9 +256,7 @@ def create_mission(mission_data: MissionData) -> str | None:
         return None
 
 
-def send_fcm_with_mission(
-    user_id: int, mission_id: str, message: str
-) -> bool:
+def send_fcm_with_mission(user_id: int, mission_id: str, message: str) -> bool:
     """FCM 알림 전송 (미션 ID 포함)
 
     Args:
@@ -312,84 +314,62 @@ def send_fcm_with_mission(
         return False
 
 
-def create_and_notify_mission(state: InterventionState) -> MissionNotificationResult:
-    """미션 생성 및 FCM 알림 전송 (Orchestrator)
+def send_notification(state: InterventionState) -> MissionNotificationResult:
+    """이미 생성된 미션에 대해 FCM 알림만 전송 (모듈화)
 
     역할:
-    1. 미션 생성
-    2. FCM 알림 전송
-
-    각 단계별로 에러 처리 및 결과 추적
+    - 이미 생성된 mission_id를 사용해 FCM 알림만 전송
+    - generate_mission에서 미션 생성 후, 별도로 FCM 전송할 때 사용
 
     Args:
-        state: Intervention state containing user_id (int), nudge_message, etc.
+        state: Intervention state containing:
+            - mission_id (int): 이미 생성된 미션 ID
+            - nudge_message (str): 전송할 메시지
+            - user_id (int): DB user ID
 
     Returns:
-        MissionNotificationResult with detailed success/failure info
+        MissionNotificationResult with FCM send status
     """
-    # user_id는 이미 DB user ID (int)
     db_user_id = state["user_id"]
+    mission_id = state.get("mission_id")
+    nudge_message = state.get("nudge_message")
 
-    # Step 1: Mission creation
-    target_app = "All Apps"
-    if "behavior_log" in state and state["behavior_log"]:
-        target_app = state["behavior_log"].get("app_name", "All Apps")
-
-    mission_data = MissionData(
-        user_id=db_user_id,
-        mission_type=state.get("nudge_type", "REST"),
-        mission_text=state["nudge_message"],
-        coin_reward=10,
-        duration_seconds=state.get("duration_seconds", 300),
-        target_app=target_app,
-        stat_change_self_care=1,
-        stat_change_focus=1,
-        stat_change_sleep=1,
-        prompt="AI Intervention",
-    )
-
-    mission_id = create_mission(mission_data)
-
-    if mission_id is None:
+    # Validation
+    if not mission_id:
         return MissionNotificationResult(
             success=False,
             mission_id=None,
             fcm_sent=False,
             db_user_id=db_user_id,
-            error_stage="mission_create",
+            error_stage="validation",
         )
 
-    # Step 2: FCM send
-    fcm_sent = send_fcm_with_mission(db_user_id, mission_id, state["nudge_message"])
-
-    if not fcm_sent:
-        # Mission created but FCM failed - partial success
+    if not nudge_message:
         return MissionNotificationResult(
             success=False,
-            mission_id=mission_id,
+            mission_id=str(mission_id),
+            fcm_sent=False,
+            db_user_id=db_user_id,
+            error_stage="validation",
+        )
+
+    # FCM 전송
+    fcm_sent = send_fcm_with_mission(db_user_id, str(mission_id), nudge_message)
+
+    if not fcm_sent:
+        return MissionNotificationResult(
+            success=False,
+            mission_id=str(mission_id),
             fcm_sent=False,
             db_user_id=db_user_id,
             error_stage="fcm_send",
         )
 
-    # Full success
+    # Success
     return MissionNotificationResult(
         success=True,
-        mission_id=mission_id,
+        mission_id=str(mission_id),
         fcm_sent=True,
         db_user_id=db_user_id,
         error_stage=None,
     )
-
-
-def send_fcm_notification(state: InterventionState) -> str | None:
-    """Send FCM notification request to Spring server (DEPRECATED - 하위 호환성용)
-
-    DEPRECATED: create_and_notify_mission() 사용을 권장합니다.
-    이 함수는 하위 호환성을 위해 유지되며, 내부적으로 create_and_notify_mission()을 호출합니다.
-
-    Returns:
-        mission_id: String ID if successful, None if failed
-    """
-    result = create_and_notify_mission(state)
-    return result.mission_id

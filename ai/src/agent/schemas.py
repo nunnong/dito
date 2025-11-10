@@ -22,41 +22,31 @@ class InterventionState(TypedDict):
     behavior_log: dict  # app_usage_logs 데이터
 
     # Optional - 워크플로우 중 생성되는 필드
-    timestamp: NotRequired[str]
     behavior_pattern: NotRequired[str]  # LLM 분석 결과
-    pattern_type: NotRequired[str]  # "normal", "concerning", "critical"
     trigger_event: NotRequired[str]  # 트리거된 이벤트 타입
     severity_score: NotRequired[int]  # 심각도 점수 (0-10)
     key_indicators: NotRequired[list[str]]  # 주요 지표들
 
     # Optional - 조건부 필드 (Command 분기 결정에 사용)
+    intervention_reason: NotRequired[str]  # 개입 이유
     intervention_needed: NotRequired[bool]
-    intervention_type: NotRequired[
-        str
-    ]  # "short-form-overuse", "bedtime-usage", "focus-break" 등
-    urgency_level: NotRequired[str]  # "low", "medium", "high"
 
-    # Optional - 넛지 생성
-    nudge_message: NotRequired[str]
-    nudge_type: NotRequired[str]  # "REST" or "MEDITATION"
+    mission_id: NotRequired[int]  # missions 테이블 ID
+    mission_type: NotRequired[str]  # "REST", "MEDITATION" 추가할 예정
     duration_seconds: NotRequired[int]  # 미션 실행 시간 (초)
+    coin_reward: NotRequired[int]
 
-    # Optional - 개입 실행
-    intervention_time: NotRequired[str]
-    intervention_id: NotRequired[int]  # missions 테이블 ID
-
-    # Optional - 평가 스케줄링
-    evaluation_scheduled_time: NotRequired[str]
-    evaluation_delay_minutes: NotRequired[int]
+    nudge_message: NotRequired[str]
+    fcm_sent: NotRequired[bool]  # FCM 전송 성공 여부
 
 
 class EvaluationState(TypedDict):
     """지연된 평가 에이전트의 상태"""
 
     # 필수 입력 필드 (초기 상태에서 제공되어야 함)
-    intervention_id: int
-    user_id: str  # personalId (로그인 ID)
-    intervention_type: str
+    user_id: str  # DB user ID (int)
+    mission_id: int
+    mission_type: str
 
     # Optional - 효과 측정 (워크플로우 중 생성)
     pre_intervention_usage: NotRequired[dict]
@@ -78,9 +68,6 @@ class EvaluationState(TypedDict):
 class BehaviorAnalysis(BaseModel):
     """행동 패턴 분석 결과"""
 
-    pattern_type: Literal["normal", "concerning", "critical"] = Field(
-        description="행동 패턴 유형"
-    )
     trigger_event: str = Field(
         description="감지된 트리거 이벤트 (예: '숏폼 20분 연속', '취침 30분 전 사용')"
     )
@@ -93,21 +80,24 @@ class InterventionDecision(BaseModel):
     """개입 필요성 판단 결과"""
 
     intervention_needed: bool = Field(description="개입이 필요한가?")
-    intervention_type: Literal[
-        "short-form-overuse", "bedtime-usage", "focus-break", "app-switching", "none"
-    ] = Field(description="개입 유형")
-    urgency_level: Literal["low", "medium", "high"] = Field(description="긴급도")
-    reasoning: str = Field(description="판단 근거")
+    reasoning: list[str] = Field(
+        description="판단 근거 3가지를 짧은 문장으로", max_length=3
+    )
+
+
+class Mission(BaseModel):
+    """미션 생성 결과"""
+
+    mission_type: Literal["REST", "MEDITATION"] = Field(description="개입 유형")
+    duration_seconds: int = Field(
+        gt=10, le=300, description="미션 실행 시간 (10초-5분, 300초 포함)"
+    )
 
 
 class NudgeMessage(BaseModel):
     """넛지 메시지"""
 
     message: str = Field(description="사용자에게 전달할 메시지")
-    nudge_type: Literal["REST", "MEDITATION"] = Field(
-        description="넛지 유형 (REST: 휴식, MEDITATION: 명상)"
-    )
-    duration_seconds: int = Field(gt=0, lt=60, description="미션 실행 시간 (초)")
 
 
 class EffectivenessAnalysis(BaseModel):
@@ -156,6 +146,4 @@ class MissionNotificationResult:
     mission_id: str | None  # 생성된 미션 ID
     fcm_sent: bool  # FCM 전송 성공 여부
     db_user_id: int | None  # DB user ID
-    error_stage: (
-        str | None
-    )  # 실패 단계: "mission_create" | "fcm_send" | None
+    error_stage: str | None  # 실패 단계: "mission_create" | "fcm_send" | None

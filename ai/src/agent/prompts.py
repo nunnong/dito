@@ -86,6 +86,7 @@ def get_intervention_decision_prompt(behavior_pattern: str, trigger_event: str) 
     Args:
         behavior_pattern: 분석된 행동 패턴
         trigger_event: 감지된 트리거 이벤트
+        severity_score: 심각도 (0~10)
 
     Returns:
         개입 판단 프롬프트 문자열
@@ -101,6 +102,43 @@ def get_intervention_decision_prompt(behavior_pattern: str, trigger_event: str) 
 {INTERVENTION_GUIDELINES}
 
 개입이 필요한지 판단하시오.
+"""
+
+
+def get_mission_generation_prompt(
+    behavior_pattern: str, trigger_event: str, severity_score: int
+) -> str:
+    """미션 생성 프롬프트
+
+    Args:
+        behavior_pattern: 행동 패턴
+        trigger_event: 트리거 이벤트
+        severity_score: 심각도 점수 (0-10)
+
+    Returns:
+        미션 생성 프롬프트 문자열
+    """
+    return f"""
+사용자의 행동 패턴을 기반으로 적절한 미션을 생성하세요.
+
+**상황 분석**:
+- 행동 패턴: {behavior_pattern}
+- 트리거 이벤트: {trigger_event}
+- 심각도: {severity_score}/10
+
+**미션 타입 선택 기준**:
+1. **REST** (휴식):
+   - 심각도 1-5
+
+2. **MEDITATION** (명상):
+   - 심각도가 높은 경우 (6-10)
+
+**미션 시간 설정**:
+- 낮은 심각도 (0-4): 60-120초
+- 중간 심각도 (5-7): 120-180초
+- 높은 심각도 (8-10): 180-300초
+
+적절한 mission_type과 duration_seconds를 선택하세요.
 """
 
 
