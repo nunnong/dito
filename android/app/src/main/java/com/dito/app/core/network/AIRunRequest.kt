@@ -25,11 +25,20 @@ data class BehaviorLog(
     @SerialName("usage_timestamp")
     val usageTimestamp: String,
 
-    @SerialName("video_title")
-    val videoTitle: String? = null,
+    @SerialName("recent_app_switches")
+    val recentAppSwitches: Int? = null,
 
-    @SerialName("channel_name")
-    val channelName: String? = null
+    @SerialName("app_metadata")
+    val appMetadata: AppMetadata? = null
+)
+
+@Serializable
+data class AppMetadata(
+    @SerialName("title")
+    val title: String,
+
+    @SerialName("channel")
+    val channel: String
 )
 
 

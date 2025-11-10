@@ -41,6 +41,35 @@ fun MainScreen(
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
     var showShop by remember { mutableStateOf(initialShowShop) }
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 권한 체크 상태 (무한 네비게이션 방지)
+    var isCheckingPermissions by remember { mutableStateOf(false) }
+
+    // 화면이 다시 보일 때마다 권한 상태 확인
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && !isCheckingPermissions) {
+                val hasAccessibility = PermissionHelper.isAccessibilityPermissionGranted(context)
+                val hasUsageStats = PermissionHelper.isUsageStatsPermissionGranted(context)
+                val hasNotification = PermissionHelper.isNotificationPermissionGranted(context)
+                val hasNotificationListener = PermissionHelper.isNotificationListenerPermissionGranted(context)
+
+                if (!hasAccessibility || !hasUsageStats || !hasNotification || !hasNotificationListener) {
+                    isCheckingPermissions = true
+                    outerNavController?.navigate(Route.PermissionRecheck.path) {
+                        launchSingleTop = true
+                    }
+                }
+            } else if (event == Lifecycle.Event.ON_PAUSE) {
+                isCheckingPermissions = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // MainScreen이 처음 로드될 때 항상 home으로 초기화
     LaunchedEffect(Unit) {

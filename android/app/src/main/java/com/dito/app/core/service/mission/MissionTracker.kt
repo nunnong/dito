@@ -36,7 +36,7 @@ class MissionTracker @Inject constructor(
 
         private var sequenceCounter = AtomicInteger(0)
 
-        // ✨ 추가: 미션 시작 시점의 앱 정보 저장
+        //미션 시작 시점의 앱 정보 저장
         @Volatile
         private var missionStartAppPackage: String? = null
 
@@ -95,14 +95,14 @@ class MissionTracker @Inject constructor(
         Log.d(TAG, "   시작 시간: ${Checker.formatTimestamp(actualStartTime)}")
         Log.d(TAG, "   종료 예정: ${Checker.formatTimestamp(actualStartTime + missionData.durationSeconds * 1000L)}")
 
-        // ✨ 미션 시작 시 현재 사용 중인 앱 기록
+        // 미션 시작 시 현재 사용 중인 앱 기록
         recordCurrentApp()
 
         // 미션 시간만큼 후에 평가 예약
         scheduleEvaluation(missionData, 0L)
     }
 
-    // ✨ 새로운 함수: 미션 시작 시 현재 앱 기록
+    // 미션 시작 시 현재 앱 기록
     private fun recordCurrentApp() {
         try {
             // AppMonitoringService에서 현재 앱 정보 가져오기
@@ -119,12 +119,12 @@ class MissionTracker @Inject constructor(
                     packageName
                 }
 
-                // ✨ 시작 앱 정보 저장
+                // 시작 앱 정보 저장
                 missionStartAppPackage = packageName
 
                 Log.d(TAG, "📱 미션 시작 시점의 앱: $appName")
 
-                // ✨ 시작 마커 기록 (duration=0)
+                // 시작 마커 기록 (duration=0)
                 val targetApps = currentMissionInfo?.targetApps ?: emptyList()
                 val log = MissionTrackingLog().apply {
                     this.missionId = currentMissionId!!
@@ -190,7 +190,7 @@ class MissionTracker @Inject constructor(
         val missionId = currentMissionId ?: return
         val targetApps = currentMissionInfo?.targetApps ?: emptyList()
 
-        // ✨ 시작 앱이 처음 전환될 때 실제 사용 시간 계산
+        // 시작 앱이 처음 전환될 때 실제 사용 시간 계산
         val actualDuration = if (packageName == missionStartAppPackage && missionStartAppPackage != null) {
             // 미션 시작부터 지금까지의 실제 시간
             val elapsedTime = (System.currentTimeMillis() - missionStartTime) / 1000
@@ -216,7 +216,7 @@ class MissionTracker @Inject constructor(
         val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
         Log.d(TAG, "📱 앱 사용 기록: $appName (${actualDuration}초) [$targetFlag]")
 
-        // ✨ 시작 앱 기록 후 초기화
+        // 시작 앱 기록 후 초기화
         if (packageName == missionStartAppPackage) {
             missionStartAppPackage = null
         }
@@ -300,8 +300,8 @@ class MissionTracker @Inject constructor(
         currentMissionId = null
         currentMissionInfo = null
         sequenceCounter.set(0)
-        missionStartAppPackage = null // ✨ 추가
-        missionStartTime = 0L // ✨ 추가
+        missionStartAppPackage = null
+        missionStartTime = 0L
     }
 
     fun isTracking(): Boolean = currentMissionId != null
