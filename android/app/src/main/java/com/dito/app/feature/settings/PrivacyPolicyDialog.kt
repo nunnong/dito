@@ -3,6 +3,7 @@ package com.dito.app.feature.settings
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,7 +31,7 @@ import com.dito.app.core.ui.designsystem.hardShadow
 @Preview(showBackground = true)
 @Composable
 
-fun PrivacyPoicyDialog() {
+fun PrivacyPoicyDialog(onDismiss: () -> Unit = {}) {
     val context = LocalContext.current
     val termsText = remember {
         context.resources.openRawResource(R.raw.privacy_policy)
@@ -68,6 +69,7 @@ fun PrivacyPoicyDialog() {
                         modifier = Modifier
                             .size(24.dp)
                             .align(Alignment.TopStart)
+                            .clickable{onDismiss()}
                     )
                 }
 

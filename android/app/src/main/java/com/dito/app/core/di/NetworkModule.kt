@@ -4,6 +4,7 @@ import android.content.Context
 import com.dito.app.core.network.AIService
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
+import com.google.android.datatransport.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
@@ -45,6 +46,19 @@ object NetworkModule {
         }
     }
 
+    private fun createLoggingInterceptor(): HttpLoggingInterceptor {
+        return HttpLoggingInterceptor().apply {
+            // 디버그: 본문까지, 릴리스: 로그 끔
+            level = HttpLoggingInterceptor.Level.BODY
+
+            // 민감 헤더 마스킹
+            redactHeader("Authorization")
+            // 필요 시 추가 마스킹 예:
+            // redactHeader("Cookie")
+            // redactHeader("Set-Cookie")
+        }
+    }
+
 
     /**
      * 일반 API용 OkHttpClient (인증 포함)
@@ -62,9 +76,7 @@ object NetworkModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(createAuthInterceptor(authTokenManager))
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            })
+            .addInterceptor(createLoggingInterceptor())
             .build()
     }
 
@@ -108,9 +120,7 @@ object NetworkModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(createAuthInterceptor(authTokenManager))
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            })
+            .addInterceptor(createLoggingInterceptor())
             .build()
     }
 

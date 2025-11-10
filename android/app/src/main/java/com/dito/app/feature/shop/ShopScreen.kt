@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -22,38 +23,47 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.dito.app.R
+import com.dito.app.core.data.shop.ShopItem
 import com.dito.app.core.ui.designsystem.*
 
-/** 상점 화면 */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
+    viewModel: ShopViewModel = hiltViewModel(),
     onBackClick: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf(ShopTab.COSTUME) }
-    var userCoins by remember { mutableStateOf(100) }
-    val ownedItemIds = remember { mutableStateOf(setOf("item_1")) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var showDialog by remember { mutableStateOf(false) }
+    var showPurchaseConfirmDialog by remember { mutableStateOf(false) }
     var showInsufficientCoinsDialog by remember { mutableStateOf(false) }
-    var selectedItem by remember { mutableStateOf<ShopItem?>(null) }
+    var selectedItemForPurchase by remember { mutableStateOf<ShopItem?>(null) }
 
-    if (showDialog) {
+    // Observe purchase messages from ViewModel
+    LaunchedEffect(uiState.purchaseMessage) {
+        uiState.purchaseMessage?.let { message ->
+            // TODO: Show a Snackbar or Toast with the message
+            // For now, just log it
+            android.util.Log.d("ShopScreen", "Purchase Message: $message")
+            // Clear the message after showing
+            // viewModel.clearPurchaseMessage() // Need to add this to ViewModel
+        }
+    }
+
+    if (showPurchaseConfirmDialog) {
         ShopConfirmDialog(
             onConfirm = {
-                selectedItem?.let { item ->
-                    if (userCoins >= item.price) {
-                        userCoins -= item.price
-                        ownedItemIds.value = ownedItemIds.value + item.id
-                    }
+                selectedItemForPurchase?.let { item ->
+                    viewModel.purchaseItem(item.itemId)
                 }
-                showDialog = false
-                selectedItem = null
+                showPurchaseConfirmDialog = false
+                selectedItemForPurchase = null
             },
             onDismiss = {
-                showDialog = false
-                selectedItem = null
+                showPurchaseConfirmDialog = false
+                selectedItemForPurchase = null
             }
         )
     }
@@ -71,27 +81,40 @@ fun ShopScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-            ShopHeader(onBackClick = onBackClick)
+        ShopHeader(onBackClick = onBackClick)
 
-            TabAndCoinSection(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                coins = userCoins
-            )
+        TabAndCoinSection(
+            selectedTab = uiState.selectedTab,
+            onTabSelected = viewModel::onTabSelected,
+            coins = uiState.coinBalance
+        )
 
-            ItemGrid(
-                selectedTab = selectedTab,
-                ownedItemIds = ownedItemIds.value,
-                userCoins = userCoins,
-                onPurchase = { item ->
-                    if (userCoins >= item.price) {
-                        selectedItem = item
-                        showDialog = true
-                    } else {
-                        showInsufficientCoinsDialog = true
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error ?: "오류가 발생했습니다.",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Red
+                )
+            } else {
+                ItemGrid(
+                    items = uiState.items,
+                    canPaginate = uiState.canPaginate,
+                    isLoadingMore = uiState.isLoadingMore,
+                    onLoadMore = viewModel::loadMoreItems,
+                    onPurchase = { item ->
+                        if (uiState.coinBalance >= item.price) {
+                            selectedItemForPurchase = item
+                            showPurchaseConfirmDialog = true
+                        } else {
+                            showInsufficientCoinsDialog = true
+                        }
                     }
-                }
-            )
+                )
+            }
+        }
     }
 }
 
@@ -131,18 +154,16 @@ private fun TabAndCoinSection(
     onTabSelected: (ShopTab) -> Unit,
     coins: Int
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(78.dp)
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.End,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
+        // 중앙 정렬된 탭
         Row(
             modifier = Modifier
-                .wrapContentSize()
-                .padding(end = 23.dp),
+                .align(Alignment.Center),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -164,33 +185,40 @@ private fun TabAndCoinSection(
                 modifier = Modifier.clickable { onTabSelected(ShopTab.BACKGROUND) }
             )
         }
-        CoinDisplay(coins = coins)
+
+        // 오른쪽 정렬된 잔액 표시
+        CoinDisplay(
+            coins = coins,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
     }
 }
 
 @Composable
-private fun CoinDisplay(coins: Int) {
+private fun CoinDisplay(
+    coins: Int,
+    modifier: Modifier = Modifier
+) {
     Row(
-        modifier = Modifier
-            .width(81.dp)
+        modifier = modifier
+            .widthIn(min = 81.dp)
             .height(36.dp)
             .hardShadow(DitoHardShadow.ButtonSmall.copy(cornerRadius = 48.dp))
             .background(Primary, CircleShape)
             .border(2.dp, Color.Black, CircleShape)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center // Center the group
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = coins.toString(),
-            style = DitoCustomTextStyles.titleDLarge, // 22sp
+            style = DitoCustomTextStyles.titleDMedium,
             color = Color.Black
         )
-        Spacer(modifier = Modifier.width(4.dp)) // Small space between text and image
         Image(
             painter = painterResource(id = R.drawable.lemon),
             contentDescription = "Coin",
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(20.dp),
             contentScale = ContentScale.Fit
         )
     }
@@ -198,41 +226,48 @@ private fun CoinDisplay(coins: Int) {
 
 @Composable
 private fun ItemGrid(
-    selectedTab: ShopTab,
-    ownedItemIds: Set<String>,
-    userCoins: Int,
+    items: List<ShopItem>,
+    canPaginate: Boolean,
+    isLoadingMore: Boolean,
+    onLoadMore: () -> Unit,
     onPurchase: (ShopItem) -> Unit
 ) {
-    val items = remember(selectedTab) {
-        List(12) { index ->
-            ShopItem(
-                id = "item_${index + 1}",
-                name = if (selectedTab == ShopTab.COSTUME) "의상 ${index + 1}" else "배경 ${index + 1}",
-                price = 100,
-                imageRes = R.drawable.dito
-            )
-        }
-    }
+    val gridState = rememberLazyGridState()
 
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(3),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = 10.dp,
-            bottom = 10.dp
-        ),
+        contentPadding = PaddingValues(16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        items(items) { item ->
+        itemsIndexed(items) { index, item ->
             ShopItemCard(
                 item = item,
-                isOwned = ownedItemIds.contains(item.id),
-                canAfford = userCoins >= item.price,
                 onPurchase = { onPurchase(item) }
             )
+
+            // Check if we need to load more items
+            val isLastItem = index == items.lastIndex
+            if (isLastItem && canPaginate && !isLoadingMore) {
+                LaunchedEffect(Unit) {
+                    onLoadMore()
+                }
+            }
+        }
+
+        if (isLoadingMore) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
@@ -240,8 +275,6 @@ private fun ItemGrid(
 @Composable
 private fun ShopItemCard(
     item: ShopItem,
-    isOwned: Boolean,
-    canAfford: Boolean,
     onPurchase: () -> Unit
 ) {
     Column(
@@ -261,17 +294,23 @@ private fun ShopItemCard(
                 .background(Color(0xFFF5EBD2)),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = item.imageRes),
+            AsyncImage(
+                model = item.imageUrl,
                 contentDescription = item.name,
                 modifier = Modifier.size(70.dp),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
+                onSuccess = {
+                    android.util.Log.d("ShopItemCard", "Image loaded successfully: ${item.imageUrl}")
+                },
+                onError = { error ->
+                    android.util.Log.e("ShopItemCard", "Image loading failed for ${item.imageUrl}: ${error.result.throwable?.message}")
+                }
             )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (isOwned) {
+        if (item.isPurchased) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -316,18 +355,6 @@ private fun ShopItemCard(
         }
     }
 }
-
-enum class ShopTab {
-    COSTUME,
-    BACKGROUND
-}
-
-data class ShopItem(
-    val id: String,
-    val name: String,
-    val price: Int,
-    val imageRes: Int
-)
 
 @Preview(showBackground = true)
 @Composable

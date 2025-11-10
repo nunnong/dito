@@ -67,12 +67,37 @@ object PermissionHelper {
     }
 
     /**
+     * Notification Listener 권한이 허용되었는지 확인
+     */
+    fun isNotificationListenerPermissionGranted(context: Context): Boolean {
+        val enabledListeners = Settings.Secure.getString(
+            context.contentResolver,
+            "enabled_notification_listeners"
+        )
+        return enabledListeners?.contains(context.packageName) == true
+    }
+
+    /**
      * 접근성 설정 화면 열기
      */
     fun openAccessibilitySettings(context: Context) {
-        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        context.startActivity(intent)
+        try {
+            // 앱의 접근성 서비스 설정 화면으로 직접 이동
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                val bundle = android.os.Bundle()
+                val componentName = "${context.packageName}/${context.packageName}.core.service.phone.AppMonitoringService"
+                bundle.putString(":settings:fragment_args_key", componentName)
+                putExtra(":settings:fragment_args_key", componentName)
+                putExtra(":settings:show_fragment_args", bundle)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // 실패 시 일반 접근성 설정 화면으로 이동
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            context.startActivity(intent)
+        }
     }
 
     /**
@@ -97,6 +122,15 @@ object PermissionHelper {
                 data = android.net.Uri.parse("package:${context.packageName}")
             }
         }
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        context.startActivity(intent)
+    }
+
+    /**
+     * Notification Listener 설정 화면 열기
+     */
+    fun openNotificationListenerSettings(context: Context) {
+        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         context.startActivity(intent)
     }

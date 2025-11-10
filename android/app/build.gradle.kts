@@ -75,6 +75,9 @@ dependencies {
     // ========== Navigation ==========
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // ========== Coil (Image Loading) ==========
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
     // ========== Hilt (DI) ==========
     implementation("com.google.dagger:hilt-android:2.57.2")
     implementation(libs.androidx.room.ktx)
@@ -117,6 +120,8 @@ dependencies {
     // ========== Health Connect ==========
     implementation("androidx.health.connect:connect-client:1.1.0-alpha10")
 
+    // ========== Coil (이미지 로딩) ============
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     // ========== Wearable Data Layer (폰-워치 통신) ==========
     implementation("com.google.android.gms:play-services-wearable:18.2.0")

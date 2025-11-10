@@ -9,6 +9,7 @@ import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.service.phone.PlaybackProbe
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,22 @@ class AppMonitoringService : AccessibilityService() {
     companion object {
         private const val TAG = "AppMonitoring"
         private const val MIN_USAGE_TIME = 3000L // 3초 미만 무시
+
+        private const val PKG_YOUTUBE = "com.google.android.youtube"
+        const val PKG_INSTAGRAM = "com.instagram.android"
+
+        @Volatile
+        private var instance: AppMonitoringService? = null
+
+        fun getCurrentAppInfo(): Pair<String, Long>? {
+            return instance?.let { service ->
+                if (service.currentApp.isNotEmpty() && service.currentAppStartTime > 0) {
+                    Pair(service.currentApp, service.currentAppStartTime)
+                } else {
+                    null
+                }
+            }
+        }
     }
 
     @Inject
@@ -33,6 +50,8 @@ class AppMonitoringService : AccessibilityService() {
 
     @Inject
     lateinit var missionTracker: MissionTracker
+
+    private lateinit var sessionManager: SessionStateManager
 
     @Volatile
     private var currentApp = ""
@@ -42,8 +61,11 @@ class AppMonitoringService : AccessibilityService() {
     private var aiCheckJob: Job? = null
 
 
+
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
+        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
         Log.d(TAG, "✅ AccessibilityService 연결됨")
     }
 
@@ -92,6 +114,12 @@ class AppMonitoringService : AccessibilityService() {
 
         aiCheckJob?.cancel()
 
+        // YouTube를 떠나는 경우 → MediaSession 세션 강제 저장
+        if (currentApp == "com.google.android.youtube" && ::sessionManager.isInitialized) {
+            Log.d(TAG, "📺 YouTube → 다른 앱 전환 감지 → 미디어 세션 강제 저장")
+            sessionManager.forceFlushCurrentSession()
+        }
+
         if (currentApp.isNotEmpty() && currentAppStartTime > 0) {
             val duration = timestamp - currentAppStartTime
 
@@ -137,55 +165,112 @@ class AppMonitoringService : AccessibilityService() {
     // 20초 후에도 여전히 동일 앱이면 AI 호출
     private fun scheduleAICheck(packageName: String, startTime: Long) {
         aiCheckJob = CoroutineScope(Dispatchers.IO).launch {
-            Log.d(TAG, "[$packageName] 감시 타이머 시작 (20초)")
+            val delayMs = Checker.TEST_CHECKER_MS
+            Log.d(TAG, "[$packageName] 감시 타이머 시작 (${delayMs/1000}초)")
 
-            delay(Checker.TEST_CHECKER_MS)
+            delay(delayMs)
 
             val currentTime = System.currentTimeMillis()
-            val duration = currentTime - startTime
+
+            // ⚠️ 테스트용: YouTube 사용시간을 4시간으로 강제 설정
+            val duration = if (packageName == PKG_YOUTUBE) {
+                4 * 60 * 60 * 1000L // 4시간 (밀리초)
+            } else {
+                currentTime - startTime
+            }
 
             // 여전히 같은 앱 사용 중인지 확인
-            if (currentApp == packageName) {
-                Log.w(TAG, "⚠️ [$packageName] ${duration / 1000}초 사용 중 → AI 호출 시도")
+            if (currentApp != packageName) {
+                Log.d(TAG, "감시 윈도 중 앱 전환 → AI 호출 취소")
+                return@launch
+            }
 
-                if (Checker.shouldCallAi(
-                        packageName = packageName,
-                        sessionStartTime = startTime,
-                        duration = duration
-                    )) {
+            // ================
+            // YouTube: 탐색(비재생) 경로
+            // ================
+            if (packageName == PKG_YOUTUBE) {
+                // 최근 20초 이상 비재생 상태면 '탐색'으로 간주
+                val exploring = PlaybackProbe.isNotPlayingFor(Checker.TEST_CHECKER_MS)
 
-                    val adjustedDuration = if (packageName == "com.google.android.youtube") {
-                        duration * 1500
-                    } else {
-                        duration
-                    }
+                if (!exploring) {
+                    Log.d(TAG, "[YouTube] 현재 재생 중 또는 비재생 시간이 짧음 → 탐색 호출 스킵 (재생 경로가 따로 처리)")
+                    return@launch
+                }
 
+                // 탐색 경로 쿨다운 체크
+                if (!Checker.canCallYoutubeExplore()) {
+                    Log.d(TAG, "[YouTube] youtube_explore 쿨다운에 의해 스킵")
+                    return@launch
+                }
 
-                    val (eventIds, appName) = saveToRealmForAI(
-                        packageName = packageName,
-                        startTime = startTime,
-                        duration = adjustedDuration
+                // (선택) 추가 캐싱/검증
+                if (!Checker.shouldCallYoutubeExploreByTimer()) {
+                    Log.d(TAG, "[YouTube] 탐색 타이머 조건 불충족(캐시 등) → 스킵")
+                    return@launch
+                }
+
+                // 저장 & 호출
+                val (eventIds, appName) = saveToRealmForAI(
+                    packageName = packageName,
+                    startTime = startTime,
+                    duration = duration
+                )
+
+                if (eventIds.isNotEmpty()) {
+                    Log.d(TAG, "🤖 [YouTube 탐색] AI 실시간 호출")
+                    aiAgent.requestIntervention(
+                        behaviorLog = BehaviorLog(
+                            appName = appName, // "YouTube"
+                            durationSeconds = (duration / 1000).toInt(),
+                            usageTimestamp = Checker.formatTimestamp(currentTime)
+                        ),
+                        eventIds = eventIds
                     )
+                    // 명시적으로 쿨다운 마킹
+                    Checker.markCooldown(Checker.CD_KEY_YT_EXPLORE)
+                } else {
+                    Log.w(TAG, "⚠️ Realm 저장 실패 → 탐색 기반 AI 호출 불가")
+                }
+                return@launch
+            }
 
-                    if (eventIds.isNotEmpty()) {
-                        Log.d(TAG, "🤖 AI 실시간 호출 (배치 전송과 별개)")
-                        aiAgent.requestIntervention(
-                            behaviorLog = BehaviorLog(
-                                appName = appName,
-                                durationSeconds = (adjustedDuration / 1000).toInt(),
-                                usageTimestamp = Checker.formatTimestamp(currentTime)
-                            ),
-                            eventIds = eventIds
-                        )
-                    } else {
-                        Log.w(TAG, "⚠️ Realm 저장 실패 → AI 호출 불가")
+            // ================
+            // 일반 앱: 기존 앱-타이머 경로 유지 (인스타 포함)
+            // ================
+            if (Checker.shouldCallAi(
+                    packageName = packageName,
+                    sessionStartTime = startTime,
+                    duration = duration
+                )
+            ) {
+                val (eventIds, appName) = saveToRealmForAI(
+                    packageName = packageName,
+                    startTime = startTime,
+                    duration = duration
+                )
+
+                if (eventIds.isNotEmpty()) {
+                    Log.d(TAG, "🤖 AI 실시간 호출 (배치 전송과 별개)")
+                    aiAgent.requestIntervention(
+                        behaviorLog = BehaviorLog(
+                            appName = appName,
+                            durationSeconds = (duration / 1000).toInt(),
+                            usageTimestamp = Checker.formatTimestamp(currentTime)
+                        ),
+                        eventIds = eventIds
+                    )
+                    if (packageName == PKG_INSTAGRAM) {
+                        Checker.markCooldown(Checker.CD_KEY_IG_APP)
                     }
+                } else {
+                    Log.w(TAG, "⚠️ Realm 저장 실패 → AI 호출 불가")
                 }
             } else {
-                Log.d(TAG, "10초 내 앱 전환 → AI 호출 취소")
+                Log.d(TAG, "[$packageName] 앱-타이머 조건 불충족 → 호출하지 않음")
             }
         }
     }
+
 
     private fun saveToRealmForAI(
         packageName: String,
@@ -302,7 +387,8 @@ class AppMonitoringService : AccessibilityService() {
         }
 
         aiCheckJob?.cancel()
-        Checker.clearExpiredCache()
+        Checker.cleanupExpiredCache()
+        instance = null
 
         Log.d(TAG, "🛑 AppMonitoringService 종료")
     }

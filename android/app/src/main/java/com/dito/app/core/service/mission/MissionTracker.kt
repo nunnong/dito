@@ -1,6 +1,9 @@
 package com.dito.app.core.service.mission
 
+import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
@@ -31,36 +34,126 @@ class MissionTracker @Inject constructor(
         @Volatile
         private var currentMissionInfo: com.dito.app.core.network.MissionInfo? = null
 
-        private var sequenceCounter = AtomicInteger(0) //로그 순서 카운트
+        private var sequenceCounter = AtomicInteger(0)
+
+        // ✨ 추가: 미션 시작 시점의 앱 정보 저장
+        @Volatile
+        private var missionStartAppPackage: String? = null
+
+        @Volatile
+        private var missionStartTime: Long = 0L
     }
 
-    fun startTracking(missionData: MissionData){
-        currentMissionId = missionData.missionId
-        val startTime = System.currentTimeMillis()
+    private val handler = Handler(Looper.getMainLooper())
+    private var startTrackingRunnable: Runnable? = null
 
+    fun startTracking(missionData: MissionData){
+        val DELAY_SECONDS = 20L
+
+        if (currentMissionId == missionData.missionId) {
+            Log.w(TAG, "⚠️ 이미 추적 중인 미션: ${missionData.missionId}")
+            return
+        }
+
+        if (currentMissionId != null) {
+            Log.w(TAG, "⚠️ 기존 미션($currentMissionId) 종료 후 새 미션 시작")
+            startTrackingRunnable?.let { handler.removeCallbacks(it) }
+            WorkManager.getInstance(context)
+                .cancelUniqueWork("mission_eval_$currentMissionId")
+            stopTracking()
+        }
+
+        Log.i(TAG, "🎯 미션 수신: ${missionData.missionId}")
+        Log.d(TAG, "   ⏳ ${DELAY_SECONDS}초 후 추적 시작 예정")
+        Log.d(TAG, "   타입: ${missionData.missionType}")
+        Log.d(TAG, "   지시: ${missionData.instruction}")
+
+        // 20초 후에 실제 추적 시작
+        startTrackingRunnable = Runnable {
+            actualStartTracking(missionData)
+        }
+        handler.postDelayed(startTrackingRunnable!!, DELAY_SECONDS * 1000L)
+    }
+
+    private fun actualStartTracking(missionData: MissionData) {
+        val actualStartTime = System.currentTimeMillis()
+        missionStartTime = actualStartTime
+
+        currentMissionId = missionData.missionId
         currentMissionInfo = com.dito.app.core.network.MissionInfo(
             type = missionData.missionType,
             instruction = missionData.instruction,
             durationSeconds = missionData.durationSeconds,
             targetApps = missionData.targetApps,
-            startTime = Checker.formatTimestamp(startTime),
-            endTime = Checker.formatTimestamp(startTime + missionData.durationSeconds * 1000L)
+            startTime = Checker.formatTimestamp(actualStartTime),
+            endTime = Checker.formatTimestamp(actualStartTime + missionData.durationSeconds * 1000L)
         )
 
         sequenceCounter.set(0)
 
-        Log.i(TAG, "🎯 미션 추적 시작: ${missionData.missionId} (${missionData.durationSeconds}초)") 
-        Log.d(TAG, "   타입: ${missionData.missionType}") 
-        Log.d(TAG, "   지시: ${missionData.instruction}") 
-        Log.d(TAG, "   타겟 앱: ${missionData.targetApps.joinToString()}") 
-        
-        //workmanager로 n분 후 평가
-        scheduleEvaluation(missionData)
+        Log.i(TAG, "✅ 미션 추적 실제 시작: ${missionData.missionId}")
+        Log.d(TAG, "   시작 시간: ${Checker.formatTimestamp(actualStartTime)}")
+        Log.d(TAG, "   종료 예정: ${Checker.formatTimestamp(actualStartTime + missionData.durationSeconds * 1000L)}")
+
+        // ✨ 미션 시작 시 현재 사용 중인 앱 기록
+        recordCurrentApp()
+
+        // 미션 시간만큼 후에 평가 예약
+        scheduleEvaluation(missionData, 0L)
     }
 
-    private fun scheduleEvaluation(missionData: MissionData) {
+    // ✨ 새로운 함수: 미션 시작 시 현재 앱 기록
+    private fun recordCurrentApp() {
+        try {
+            // AppMonitoringService에서 현재 앱 정보 가져오기
+            val appInfo = com.dito.app.core.service.phone.AppMonitoringService.getCurrentAppInfo()
+
+            if (appInfo != null) {
+                val (packageName, _) = appInfo
+
+                val packageManager = context.packageManager
+                val appName = try {
+                    val appInfoObj = packageManager.getApplicationInfo(packageName, 0)
+                    packageManager.getApplicationLabel(appInfoObj).toString()
+                } catch (e: Exception) {
+                    packageName
+                }
+
+                // ✨ 시작 앱 정보 저장
+                missionStartAppPackage = packageName
+
+                Log.d(TAG, "📱 미션 시작 시점의 앱: $appName")
+
+                // ✨ 시작 마커 기록 (duration=0)
+                val targetApps = currentMissionInfo?.targetApps ?: emptyList()
+                val log = MissionTrackingLog().apply {
+                    this.missionId = currentMissionId!!
+                    this.logType = "APP_USAGE"
+                    this.sequence = sequenceCounter.incrementAndGet()
+                    this.timestamp = System.currentTimeMillis()
+                    this.packageName = packageName
+                    this.appName = appName
+                    this.durationSeconds = 0  // 시작 마커
+                    this.isTargetApp = targetApps.contains(packageName)
+                }
+
+                RealmRepository.insertMissionLog(log)
+
+                val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
+                Log.d(TAG, "📌 미션 시작 앱 마킹: $appName (0초) [$targetFlag]")
+            } else {
+                Log.w(TAG, "⚠️ AppMonitoringService에서 현재 앱 정보를 가져올 수 없음")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "현재 앱 기록 실패", e)
+        }
+    }
+
+    private fun scheduleEvaluation(missionData: MissionData, delaySeconds: Long) {
+        val totalDelaySeconds = delaySeconds + missionData.durationSeconds
+
         val workRequest = OneTimeWorkRequestBuilder<com.dito.app.core.background.MissionEvaluationWorker>()
-            .setInitialDelay(missionData.durationSeconds.toLong(), TimeUnit.SECONDS)
+            .setInitialDelay(totalDelaySeconds, TimeUnit.SECONDS)
             .setInputData(
                 workDataOf(
                     "mission_id" to missionData.missionId,
@@ -71,7 +164,6 @@ class MissionTracker @Inject constructor(
                     "start_time" to currentMissionInfo!!.startTime,
                     "end_time" to currentMissionInfo!!.endTime
                 )
-
             )
             .setConstraints(
                 Constraints.Builder()
@@ -84,7 +176,6 @@ class MissionTracker @Inject constructor(
             )
             .build()
 
-        // WorkManager에 작업 등록
         WorkManager.getInstance(context)
             .enqueueUniqueWork(
                 "mission_eval_${missionData.missionId}",
@@ -92,32 +183,45 @@ class MissionTracker @Inject constructor(
                 workRequest
             )
 
-        Log.d(TAG, "⏰ WorkManager 스케줄 완료: ${missionData.durationSeconds}초 후 전송")
+        Log.d(TAG, "⏰ WorkManager 스케줄: ${totalDelaySeconds}초 후 평가")
     }
 
-    //앱 전환 기록
     fun onAppSwitch(packageName: String, appName: String, durationSeconds: Int) {
-        val missionId = currentMissionId ?: return // 현재 미션 없으면 종료
-        val targetApps = currentMissionInfo?.targetApps ?: emptyList() // 대상 앱 목록 확보
+        val missionId = currentMissionId ?: return
+        val targetApps = currentMissionInfo?.targetApps ?: emptyList()
 
-        val log = MissionTrackingLog().apply { // Realm 엔티티로 새 로그 생성
+        // ✨ 시작 앱이 처음 전환될 때 실제 사용 시간 계산
+        val actualDuration = if (packageName == missionStartAppPackage && missionStartAppPackage != null) {
+            // 미션 시작부터 지금까지의 실제 시간
+            val elapsedTime = (System.currentTimeMillis() - missionStartTime) / 1000
+            Log.d(TAG, "📊 시작 앱($appName) 실제 사용 시간: ${elapsedTime}초 (입력값: ${durationSeconds}초 무시)")
+            elapsedTime.toInt()
+        } else {
+            durationSeconds
+        }
+
+        val log = MissionTrackingLog().apply {
             this.missionId = missionId
             this.logType = "APP_USAGE"
             this.sequence = sequenceCounter.incrementAndGet()
             this.timestamp = System.currentTimeMillis()
             this.packageName = packageName
             this.appName = appName
-            this.durationSeconds = durationSeconds
+            this.durationSeconds = actualDuration
             this.isTargetApp = targetApps.contains(packageName)
         }
 
         RealmRepository.insertMissionLog(log)
 
-        val targetFlag = if (log.isTargetApp) "⚠️ 타겟" else "일반"
-        Log.d(TAG, "📱 앱 사용 기록: $appName (${durationSeconds}초) [$targetFlag]")
+        val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
+        Log.d(TAG, "📱 앱 사용 기록: $appName (${actualDuration}초) [$targetFlag]")
+
+        // ✨ 시작 앱 기록 후 초기화
+        if (packageName == missionStartAppPackage) {
+            missionStartAppPackage = null
+        }
     }
 
-    //media
     fun onMediaEvent(
         packageName: String,
         videoTitle: String,
@@ -125,12 +229,10 @@ class MissionTracker @Inject constructor(
         watchTimeSeconds: Int,
         eventType: String
     ) {
-        val missionId = currentMissionId ?: return // 미션 없으면 종료
-
-        // 영상 제목과 채널명 기반으로 콘텐츠 타입 결정
+        val missionId = currentMissionId ?: return
         val contentType = determineContentType(videoTitle, channelName)
 
-        val log = MissionTrackingLog().apply { // Realm 엔티티로 새 로그 생성
+        val log = MissionTrackingLog().apply {
             this.missionId = missionId
             this.logType = "MEDIA_SESSION"
             this.sequence = sequenceCounter.incrementAndGet()
@@ -144,10 +246,9 @@ class MissionTracker @Inject constructor(
         }
 
         RealmRepository.insertMissionLog(log)
-        Log.d(TAG, "🎥 미디어 기록: $videoTitle ($contentType, ${watchTimeSeconds}초)") // 로그 결과 출력
+        Log.d(TAG, "🎥 미디어 기록: $videoTitle ($contentType, ${watchTimeSeconds}초)")
     }
 
-    //화면 상태 기록 -> 삭제 가능
     fun onScreenEvent(isScreenOn: Boolean){
         val missionId = currentMissionId ?: return
 
@@ -161,8 +262,6 @@ class MissionTracker @Inject constructor(
         RealmRepository.insertMissionLog(log)
         Log.d(TAG, "📱 화면 상태: ${if (isScreenOn) "ON" else "OFF"}")
     }
-
-
 
     private fun determineContentType(title: String, channel: String): String {
         val educationalKeywords = setOf(
@@ -187,23 +286,104 @@ class MissionTracker @Inject constructor(
             lowerTitle.contains(keyword) || lowerChannel.contains(keyword)
         }
 
-        return when { // 콘텐츠 타입 판정 로직
-            eduCount >= 2 -> "EDUCATIONAL"      // 교육 키워드 2개 이상: 교육 콘텐츠
-            entCount >= 1 -> "ENTERTAINMENT"    // 엔터테인먼트 키워드 1개 이상: 엔터테인먼트 콘텐츠
-            else -> "UNKNOWN"                   // 둘 다 해당 안 되면: 알 수 없음
+        return when {
+            eduCount >= 2 -> "EDUCATIONAL"
+            entCount >= 1 -> "ENTERTAINMENT"
+            else -> "UNKNOWN"
         }
     }
 
     fun stopTracking(){
         Log.i(TAG, "미션 추적 종료: $currentMissionId")
+        startTrackingRunnable?.let { handler.removeCallbacks(it) }
+        startTrackingRunnable = null
         currentMissionId = null
         currentMissionInfo = null
         sequenceCounter.set(0)
+        missionStartAppPackage = null // ✨ 추가
+        missionStartTime = 0L // ✨ 추가
     }
 
     fun isTracking(): Boolean = currentMissionId != null
     fun getCurrentMissionId(): String? = currentMissionId
 
+    /**
+     * 미션 종료 시점에 현재 사용 중인 앱을 강제로 기록
+     */
+    fun recordFinalApp() {
+        val missionId = currentMissionId ?: return
 
+        try {
+            val currentTime = System.currentTimeMillis()
 
+            // AppMonitoringService에서 현재 앱 정보 가져오기
+            val appInfo = com.dito.app.core.service.phone.AppMonitoringService.getCurrentAppInfo()
+
+            if (appInfo != null) {
+                val (packageName, startTime) = appInfo
+
+                val packageManager = context.packageManager
+                val appName = try {
+                    val appInfoObj = packageManager.getApplicationInfo(packageName, 0)
+                    packageManager.getApplicationLabel(appInfoObj).toString()
+                } catch (e: Exception) {
+                    packageName
+                }
+
+                // 미션 시작부터 종료까지의 시간 계산
+                val elapsedSeconds = ((currentTime - missionStartTime) / 1000).toInt()
+
+                val targetApps = currentMissionInfo?.targetApps ?: emptyList()
+                val log = MissionTrackingLog().apply {
+                    this.missionId = missionId
+                    this.logType = "APP_USAGE"
+                    this.sequence = sequenceCounter.incrementAndGet()
+                    this.timestamp = currentTime
+                    this.packageName = packageName
+                    this.appName = appName
+                    this.durationSeconds = elapsedSeconds
+                    this.isTargetApp = targetApps.contains(packageName)
+                }
+
+                RealmRepository.insertMissionLog(log)
+
+                val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
+                Log.d(TAG, "🏁 미션 종료 시점 앱 기록: $appName (${elapsedSeconds}초) [$targetFlag]")
+            } else {
+                // AppMonitoringService가 앱 정보를 제공하지 못한 경우,
+                // 시작 마커로 저장한 앱 정보 활용
+                if (missionStartAppPackage != null) {
+                    val packageManager = context.packageManager
+                    val appName = try {
+                        val appInfoObj = packageManager.getApplicationInfo(missionStartAppPackage!!, 0)
+                        packageManager.getApplicationLabel(appInfoObj).toString()
+                    } catch (e: Exception) {
+                        missionStartAppPackage!!
+                    }
+
+                    val elapsedSeconds = ((currentTime - missionStartTime) / 1000).toInt()
+                    val targetApps = currentMissionInfo?.targetApps ?: emptyList()
+                    val log = MissionTrackingLog().apply {
+                        this.missionId = missionId
+                        this.logType = "APP_USAGE"
+                        this.sequence = sequenceCounter.incrementAndGet()
+                        this.timestamp = currentTime
+                        this.packageName = missionStartAppPackage!!
+                        this.appName = appName
+                        this.durationSeconds = elapsedSeconds
+                        this.isTargetApp = targetApps.contains(missionStartAppPackage!!)
+                    }
+
+                    RealmRepository.insertMissionLog(log)
+
+                    val targetFlag = if (log.isTargetApp == true) "⚠️ 타겟" else "일반"
+                    Log.d(TAG, "🏁 미션 종료 시점 앱 기록 (백업): $appName (${elapsedSeconds}초) [$targetFlag]")
+                } else {
+                    Log.w(TAG, "⚠️ 미션 종료 시점에 사용 중인 앱 정보를 가져올 수 없음")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "미션 종료 시점 앱 기록 실패", e)
+        }
+    }
 }

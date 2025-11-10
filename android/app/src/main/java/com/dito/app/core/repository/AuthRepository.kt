@@ -7,6 +7,7 @@ import com.dito.app.core.data.common.ApiErrorResponse
 import com.dito.app.core.fcm.FcmTokenManager
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
+import com.dito.app.core.storage.GroupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -21,6 +22,7 @@ class AuthRepository @Inject constructor(
     private val apiService: ApiService,
     private val authTokenManager: AuthTokenManager,
     private val fcmTokenManager: FcmTokenManager,
+    private val groupManager: GroupManager,
     private val json: Json
 ) {
     companion object {
@@ -140,20 +142,76 @@ class AuthRepository @Inject constructor(
 
     /**
      * 로그아웃
-     * 로컬 토큰 및 FCM 토큰 삭제
+     * 서버에 로그아웃 요청 + 로컬 토큰 및 FCM 토큰 삭제
      */
-    suspend fun signOut(): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun logout(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            val token = authTokenManager.getAccessToken()
+
+            // 서버에 로그아웃 요청
+            if (!token.isNullOrEmpty()) {
+                try {
+                    val response = apiService.logout("Bearer $token")
+                    if (!response.isSuccessful) {
+                        Log.w(TAG, "서버 로그아웃 요청 실패: code=${response.message()}")
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "서버 로그아웃 요청 예외 (계속 진행)", e)
+                }
+            }
+
             // FCM 토큰 삭제
             fcmTokenManager.deleteToken()
 
             // 로컬 인증 정보 삭제
             authTokenManager.clearAll()
 
-            Log.d(TAG, "✅ 로그아웃 완료")
+            // 그룹 정보 삭제
+            groupManager.endChallenge()
+
+            Log.d(TAG, "로그아웃 완료")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 로그아웃 예외", e)
+            Log.e(TAG, "로그아웃 예외", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 회원탈퇴
+     * 서버에 회원탈퇴 요청 + 로컬 토큰 및 FCM 토큰 삭제
+     */
+    suspend fun signOut(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = authTokenManager.getAccessToken()
+
+            if (token.isNullOrEmpty()) {
+                Log.e(TAG, "회원탈퇴 실패: 토큰 없음")
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
+
+            // 서버에 회원탈퇴 요청
+            val response = apiService.signOut("Bearer $token")
+
+            if (response.isSuccessful) {
+                // FCM 토큰 삭제
+                fcmTokenManager.deleteToken()
+
+                // 로컬 인증 정보 삭제
+                authTokenManager.clearAll()
+
+                // 그룹 정보 삭제
+                groupManager.endChallenge()
+
+                Log.d(TAG, "회원탈퇴 완료")
+                Result.success(Unit)
+            } else {
+                val errorMessage = response.message()
+                Log.e(TAG, "회원탈퇴 실패: code=${response.code()}")
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "회원탈퇴 예외", e)
             Result.failure(e)
         }
     }
