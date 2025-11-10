@@ -44,7 +44,7 @@ enum class NotificationType(val label: String, val color: Color) {
 }
 
 // MissionNotificationData를 NotificationType으로 변환하는 헬퍼 함수
-fun getNotificationType(status: MissionStatus, result: MissionResult): NotificationType {
+fun getNotificationType(status: MissionStatus, result: MissionResult?): NotificationType {
     return when (status) {
         MissionStatus.IN_PROGRESS -> NotificationType.IN_PROGRESS
         MissionStatus.COMPLETED -> {

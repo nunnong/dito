@@ -22,7 +22,7 @@ data class MissionNotificationData(
     val missionText: String,
     val coinReward: Int,
     val status: MissionStatus,
-    val result: MissionResult
+    val result: MissionResult? = null
 )
 
 @Serializable
