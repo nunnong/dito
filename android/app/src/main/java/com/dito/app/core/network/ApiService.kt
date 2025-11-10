@@ -8,6 +8,9 @@ import com.dito.app.core.data.auth.AuthResponse
 import com.dito.app.core.data.auth.CheckUsernameResponse
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
+import com.dito.app.core.data.screentime.GroupRankingResponse
+import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
+import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
 import com.dito.app.core.data.closet.ClosetResponse
 import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
@@ -36,6 +39,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -120,6 +124,19 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<BatchUploadResponse>
 
+    // ========== Screen Time ==========
+    @POST("/screen-time/update")
+    suspend fun updateScreenTime(
+        @Body request: ScreenTimeUpdateRequest,
+        @Header("Authorization") token: String
+    ): Response<ScreenTimeUpdateResponse>
+
+    @GET("/challenges/groups/{groupId}/ranking")
+    suspend fun getGroupRanking(
+        @Path("groupId") groupId: Long,
+        @Header("Authorization") token: String
+    ): Response<GroupRankingResponse>
+
     // Group
 
     // 그룹 챌린지 생성
@@ -136,7 +153,7 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<Unit>
 
-    
+
     // 초대 코드로 입장
     @POST("/challenges/groups/join")
     suspend fun getGroupInfo(
@@ -157,7 +174,7 @@ interface ApiService {
         @Path("group_id") groupId: Long,
         @Header("Authorization") token: String
     ): Response<ApiResponse<GetRankingResponse>>
-    
+
     // 그룹 챌린지 참여자 목록 조회
     @GET("/challenges/groups/{group_id}/participants")
     suspend fun getGroupParticipants(
