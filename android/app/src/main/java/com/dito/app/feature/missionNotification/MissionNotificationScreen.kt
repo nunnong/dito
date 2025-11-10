@@ -4,13 +4,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,7 +23,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dito.app.R
+import com.dito.app.core.data.missionNotification.MissionNotificationData
+import com.dito.app.core.data.missionNotification.MissionResult
+import com.dito.app.core.data.missionNotification.MissionStatus
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.designsystem.Background
@@ -29,19 +36,25 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnSurface
 
-// 알림 아이템 데이터
-data class MissionNotification(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val type: NotificationType
-)
-
 // 상태 뱃지 타입
 enum class NotificationType(val label: String, val color: Color) {
-    COMPLETE("진행중", Color(0xFFB39DDB)),  // 보라색
-    WARNING("완료", Color(0xFFFFF59D)),     // 노란색
-    ERROR("실패", Color(0xFFFFCDD2))        // 분홍색
+    IN_PROGRESS("진행중", Color(0xFFB39DDB)),  // 보라색
+    COMPLETED("완료", Color(0xFFFFF59D)),      // 노란색
+    FAILED("실패", Color(0xFFFFCDD2))          // 분홍색
+}
+
+// MissionNotificationData를 NotificationType으로 변환하는 헬퍼 함수
+fun getNotificationType(status: MissionStatus, result: MissionResult): NotificationType {
+    return when (status) {
+        MissionStatus.IN_PROGRESS -> NotificationType.IN_PROGRESS
+        MissionStatus.COMPLETED -> {
+            if (result == MissionResult.SUCCESS) {
+                NotificationType.COMPLETED
+            } else {
+                NotificationType.FAILED
+            }
+        }
+    }
 }
 
 // 바텀바까지 포함된 전체 화면
@@ -70,30 +83,11 @@ fun MissionNotificationScaffold(
 @Composable
 fun MissionNotificationScreen(
     modifier: Modifier = Modifier,
+    viewModel: MissionNotificationViewModel = hiltViewModel(),
     onBackClick: () -> Unit = {}
 ) {
-    val notifications = remember {
-        listOf(
-            MissionNotification(
-                id = 1,
-                title = "인스타그램 30분 안 보기",
-                description = "30 레몬",
-                type = NotificationType.COMPLETE
-            ),
-            MissionNotification(
-                id = 2,
-                title = "인스타그램 30분 안 보기",
-                description = "30 레몬",
-                type = NotificationType.WARNING
-            ),
-            MissionNotification(
-                id = 3,
-                title = "인스타그램 30분 안 보기",
-                description = "30 레몬",
-                type = NotificationType.ERROR
-            )
-        )
-    }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
 
     Column(
         modifier = modifier
@@ -104,14 +98,47 @@ fun MissionNotificationScreen(
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
         ) {
-            notifications.forEach { notification ->
-                NotificationItem(notification = notification)
+            when {
+                uiState.isLoading && uiState.notifications.isEmpty() -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = OnSurface
+                    )
+                }
+                uiState.error != null && uiState.notifications.isEmpty() -> {
+                    Text(
+                        text = uiState.error ?: "오류가 발생했습니다.",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = OnSurface,
+                        style = DitoTypography.bodyMedium
+                    )
+                }
+                uiState.notifications.isEmpty() -> {
+                    Text(
+                        text = "미션 알림이 없습니다.",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = OnSurface,
+                        style = DitoTypography.bodyMedium
+                    )
+                }
+                else -> {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            items = uiState.notifications,
+                            key = { it.id }
+                        ) { notification ->
+                            NotificationItem(notification = notification)
+                        }
+                    }
+                }
             }
         }
     }
@@ -150,7 +177,9 @@ private fun MissionNotificationHeader(onBackClick: () -> Unit) {
 
 // 개별 알림 아이템
 @Composable
-fun NotificationItem(notification: MissionNotification) {
+fun NotificationItem(notification: MissionNotificationData) {
+    val notificationType = getNotificationType(notification.status, notification.result)
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -165,18 +194,17 @@ fun NotificationItem(notification: MissionNotification) {
             Column(modifier = Modifier.weight(1f)) {
                 // 제목
                 Text(
-                    text = notification.title,
+                    text = notification.missionText,
                     color = OnSurface,
-                    // style = DitoTypography.titleLarge.copy(fontSize = 16.sp)
                     style = DitoCustomTextStyles.titleKMedium.copy(fontSize = 16.sp)
                 )
 
                 // 제목과 설명 간격
                 Spacer(modifier = Modifier.height(15.dp))
 
-                // 설명 (30 레몬)
+                // 설명 (코인 보상)
                 Text(
-                    text = notification.description,
+                    text = "${notification.coinReward} 레몬",
                     color = OnSurface,
                     style = DitoTypography.bodyMedium.copy(fontSize = 14.sp)
                 )
@@ -184,7 +212,7 @@ fun NotificationItem(notification: MissionNotification) {
 
             Spacer(modifier = Modifier.width(15.dp))
 
-            StatusBadge(type = notification.type)
+            StatusBadge(type = notificationType)
         }
 
         // 구분선
@@ -205,8 +233,8 @@ fun NotificationItem(notification: MissionNotification) {
 fun StatusBadge(type: NotificationType) {
     Box(
         modifier = Modifier
-            .widthIn(min = 80.dp)
-            .background(type.color, RoundedCornerShape(20.dp))
+            .widthIn(min = 70.dp)
+            .background(type.color, RoundedCornerShape(100.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
