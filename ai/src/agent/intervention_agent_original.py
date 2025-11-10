@@ -23,12 +23,12 @@ from agent.prompts import (
 from agent.schemas import InterventionState
 from agent.utils import (
     behavior_analyzer,
+    create_and_notify_mission,
     get_current_timestamp,
     get_time_slot_from_timestamp,
     intervention_decider,
     nudge_generator,
     schedule_evaluation,
-    send_fcm_notification,
     simulate_behavior_log,
     truncate_message,
 )
@@ -225,12 +225,23 @@ def send_intervention(state: InterventionState) -> dict:
 
     intervention_time = get_current_timestamp()
 
-    # 실제 Spring 서버 호출
-    intervention_id_str = send_fcm_notification(state)
+    # 미션 생성 및 FCM 전송 (새로운 orchestrator 사용)
+    result = create_and_notify_mission(state)
 
-    if intervention_id_str is None:
+    # 결과 처리 - 부분적 성공 시나리오 포함
+    if result.mission_id:
+        intervention_id_str = result.mission_id
+        print(f"     ✅ mission_id: {intervention_id_str}")
+
+        if result.fcm_sent:
+            print(f"     ✅ FCM 알림 전송 완료")
+        else:
+            print(f"     ⚠️ 미션은 생성되었으나 FCM 전송 실패 (error_stage: {result.error_stage})")
+    else:
+        # 전체 실패 - fallback ID 생성
         intervention_id_str = f"INT_FAILED_{int(datetime.now().timestamp())}"
-        print("⚠️ FCM send failed, using fallback ID")
+        print(f"     ❌ 미션 생성 실패 (error_stage: {result.error_stage})")
+        print(f"     ⚠️ Fallback ID 사용: {intervention_id_str}")
 
     intervention_id = hash(intervention_id_str) % (10**8)
 
@@ -256,9 +267,6 @@ def send_intervention(state: InterventionState) -> dict:
         )
     else:
         print(f"     평가 스케줄 안 함 (개입 불필요)")
-
-    print(f"     개입 ID: {intervention_id_str}")
-    print(f"     ✅ FCM 알림 전송 완료")
 
     return {
         "intervention_time": intervention_time,

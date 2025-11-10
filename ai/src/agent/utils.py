@@ -16,6 +16,8 @@ from agent.schemas import (
     EffectivenessAnalysis,
     InterventionDecision,
     InterventionState,
+    MissionData,
+    MissionNotificationResult,
     NudgeMessage,
     StrategyAdjustment,
 )
@@ -140,28 +142,24 @@ def simulate_post_intervention_usage(user_id: int, intervention_id: int) -> dict
     }
 
 
-def send_fcm_notification(state: InterventionState) -> str | None:
-    """Send FCM notification request to Spring server (FCM 테스트용 - 무조건 미션 생성)
+# =============================================================================
+# 미션 및 알림 함수 (Mission and Notification Functions)
+# =============================================================================
 
-    역할:
-    1. personalId로 DB user_id 조회 (/api/user/{personalId})
-    2. DB user_id로 미션 생성 API 호출 (/api/mission) - 무조건 실행
-    3. mission_id 획득
-    4. 간소화된 FCM 형식으로 전송 (/api/fcm/send)
-       - 백엔드가 mission_id로부터 자동으로 미션 데이터 조회 및 enrichment
-       - AI는 user_id, title, message, mission_id만 전달
+
+def get_db_user_id(personal_id: str) -> int | None:
+    """personalId로 DB user_id 조회
+
+    Args:
+        personal_id: 사용자 personalId (로그인 ID)
 
     Returns:
-        mission_id: String ID if successful, None if failed
+        DB user_id (int) if successful, None if failed
     """
-    # 환경 변수 유효성 검증
     if not SECURITY_INTERNAL_API_KEY:
         print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
-        print("   Please check your .env file or environment configuration")
         return None
 
-    # Step 0: personalId로 DB user_id 조회
-    personal_id = state["user_id"]  # 입력으로 받은 personalId
     print(f"     🔍 DB user_id 조회 중... (personalId={personal_id})")
 
     headers = {
@@ -180,12 +178,13 @@ def send_fcm_notification(state: InterventionState) -> str | None:
 
             db_user_id = (
                 user_data.get("data", {}).get("profile", {}).get("userId")
-            )  # DB의 실제 user ID
+            )
             if not db_user_id:
-                print("     ❌ DB user_id 조회 실패: 응답에 id 없음")
+                print("     ❌ DB user_id 조회 실패: 응답에 userId 없음")
                 return None
 
             print(f"     ✅ DB user_id 조회 완료: {db_user_id}")
+            return db_user_id
 
     except httpx.HTTPError as e:
         print(f"     ❌ DB user_id 조회 실패: {e}")
@@ -198,29 +197,29 @@ def send_fcm_notification(state: InterventionState) -> str | None:
                 print(f"        오류 텍스트: {e.response.text[:200]}")
         return None
 
-    mission_id = None
 
-    # Step 1: 미션 생성 (무조건 실행 - FCM 테스트용)
-    print("     📝 미션 생성 중... (무조건 실행)")
+def create_mission(mission_data: MissionData) -> str | None:
+    """미션 생성 API 호출
 
-    # behavior_log에서 target_app 추출
-    target_app = "All Apps"  # 기본값
-    if "behavior_log" in state and state["behavior_log"]:
-        target_app = state["behavior_log"].get("app_name", "All Apps")
+    Args:
+        mission_data: 미션 생성 데이터 (Pydantic model)
 
-    # 미션 생성 API 페이로드 (DB user_id 사용)
-    mission_payload = {
-        "user_id": db_user_id,  # DB의 실제 user ID
-        "mission_type": state.get("nudge_type", "REST"),  # LLM이 선택한 타입
-        "mission_text": state["nudge_message"],
-        "coin_reward": 10,
-        "duration_seconds": state.get("duration_seconds", 300),  # LLM이 선택한 시간
-        "target_app": target_app,  # behavior_log에서 추출
-        "stat_change_self_care": 1,
-        "stat_change_focus": 1,
-        "stat_change_sleep": 1,
-        "prompt": "AI Intervention",
+    Returns:
+        mission_id (str) if successful, None if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return None
+
+    print("     📝 미션 생성 중...")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
     }
+
+    # Pydantic model을 dict로 변환
+    mission_payload = mission_data.model_dump()
 
     try:
         with httpx.Client(timeout=10.0) as client:
@@ -236,12 +235,13 @@ def send_fcm_notification(state: InterventionState) -> str | None:
 
             if mission_id:
                 print(f"     ✅ 미션 생성 완료: ID={mission_id}")
+                return str(mission_id)
             else:
-                print("     ⚠️ 미션 생성 응답에 mission_id 없음")
+                print("     ⚠️ 미션 생성 응답에 missionId 없음")
+                return None
 
     except httpx.HTTPError as e:
         print(f"     ❌ 미션 생성 실패: {e}")
-        # 상세 에러 정보 출력
         if hasattr(e, "response") and e.response:
             print(f"        응답 코드: {e.response.status_code}")
             try:
@@ -249,33 +249,44 @@ def send_fcm_notification(state: InterventionState) -> str | None:
                 print(f"        오류 상세: {error_detail}")
             except:
                 print(f"        오류 텍스트: {e.response.text[:200]}")
-        # 미션 생성 실패 시 FCM 전송 스킵
         return None
 
-    # mission_id가 없으면 FCM 전송 불가
-    if mission_id is None:
-        print("     ⚠️ mission_id 없음 - FCM 전송 스킵")
-        return None
 
-    # Step 2: FCM 전송 (간소화된 형식, personalId 사용)
+def send_fcm_with_mission(
+    personal_id: str, mission_id: str, message: str
+) -> bool:
+    """FCM 알림 전송 (미션 ID 포함)
+
+    Args:
+        personal_id: 사용자 personalId (디바이스 토큰 조회용)
+        mission_id: 미션 ID (백엔드가 Mission 테이블에서 enrichment)
+        message: 알림 메시지
+
+    Returns:
+        True if successful, False if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return False
+
     print("     📱 FCM 알림 전송 중...")
 
-    # FCM 페이로드 구성 (백엔드가 mission_id로부터 자동 enrichment)
-    # FCM은 personalId를 사용 (디바이스 토큰 조회용)
-    fcm_payload = {
-        "user_id": personal_id,  # FCM은 personalId 사용
-        "title": "디토",
-        "message": state["nudge_message"],
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
     }
 
-    # mission_id가 있으면 추가 (백엔드가 Mission 테이블에서 나머지 정보 조회)
-    if mission_id is not None:
-        fcm_payload["mission_id"] = mission_id
+    fcm_payload = {
+        "user_id": personal_id,
+        "title": "디토",
+        "message": message,
+        "mission_id": mission_id,
+    }
 
     try:
         with httpx.Client(timeout=10.0) as client:
             response = client.post(
-                f"{SPRING_SERVER_URL}/api/fcm/send",  # 새로운 엔드포인트
+                f"{SPRING_SERVER_URL}/api/fcm/send",
                 json=fcm_payload,
                 headers=headers,
             )
@@ -283,19 +294,14 @@ def send_fcm_notification(state: InterventionState) -> str | None:
             result = response.json()
 
             if result.get("success"):
-                if mission_id:
-                    print(f"     ✅ FCM 전송 완료: mission_id={mission_id}")
-                    return str(mission_id)
-                else:
-                    print("     ⚠️ FCM 전송 성공했으나 mission_id 없음")
-                    return None
+                print(f"     ✅ FCM 전송 완료: mission_id={mission_id}")
+                return True
             else:
                 print(f"     ❌ FCM 전송 실패: {result.get('error')}")
-                return None
+                return False
 
     except httpx.HTTPError as e:
         print(f"     ❌ FCM HTTP 오류: {e}")
-        # 디버깅을 위한 상세 정보 출력
         if hasattr(e, "response") and e.response:
             print(f"        응답 코드: {e.response.status_code}")
             try:
@@ -303,4 +309,98 @@ def send_fcm_notification(state: InterventionState) -> str | None:
                 print(f"        오류 상세: {error_detail}")
             except:
                 print(f"        오류 텍스트: {e.response.text[:200]}")
-        return None
+        return False
+
+
+def create_and_notify_mission(state: InterventionState) -> MissionNotificationResult:
+    """미션 생성 및 FCM 알림 전송 (Orchestrator)
+
+    역할:
+    1. personalId로 DB user_id 조회
+    2. 미션 생성
+    3. FCM 알림 전송
+
+    각 단계별로 에러 처리 및 결과 추적
+
+    Args:
+        state: Intervention state containing user_id, nudge_message, etc.
+
+    Returns:
+        MissionNotificationResult with detailed success/failure info
+    """
+    # Step 1: User ID lookup
+    personal_id = state["user_id"]
+    db_user_id = get_db_user_id(personal_id)
+
+    if db_user_id is None:
+        return MissionNotificationResult(
+            success=False,
+            mission_id=None,
+            fcm_sent=False,
+            db_user_id=None,
+            error_stage="user_lookup",
+        )
+
+    # Step 2: Mission creation
+    target_app = "All Apps"
+    if "behavior_log" in state and state["behavior_log"]:
+        target_app = state["behavior_log"].get("app_name", "All Apps")
+
+    mission_data = MissionData(
+        user_id=db_user_id,
+        mission_type=state.get("nudge_type", "REST"),
+        mission_text=state["nudge_message"],
+        coin_reward=10,
+        duration_seconds=state.get("duration_seconds", 300),
+        target_app=target_app,
+        stat_change_self_care=1,
+        stat_change_focus=1,
+        stat_change_sleep=1,
+        prompt="AI Intervention",
+    )
+
+    mission_id = create_mission(mission_data)
+
+    if mission_id is None:
+        return MissionNotificationResult(
+            success=False,
+            mission_id=None,
+            fcm_sent=False,
+            db_user_id=db_user_id,
+            error_stage="mission_create",
+        )
+
+    # Step 3: FCM send
+    fcm_sent = send_fcm_with_mission(personal_id, mission_id, state["nudge_message"])
+
+    if not fcm_sent:
+        # Mission created but FCM failed - partial success
+        return MissionNotificationResult(
+            success=False,
+            mission_id=mission_id,
+            fcm_sent=False,
+            db_user_id=db_user_id,
+            error_stage="fcm_send",
+        )
+
+    # Full success
+    return MissionNotificationResult(
+        success=True,
+        mission_id=mission_id,
+        fcm_sent=True,
+        db_user_id=db_user_id,
+        error_stage=None,
+    )
+
+
+def send_fcm_notification(state: InterventionState) -> str | None:
+    """Send FCM notification request to Spring server (DEPRECATED - 하위 호환성용)
+
+    DEPRECATED: create_and_notify_mission() 사용을 권장합니다.
+    이 함수는 하위 호환성을 위해 유지되며, 내부적으로 create_and_notify_mission()을 호출합니다.
+
+    Returns:
+        mission_id: String ID if successful, None if failed
+    """
+    result = create_and_notify_mission(state)
+    return result.mission_id

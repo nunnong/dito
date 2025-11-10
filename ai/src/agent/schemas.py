@@ -1,8 +1,10 @@
 """데이터 구조 정의 (Data Schema Definitions)
 - TypedDict 상태 정의
 - Pydantic 모델 (LLM 구조화 출력용)
+- 미션 및 알림 데이터 모델
 """
 
+from dataclasses import dataclass
 from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
@@ -16,8 +18,8 @@ class InterventionState(TypedDict):
     """실시간 개입 에이전트의 상태"""
 
     # 필수 입력 필드 (초기 상태에서 제공되어야 함)
-    user_id: str  # personalId (로그인 ID)
-    behavior_log: NotRequired[dict]  # app_usage_logs 데이터
+    user_id: str  # DB user ID (스프링에서 변환후에 전달함)
+    behavior_log: dict  # app_usage_logs 데이터
 
     # Optional - 워크플로우 중 생성되는 필드
     timestamp: NotRequired[str]
@@ -124,3 +126,36 @@ class StrategyAdjustment(BaseModel):
     adjustment_needed: bool = Field(description="전략 조정이 필요한가?")
     adjustment_reason: str = Field(description="조정이 필요한 이유")
     new_strategy: str | None = Field(default=None, description="새로운 전략 (필요시)")
+
+
+# =============================================================================
+# 미션 및 알림 데이터 모델 (Mission and Notification Models)
+# =============================================================================
+
+
+class MissionData(BaseModel):
+    """미션 생성 페이로드"""
+
+    user_id: int = Field(description="DB user ID (not personalId)")
+    mission_type: str = Field(description="미션 타입 (REST or MEDITATION)")
+    mission_text: str = Field(description="미션 메시지")
+    coin_reward: int = Field(default=10, description="코인 보상")
+    duration_seconds: int = Field(description="미션 실행 시간 (초)")
+    target_app: str = Field(default="All Apps", description="대상 앱")
+    stat_change_self_care: int = Field(default=1, description="자기관리 스탯 변화")
+    stat_change_focus: int = Field(default=1, description="집중력 스탯 변화")
+    stat_change_sleep: int = Field(default=1, description="수면 스탯 변화")
+    prompt: str = Field(default="AI Intervention", description="프롬프트")
+
+
+@dataclass
+class MissionNotificationResult:
+    """미션 생성 및 FCM 알림 전송 결과"""
+
+    success: bool  # 전체 작업 성공 여부
+    mission_id: str | None  # 생성된 미션 ID
+    fcm_sent: bool  # FCM 전송 성공 여부
+    db_user_id: int | None  # DB user ID
+    error_stage: (
+        str | None
+    )  # 실패 단계: "user_lookup" | "mission_create" | "fcm_send" | None

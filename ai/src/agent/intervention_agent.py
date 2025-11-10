@@ -10,8 +10,8 @@ from langgraph.graph import END, START, StateGraph
 
 from agent.schemas import InterventionState
 from agent.utils import (
+    create_and_notify_mission,
     get_current_timestamp,
-    send_fcm_notification,
     simulate_behavior_log,
 )
 
@@ -42,7 +42,7 @@ def send_intervention(state: InterventionState) -> dict:
             "intervention_type": "short-form-overuse",  # 고정 타입
             "nudge_message": "잠시 휴식이 필요해요. 10분 휴식하고 +10 코인 받으세요!",
             "nudge_type": "REST",  # REST 또는 MEDITATION
-            "duration_seconds": 10,  # 10분
+            "duration_seconds": 60,  # 60초
             "behavior_pattern": "테스트용 행동 패턴",
             "pattern_type": "overuse",
             "trigger_event": "test-trigger",
@@ -56,7 +56,7 @@ def send_intervention(state: InterventionState) -> dict:
             "intervention_type": "short-form-overuse",  # 고정 타입
             "nudge_message": "잠시 휴식이 필요해요. 10분 휴식하고 +10 코인 받으세요!",
             "nudge_type": "MEDITATION",  # REST 또는 MEDITATION
-            "duration_seconds": 10,  # 10분
+            "duration_seconds": 60,  # 60초
             "behavior_pattern": "테스트용 행동 패턴",
             "pattern_type": "overuse",
             "trigger_event": "test-trigger",
@@ -67,15 +67,23 @@ def send_intervention(state: InterventionState) -> dict:
     print(f"     타입: {test_state['nudge_type']}")
     print(f"     시간: {test_state['duration_seconds']}초")
 
-    # FCM 전송 (미션 생성 포함)
-    intervention_id_str = send_fcm_notification(test_state)
+    # 미션 생성 및 FCM 전송 (새로운 orchestrator 사용)
+    result = create_and_notify_mission(test_state)
 
-    if intervention_id_str is None:
-        intervention_id_str = f"INT_FAILED_{int(datetime.now().timestamp())}"
-        print("⚠️ FCM send failed, using fallback ID")
-    else:
+    # 결과 처리 - 부분적 성공 시나리오 포함
+    if result.mission_id:
+        intervention_id_str = result.mission_id
         print(f"     ✅ mission_id: {intervention_id_str}")
-        print(f"     ✅ FCM 알림 전송 완료")
+
+        if result.fcm_sent:
+            print(f"     ✅ FCM 알림 전송 완료")
+        else:
+            print(f"     ⚠️ 미션은 생성되었으나 FCM 전송 실패 (error_stage: {result.error_stage})")
+    else:
+        # 전체 실패 - fallback ID 생성
+        intervention_id_str = f"INT_FAILED_{int(datetime.now().timestamp())}"
+        print(f"     ❌ 미션 생성 실패 (error_stage: {result.error_stage})")
+        print(f"     ⚠️ Fallback ID 사용: {intervention_id_str}")
 
     intervention_id = hash(intervention_id_str) % (10**8)
 
