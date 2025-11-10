@@ -62,7 +62,7 @@ fun GroupScreen(
             OngoingChallengeScreen(viewModel = viewModel)
             return
         }
-        ChallengeStatus.WAITING_TO_START -> {
+        ChallengeStatus.PENDING -> {
             if (uiState.isLeader) {
                 // 방장 화면
                 GroupLeaderScreen(
@@ -80,9 +80,22 @@ fun GroupScreen(
                 )
             } else {
                 // 참가자 화면
-                GroupMemberScreen()
+                GroupMemberScreen(
+                    groupName = uiState.groupName,
+                    entryCode = uiState.entryCode,
+                    period = uiState.period,
+                    goal = uiState.goal,
+                    penalty = uiState.penalty,
+                    participants = uiState.participants,
+                    onLoadParticipants = { viewModel.loadParticipants() }
+                )
             }
             return
+        }
+        ChallengeStatus.COMPLETED, ChallengeStatus.CANCELLED -> {
+            // 종료되거나 취소된 챌린지는 그룹 정보 삭제하고 NO_CHALLENGE로 표시
+            viewModel.onChallengeEnded()
+            // fall through to NO_CHALLENGE
         }
         ChallengeStatus.NO_CHALLENGE -> {
         }

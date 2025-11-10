@@ -19,9 +19,11 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 enum class ChallengeStatus {
-    NO_CHALLENGE,        // 생성 전
-    WAITING_TO_START,    // 생성했지만 START 전
-    IN_PROGRESS          // START 이후
+    NO_CHALLENGE,        // 그룹에 참여하지 않음 (프론트엔드 전용)
+    PENDING,             // 생성했지만 START 전 (백엔드: pending)
+    IN_PROGRESS,         // 진행 중 (백엔드: in_progress)
+    COMPLETED,           // 종료됨 (백엔드: completed)
+    CANCELLED            // 취소됨 (백엔드: cancelled)
 }
 
 data class GroupChallengeUiState(
@@ -84,8 +86,10 @@ class GroupChallengeViewModel @Inject constructor(
         android.util.Log.d("GroupViewModel", "loadChallengeState - isLeader: ${groupManager.isLeader()}")
 
         val status = when (savedStatus) {
-            GroupManager.STATUS_WAITING_TO_START -> ChallengeStatus.WAITING_TO_START
+            GroupManager.STATUS_PENDING -> ChallengeStatus.PENDING
             GroupManager.STATUS_IN_PROGRESS -> ChallengeStatus.IN_PROGRESS
+            GroupManager.STATUS_COMPLETED -> ChallengeStatus.COMPLETED
+            GroupManager.STATUS_CANCELLED -> ChallengeStatus.CANCELLED
             else -> ChallengeStatus.NO_CHALLENGE
         }
 
@@ -191,7 +195,7 @@ class GroupChallengeViewModel @Inject constructor(
                         // UI 상태 업데이트
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            challengeStatus = ChallengeStatus.WAITING_TO_START,
+                            challengeStatus = ChallengeStatus.PENDING,
                             groupName = groupName,
                             goal = goalDescription,
                             penalty = penaltyDescription,
@@ -387,7 +391,7 @@ class GroupChallengeViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showBetInputDialog = false,
-                        challengeStatus = ChallengeStatus.WAITING_TO_START,
+                        challengeStatus = ChallengeStatus.PENDING,
                         groupName = _uiState.value.joinedGroupName,
                         goal = _uiState.value.joinedGroupGoal,
                         penalty = _uiState.value.joinedGroupPenalty,

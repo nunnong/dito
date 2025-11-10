@@ -5,6 +5,7 @@ import com.dito.app.core.data.group.CreateGroupRequest
 import com.dito.app.core.data.group.CreateGroupResponse
 import com.dito.app.core.data.group.EnterGroupRequest
 import com.dito.app.core.data.group.EnterGroupResponse
+import com.dito.app.core.data.group.GetGroupDetailResponse
 import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
@@ -239,8 +240,35 @@ class GroupRepository @Inject constructor(
         }
 
     // 소속 그룹 조회
-//    suspend fun
+    suspend fun getGroupDetail(): Result<GetGroupDetailResponse> = withContext(Dispatchers.IO) {
+        try {
+            val token = authTokenManager.getAccessToken()
+            if (token.isNullOrEmpty()) {
+                Log.e(TAG, "참여자 목록 조회 실패: 토큰 없음")
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
 
+            val response = apiService.getGroupDetail("Bearer $token")
+
+            if (response.isSuccessful && response.body() != null) {
+                val apiResponse = response.body()!!
+                val participants = apiResponse.data
+                    ?: return@withContext Result.failure(
+                        Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
+                    )
+                Result.success(participants)
+            } else {
+                val errorMessage = "그룹 상세정보 조회 실패"
+                Log.e(TAG, "그룹 상세 조회 실패: code=${response.code()}")
+                Result.failure(Exception(errorMessage))
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "그룹 상세정보 조회 예외", e)
+            Result.failure(e)
+        }
+
+    }
 
     // 그룹 챌린지 참여자 목록 조회
     suspend fun getParticipants(groupId: Long): Result<GetParticipantsResponse> =
