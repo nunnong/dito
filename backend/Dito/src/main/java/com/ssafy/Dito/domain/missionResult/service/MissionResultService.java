@@ -38,7 +38,7 @@ public class MissionResultService {
         long userId = mission.getUser().getId();
         User user = userRepository.getById(userId);
 
-        Status status = statusRepository.getById(userId);
+        Status status = statusRepository.getByUserId(userId);
 
         missionResultMapper.updateUserInfo(req, mission, user, status);
     }
