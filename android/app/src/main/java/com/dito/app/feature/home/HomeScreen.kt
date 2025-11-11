@@ -429,13 +429,14 @@ fun HomeContent(
                 )
             }
 
-            // 원형 꾸밈
-            Box(
+            // 원형 버튼
+            Image(
+                painter = painterResource(id = R.drawable.face_dialog_btn),
+                contentDescription = "Face Dialog Button",
                 modifier = Modifier
-                    .size(45.dp)
-                    .background(Surface, CircleShape)
-                    .border(3.dp, Color.Black, CircleShape)
-                    .clickable { showDitoFaceDialog = true }
+                    .size(60.dp)
+                    .clickable { showDitoFaceDialog = true },
+                contentScale = ContentScale.Fit
             )
         }
     }
