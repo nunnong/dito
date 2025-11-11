@@ -102,6 +102,11 @@ fun HomeContent(
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    var showDitoFaceDialog by remember { mutableStateOf(false) }
+
+    if (showDitoFaceDialog) {
+        DitoFaceDialog(onDismiss = { showDitoFaceDialog = false })
+    }
 
     LaunchedEffect(isEditingWeeklyGoal) {
         if (isEditingWeeklyGoal) {
@@ -430,6 +435,7 @@ fun HomeContent(
                     .size(45.dp)
                     .background(Surface, CircleShape)
                     .border(3.dp, Color.Black, CircleShape)
+                    .clickable { showDitoFaceDialog = true }
             )
         }
     }
