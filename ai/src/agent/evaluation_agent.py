@@ -28,6 +28,7 @@ from agent.utils import (
     fetch_mission_info,
     send_evaluation_fcm,
     strategy_adjuster,
+    submit_mission_result,
 )
 
 # =============================================================================
@@ -83,22 +84,31 @@ def evaluate_mission_result(state: EvaluationState) -> dict:
 
 
 def send_fcm_notification(state: EvaluationState) -> dict:
-    """3단계: FCM 알림 전송
-    평가 결과를 사용자에게 FCM으로 전송합니다.
+    """3단계: FCM 알림 전송 및 미션 결과 저장
+    평가 결과를 사용자에게 FCM으로 전송하고, 미션 결과를 DB에 저장합니다.
     """
-    print("\n[3/5] FCM 알림 전송 중...")
+    print("\n[3/5] FCM 알림 전송 및 미션 결과 저장 중...")
 
     user_id = state["user_id"]
     mission_id = state["mission_id"]
     evaluation_result = state["evaluation_result"]
     feedback = state["feedback"]
 
+    # FCM 알림 전송
     fcm_sent = send_evaluation_fcm(user_id, evaluation_result, feedback, mission_id)
 
     if fcm_sent:
         print("     ✅ FCM 전송 완료")
     else:
         print("     ⚠️ FCM 전송 실패 (계속 진행)")
+
+    # 미션 결과 DB 저장
+    result_saved = submit_mission_result(mission_id, evaluation_result)
+
+    if result_saved:
+        print("     ✅ 미션 결과 DB 저장 완료")
+    else:
+        print("     ⚠️ 미션 결과 저장 실패 (계속 진행)")
 
     return {
         "fcm_sent": fcm_sent

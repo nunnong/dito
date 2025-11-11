@@ -589,3 +589,58 @@ def send_evaluation_fcm(user_id: int, result: str, feedback: str, mission_id: in
             except:
                 print(f"        오류 텍스트: {e.response.text[:200]}")
         return False
+
+
+def submit_mission_result(mission_id: int, result: str) -> bool:
+    """미션 결과 제출 API 호출
+
+    Args:
+        mission_id: 미션 ID
+        result: "SUCCESS" | "FAILURE" | "IGNORE"
+
+    Returns:
+        True if successful, False if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return False
+
+    print(f"     💾 미션 결과 저장 중... (mission_id={mission_id}, result={result})")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "mission_id": mission_id,
+        "result": result  # "SUCCESS" | "FAILURE" | "IGNORE"
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{SPRING_SERVER_URL}/api/mission/result",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            result_data = response.json()
+
+            if result_data.get("success"):
+                print(f"     ✅ 미션 결과 저장 완료")
+                return True
+            else:
+                print(f"     ❌ 미션 결과 저장 실패: {result_data.get('error')}")
+                return False
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 미션 결과 저장 HTTP 오류: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return False
