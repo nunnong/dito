@@ -67,7 +67,7 @@ public class ItemService {
 
         UserItem userItem = UserItem.of(user, item, false);
 
-        user.updateCoin(item.getPrice());
+        user.updateCoin(item.getPrice(), false);
         userItemRepository.save(userItem);
     }
 }

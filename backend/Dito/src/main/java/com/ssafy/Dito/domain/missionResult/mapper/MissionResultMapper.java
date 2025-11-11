@@ -19,7 +19,7 @@ public class MissionResultMapper {
         int sleepDelta = calculateDelta(mission.getStatChangeSleep(), req.result());
 
         if (req.result() == Result.SUCCESS) {
-            user.updateCoin(mission.getCoinReward());
+            user.updateCoin(mission.getCoinReward(), true);
         }
 
         status.updateUserStatus(selfCareDelta, focusDelta, sleepDelta);
