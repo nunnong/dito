@@ -125,7 +125,7 @@ class SessionStateManager(
                 Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) channel else ""}")
 
             } else if (isLongTimeSinceLastEvent) {
-                // ✅ 수정 ②: 같은 제목 재시작 분기에서 ifBlank 고착화 제거
+                // 같은 제목 재시작 분기에서 ifBlank 고착화 제거
                 val elapsedTime = System.currentTimeMillis() - session.startTime
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 Log.d(TAG, "같은 영상 재시작 감지 (${elapsedTime / 1000}초 경과)")
@@ -237,7 +237,6 @@ class SessionStateManager(
                 scheduleExplorationCheck()
             }
 
-            // ====== (1) 연속 STOPPED 디바운스 ======
             val now = System.currentTimeMillis()
             val stopKey = "${session.appPackage}|${session.title}"
             if (stopKey == lastStoppedKey && (now - lastStoppedAt) < stopDebounceMs) {
@@ -246,7 +245,7 @@ class SessionStateManager(
             }
             lastStoppedKey = stopKey
             lastStoppedAt = now
-            // ======================================
+
 
             Log.d(TAG, "재생 종료 → ${SAVE_DELAY}ms 후 저장 예약")
             Log.d(TAG, "   현재 channel: ${session.channel}")
@@ -289,7 +288,7 @@ class SessionStateManager(
                 }
 
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-                Log.d(TAG, "⚠️ updateMetadata에서 제목 변경 감지!")
+                Log.d(TAG, "updateMetadata에서 제목 변경 감지!")
                 Log.d(TAG, "   이전: ${session.title}")
                 Log.d(TAG, "   새로운: $newTitle")
                 Log.d(TAG, "   새 채널: $newChannel")
@@ -371,6 +370,8 @@ class SessionStateManager(
                 val currentTime = System.currentTimeMillis()
                 val watchTime = currentTime - session.startTime - session.totalPauseTime
 
+                val payloadWatchTime = 30 * 60 * 1000L
+
                 Log.d(TAG, "⏰ 재생 중 AI 호출 타이머 트리거 (${watchTime / 1000}초 시청)")
 
                 // 쿨다운 체크
@@ -397,7 +398,7 @@ class SessionStateManager(
                 val checkPoint = Checker.checkMediaSession(
                     title = session.title,
                     channel = finalChannel,
-                    watchTime = watchTime,
+                    watchTime = payloadWatchTime,
                     timestamp = currentTime,
                     appPackage = session.appPackage
                 )
@@ -490,8 +491,8 @@ class SessionStateManager(
 
             Log.d(TAG, "🔍 YouTube 탐색 감지 (앱 내에서 비재생 20초 경과)")
 
-            // ⚠️ 테스트용: 4시간 사용시간으로 설정
-            val duration = 4 * 60 * 60 * 1000L // 4시간 (밀리초)
+            // 테스트용: 30분 사용시간으로 설정
+            val duration = 30 * 60 * 1000L // 30분 (밀리초)
 
             // Realm 저장
             val eventIds = mutableListOf<String>()
@@ -596,9 +597,9 @@ class SessionStateManager(
             true // 다른 앱은 별도 로직
         }
 
-        // ⚠️ 테스트용: YouTube 재생 시간을 4시간으로 강제 설정
+        // 테스트용: YouTube 재생 시간을 30분으로 강제 설정
         val adjustedWatchTime = if (session.appPackage == PKG_YOUTUBE) {
-            4 * 60 * 60 * 1000L // 4시간 (밀리초)
+            30 * 60 * 1000L
         } else {
             watchTime
         }
