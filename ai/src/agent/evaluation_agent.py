@@ -69,10 +69,31 @@ def evaluate_mission_result(state: EvaluationState) -> dict:
     print("\n[2/5] 미션 평가 중...")
 
     mission_info = state["mission_info"]
-    behavior_logs = state["behavior_logs"]
+    mission_type = state.get("mission_type", "UNKNOWN")
+    behavior_logs = state.get("behavior_logs", [])
 
-    # 평가 및 피드백 생성
-    evaluation_result, feedback = evaluate_mission_with_llm(mission_info, behavior_logs)
+    # behavior_logs가 없거나 비어있는 경우 처리
+    if not behavior_logs:
+        print("     ⚠️ behavior_logs가 없습니다. 미션 타입에 따라 평가합니다.")
+
+        # 미션 타입별로 다르게 평가
+        if mission_type == "REST":
+            # REST 타입: 앱 사용 안 함 = 성공 (디지털 디톡스 성공)
+            evaluation_result = "SUCCESS"
+            target_app = mission_info.get("targetApp", "앱")
+            feedback = f"{target_app}을(를) 사용하지 않아 디지털 디톡스에 성공했습니다! 훌륭해요! 🎉"
+        elif mission_type == "MEDITATION":
+            # MEDITATION 타입: 앱 사용 안 함 = 실패 (권장 앱 미사용)
+            evaluation_result = "FAILURE"
+            target_app = mission_info.get("targetApp", "명상 앱")
+            feedback = f"{target_app} 사용 기록이 없습니다. 다음 미션에서는 꼭 실천해보세요!"
+        else:
+            # 알 수 없는 타입은 기본 처리
+            evaluation_result = "FAILURE"
+            feedback = "미션 수행 기록이 없어 평가할 수 없습니다."
+    else:
+        # 평가 및 피드백 생성
+        evaluation_result, feedback = evaluate_mission_with_llm(mission_info, behavior_logs)
 
     print(f"     평가 결과: {evaluation_result}")
     print(f"     피드백: {feedback}")
