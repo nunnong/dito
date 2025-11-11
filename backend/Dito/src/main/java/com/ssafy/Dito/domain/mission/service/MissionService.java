@@ -28,7 +28,9 @@ public class MissionService {
     private final UserRepository userRepository;
 
     public Page<MissionRes> getMissions(long page_number) {
-        return missionQueryRepository.getMissionPage(page_number);
+        long userId = JwtAuthentication.getUserId();
+
+        return missionQueryRepository.getMissionPage(userId, page_number);
     }
 
     public Long createMission(MissionReq req) {
