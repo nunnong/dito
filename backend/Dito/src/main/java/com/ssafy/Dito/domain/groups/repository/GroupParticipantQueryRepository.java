@@ -77,12 +77,10 @@ public class GroupParticipantQueryRepository {
             .map(equipItem -> {
                 // userId 추출
                 Long userId = Long.parseLong(equipItem.userItemId().split("_")[0]);
-                // CostumeUrlUtil을 사용하여 URL 변환
-                String transformedUrl = costumeUrlUtil.getCostumeUrl(
-                    equipItem.imgUrl(),
-                    userId,
-                    false
-                );
+                // type이 "costume"일 때만 CostumeUrlUtil을 사용하여 URL 변환
+                String transformedUrl = equipItem.type().equals("costume")
+                    ? costumeUrlUtil.getCostumeUrl(equipItem.imgUrl(), userId, false)
+                    : equipItem.imgUrl();
                 // 변환된 URL로 새 EquippedItemInfo 생성
                 return new EquippedItemInfo(
                     equipItem.userItemId(),

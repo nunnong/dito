@@ -30,6 +30,10 @@ public class MissionResult extends IdentifiableEntity {
     @Comment("미션 수행 결과")
     private Result result;
 
+    @Column(name = "feedback", columnDefinition = "TEXT")
+    @Comment("AI 생성 피드백")
+    private String feedback;
+
     @Column(name ="completed_at", nullable = true)
     @CreatedDate
     @Comment("미션 완료일")
@@ -40,14 +44,16 @@ public class MissionResult extends IdentifiableEntity {
     @Comment("미션")
     private Mission mission;
 
-    private MissionResult(Result result, Mission mission) {
+    private MissionResult(Result result, String feedback, Mission mission) {
         this.result = result;
+        this.feedback = feedback;
         this.mission = mission;
     }
 
     public static MissionResult of(MissionResultReq req, Mission mission) {
         return new MissionResult(
             req.result(),
+            req.feedback(),
             mission
         );
     }

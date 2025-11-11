@@ -7,7 +7,10 @@ public record MissionResultReq(
         @JsonProperty("mission_id")
         long missionId,
 
-        Result result
+        Result result,
+
+        @JsonProperty("feedback")
+        String feedback
 ) {
 
 }
