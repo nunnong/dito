@@ -102,11 +102,12 @@ interface ApiService {
     ): Response<ClosetResponse>
 
     // ========== MissionNotification ==========
-    @GET("/mission/{page_number}")
+    @GET("/mission")
     suspend fun getMissionNotifications(
         @Header("Authorization") token: String,
-        @Path("page_number") pageNumber: Int,
+        @Query("page_number") pageNumber: Int,
     ): Response<MissionNotificationResponse>
+
 
     // ========== Events ==========
     @POST("/event/app-usage")
