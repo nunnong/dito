@@ -2,6 +2,7 @@ package com.dito.app.feature.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -65,9 +66,10 @@ fun DitoFaceDialog(
                     .width(286.dp)
                     .height(140.dp)
                     .background(
-                        color = Color.Black.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(4.dp)
+                        color = Color.White,
+                        shape = RoundedCornerShape(8.dp)
                     )
+                    .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
@@ -80,7 +82,7 @@ fun DitoFaceDialog(
                 Text(
                     text = "내 스탯에 따라\n디토의 표정이 바뀌어요!",
                     style = DitoCustomTextStyles.titleDSmall,
-                    color = Color.White,
+                    color = Color.Black,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
