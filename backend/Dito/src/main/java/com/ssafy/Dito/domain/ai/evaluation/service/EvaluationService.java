@@ -1,24 +1,24 @@
 package com.ssafy.Dito.domain.ai.evaluation.service;
 
-import com.ssafy.Dito.domain.ai.evaluation.document.EvaluationDocument;
 import com.ssafy.Dito.domain.ai.evaluation.dto.BehaviorLog;
 import com.ssafy.Dito.domain.ai.evaluation.dto.EvaluationRequest;
 import com.ssafy.Dito.domain.ai.evaluation.dto.EvaluationResponse;
-import com.ssafy.Dito.domain.ai.evaluation.repository.EvaluationRepository;
 import com.ssafy.Dito.domain.mission.entity.Mission;
 import com.ssafy.Dito.domain.mission.repository.MissionRepository;
-import com.ssafy.Dito.domain.missionResult.dto.request.MissionResultReq;
-import com.ssafy.Dito.domain.missionResult.entity.Result;
-import com.ssafy.Dito.domain.missionResult.service.MissionResultService;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.global.exception.BadRequestException;
+import com.ssafy.Dito.global.exception.ExternalApiException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,17 +30,19 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EvaluationService {
 
-    private final EvaluationRepository evaluationRepository;
     private final UserRepository userRepository;
     private final MissionRepository missionRepository;
-    private final MissionResultService missionResultService;
+    private final RestTemplate restTemplate;
+
+    @Value("${ai.server.url:http://52.78.96.102:8000}")
+    private String aiServerUrl;
 
     /**
-     * Evaluate mission based on behavior logs and target apps
-     * Evaluates mission performance, updates mission_result, user coins, and stats
+     * Evaluate mission via AI server
+     * Forwards evaluation request to external AI server for asynchronous processing
      *
      * @param request EvaluationRequest containing mission and behavior data
-     * @return EvaluationResponse with run_id, thread_id, and status
+     * @return EvaluationResponse with run_id, thread_id, and status (pending)
      */
     @Transactional
     public EvaluationResponse evaluateMission(EvaluationRequest request) {
@@ -64,59 +66,46 @@ public class EvaluationService {
         // Step 3: Validate behavior logs
         validateBehaviorLogs(request.behaviorLogs());
 
-        // Step 4: Evaluate mission by checking if target apps were used
-        List<String> targetApps = request.missionInfo().targetApps();
-        boolean hasViolation = request.behaviorLogs().stream()
-                .filter(behaviorLog -> "APP_USAGE".equals(behaviorLog.logType()))
-                .anyMatch(behaviorLog -> {
-                    String appName = behaviorLog.appName();
-                    String packageName = behaviorLog.packageName();
-                    // Check both app_name and package_name against target_apps
-                    boolean matches = targetApps.contains(appName) || targetApps.contains(packageName);
-                    if (matches) {
-                        log.info("Violation detected - app: {}, package: {}", appName, packageName);
-                    }
-                    return matches;
-                });
-
-        Result evaluationResult = hasViolation ? Result.FAILURE : Result.SUCCESS;
-        log.info("Mission evaluation completed - missionId: {}, result: {}", missionId, evaluationResult);
-
-        // Step 5: Create mission result (updates mission status, coins, and stats)
-        MissionResultReq missionResultReq = new MissionResultReq(missionId, evaluationResult);
-        missionResultService.createMissionResult(missionResultReq);
-        log.info("Mission result created - missionId: {}, result: {}", missionId, evaluationResult);
-
-        // Step 6: Generate run_id and thread_id for response
-        String runId = UUID.randomUUID().toString();
-        String threadId = UUID.randomUUID().toString();
-
-        // Step 7: Save evaluation document to MongoDB
-        String evaluationId = UUID.randomUUID().toString();
-        EvaluationDocument document = EvaluationDocument.of(
-                evaluationId,
-                String.valueOf(user.getId()),  // userId (DB ID)
-                request.userId(),  // personalId (로그인 ID)
-                request.missionId(),
-                runId,
-                threadId,
-                request.missionInfo().type(),
-                hasViolation ? 0 : 100,  // score
-                !hasViolation,  // success
-                hasViolation ? "목표 앱 사용이 감지되었습니다" : "미션을 성공적으로 완료했습니다",  // feedback
-                null,  // violations
-                null,  // recommendations
-                "completed"  // status
+        // Step 4: Build AI server request payload
+        Map<String, Object> aiRequest = Map.of(
+                "assistant_id", "evaluation",
+                "input", Map.of(
+                        "user_id", user.getId(),  // User DB ID (Long)
+                        "mission_id", missionId,  // Mission DB ID (Long)
+                        "behavior_logs", request.behaviorLogs()
+                )
         );
-        evaluationRepository.save(document);
-        log.info("Evaluation document saved - evaluationId: {}, runId: {}, userId: {}, personalId: {}",
-                evaluationId, runId, user.getId(), request.userId());
 
-        log.info("Evaluation completed - runId: {}, threadId: {}, result: {}",
-                runId, threadId, evaluationResult);
+        try {
+            // Step 5: Call AI server
+            String aiEndpoint = aiServerUrl + "/runs";
+            log.info("Calling AI server: {}", aiEndpoint);
 
-        // Step 8: Return response
-        return new EvaluationResponse(runId, threadId, "completed");
+            ResponseEntity<Map> aiResponse = restTemplate.postForEntity(
+                    aiEndpoint,
+                    aiRequest,
+                    Map.class
+            );
+
+            if (!aiResponse.getStatusCode().is2xxSuccessful()) {
+                log.error("AI server error: {}", aiResponse.getStatusCode());
+                throw new ExternalApiException("AI 서버 호출 실패");
+            }
+
+            Map<String, Object> aiResult = aiResponse.getBody();
+            String runId = (String) aiResult.get("run_id");
+            String threadId = (String) aiResult.get("thread_id");
+            String status = (String) aiResult.get("status");
+
+            log.info("AI evaluation initiated - runId: {}, threadId: {}, status: {}", runId, threadId, status);
+
+            // Step 6: Return response (AI will process evaluation asynchronously)
+            return new EvaluationResponse(runId, threadId, status);
+
+        } catch (Exception e) {
+            log.error("Failed to call AI server", e);
+            throw new ExternalApiException("AI 서버 호출 실패: " + e.getMessage());
+        }
     }
 
     /**
