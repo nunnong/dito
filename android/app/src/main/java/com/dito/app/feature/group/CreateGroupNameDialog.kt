@@ -44,7 +44,7 @@ fun CreateGroupNameDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(Color.Black.copy(alpha = 0.5f))
             .padding(horizontal = Spacing.l, vertical = Spacing.xl),
         contentAlignment = Alignment.Center
     ) {

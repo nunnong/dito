@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -101,25 +102,28 @@ fun GroupScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PrimaryContainer)
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = Spacing.xxl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
+        // 배경 이미지
+        Image(
+            painter = painterResource(id = R.drawable.groupscreen),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
 
-            Image(
-                painter = painterResource(id = R.drawable.groupchallenge),
-                contentDescription = null,
-                modifier = Modifier
-                    .width(270.dp)
-                    .height(120.dp)
-            )
+        // 메인 컨텐츠
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = Spacing.xxl),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
 
-            Spacer(modifier = Modifier.height(Spacing.l))
+
 
             Row(
                 modifier = Modifier.padding(bottom = Spacing.m),
@@ -227,6 +231,7 @@ fun GroupScreen(
                 }
             }
         }
+    }
 
     if (uiState.showCreateDialog) {
         CreateGroupNameDialog(
