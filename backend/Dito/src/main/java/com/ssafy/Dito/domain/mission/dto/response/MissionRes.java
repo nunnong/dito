@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.mission.dto.response;
 import com.querydsl.core.annotations.QueryProjection;
 import com.ssafy.Dito.domain.mission.entity.Status;
 import com.ssafy.Dito.domain.missionResult.entity.Result;
+import java.sql.Timestamp;
 
 public record MissionRes (
         long id,
@@ -10,7 +11,9 @@ public record MissionRes (
         String missionText,
         int coinReward,
         Status status,
-        Result result
+        Result result,
+        Timestamp triggerTime
+
 ) {
     @QueryProjection
     public MissionRes {

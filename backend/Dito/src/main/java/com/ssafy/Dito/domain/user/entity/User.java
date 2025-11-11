@@ -120,12 +120,12 @@ public class User extends IdentifiableEntity {
         this.frequency = req.frequency();
     }
 
-    public void updateCoin(int coin){
-        this.coinBalance -= coin;
+    public void updateCoin(int coin, boolean isAdd) {
+        this.coinBalance = isAdd ? this.coinBalance + coin : this.coinBalance - coin;
     }
 
     public void deletePersonalId() {
         this.personalId = "감자고구마빵꾸똥꾸" + this.id;
-        this.nickname = "중독자";
+        this.nickname = "탈퇴한 유저";
     }
 }
