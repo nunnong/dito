@@ -54,11 +54,11 @@ public class AiController {
     }
 
     @Operation(summary = "미션 조회")
-    @GetMapping("/mission/{userId}")
+    @GetMapping("/mission/{missionId}")
     public ResponseEntity<ListResult<AiMissionRes>> getMissionForAi(
-        @PathVariable Long userId
+        @PathVariable Long missionId
     ) {
-        List<AiMissionRes> res = missionService.getMissionForAi(userId);
+        List<AiMissionRes> res = missionService.getMissionForAi(missionId);
         return ApiResponse.ok(res);
     }
 

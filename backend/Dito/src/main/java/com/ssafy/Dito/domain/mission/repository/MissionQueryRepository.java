@@ -59,7 +59,7 @@ public class MissionQueryRepository {
         return PageUtils.of(res, pageRequest, countQuery.fetchOne());
     }
 
-    public List<AiMissionRes> getAiMissionRes(Long userId) {
+    public List<AiMissionRes> getAiMissionRes(Long missionId) {
         return jpaQueryFactory
             .select(Projections.constructor(
                 AiMissionRes.class,
@@ -78,7 +78,7 @@ public class MissionQueryRepository {
                 mission.user
             ))
             .from(mission)
-            .where(mission.user.id.eq(userId))
+            .where(mission.id.eq(missionId))
             .fetch();
     }
 }
