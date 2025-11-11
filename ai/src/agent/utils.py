@@ -21,6 +21,7 @@ from agent.schemas import (
     MissionNotificationResult,
     NudgeMessage,
     StrategyAdjustment,
+    VideoType,
 )
 
 # =============================================================================
@@ -40,6 +41,11 @@ message_generator = llm.with_structured_output(NudgeMessage)
 
 effectiveness_analyzer = llm.with_structured_output(EffectivenessAnalysis)
 strategy_adjuster = llm.with_structured_output(StrategyAdjustment)
+
+
+llm_fast = ChatAnthropic(model="claude-haiku-4-5")
+
+youtube_analyzer = llm_fast.with_structured_output(VideoType)
 
 
 # Checkpointer (상태 영속성)

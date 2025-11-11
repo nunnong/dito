@@ -5,23 +5,35 @@
 """
 
 from dataclasses import dataclass
-from typing import Literal, NotRequired, TypedDict
+from typing import List, Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
+
 
 # =============================================================================
 # 상태 정의 (State Definitions)
 # =============================================================================
+class YoutubeState(TypedDict):
+    """유튜브 에이전트 상태"""
+
+    title: str
+    channel: str
+
+    video_type: NotRequired[str]
+    keywords: NotRequired[List[str]]
 
 
 class InterventionState(TypedDict):
     """실시간 개입 에이전트의 상태"""
 
     # 필수 입력 필드 (초기 상태에서 제공되어야 함)
-    user_id: int  # DB user ID (int)
-    behavior_log: dict  # app_usage_logs 데이터
+    user_id: str  # 사용자 personalId (문자열)
+    behavior_log: dict  # app_usage_logs 데이터 (app_metadata 포함 가능)
 
     # Optional - 워크플로우 중 생성되는 필드
+    video_type: NotRequired[str]  # 유튜브 영상 타입 (youtube_analyze_node에서 생성)
+    keywords: NotRequired[list[str]]  # 유튜브 영상 키워드 (youtube_analyze_node에서 생성)
+
     behavior_pattern: NotRequired[str]  # LLM 분석 결과
     trigger_event: NotRequired[str]  # 트리거된 이벤트 타입
     severity_score: NotRequired[int]  # 심각도 점수 (0-10)
@@ -147,3 +159,50 @@ class MissionNotificationResult:
     fcm_sent: bool  # FCM 전송 성공 여부
     db_user_id: int | None  # DB user ID
     error_stage: str | None  # 실패 단계: "mission_create" | "fcm_send" | None
+
+
+class VideoType(BaseModel):
+    """Video type and content keywords"""
+
+    video_type: Literal[
+        "EDUCATIONAL",
+        "ENTERTAINMENT",
+        "NEWS_INFO",
+        "VLOG",
+        "SHORT_FORM",
+        "GAMING",
+        "MUSIC",
+        "REVIEW",
+        "UNKNOWN",
+    ] = Field(..., description="The primary format of the video (single choice)")
+
+    keywords: List[
+        Literal[
+            "HISTORY",
+            "SCIENCE",
+            "TECH",
+            "FOOD",
+            "TRAVEL",
+            "HEALTH",
+            "FITNESS",
+            "BEAUTY",
+            "FASHION",
+            "IDOL",
+            "SPORTS",
+            "POLITICS",
+            "ECONOMY",
+            "ART",
+            "MOVIE",
+            "MUSIC",
+            "GAME",
+            "ANIMAL",
+            "EDUCATION",
+            "DAILY",
+            "LIFESTYLE",
+            "OTHER",
+        ]
+    ] = Field(
+        ...,
+        min_items=1,
+        description="The main topics or subjects covered in the video (multiple selections allowed)",
+    )

@@ -26,6 +26,7 @@ from agent.utils import (
     mission_generator,
     send_notification,
     truncate_message,
+    youtube_analyzer,
 )
 
 # =============================================================================
@@ -33,9 +34,116 @@ from agent.utils import (
 # =============================================================================
 
 
+def youtube_analyze_node(state: InterventionState) -> dict:
+    """0단계: 유튜브 영상 분석 (조건부)
+
+    유튜브 영상인 경우 video_type과 keywords를 분류.
+    비-유튜브 앱인 경우 빈 dict 반환하여 스킵.
+    """
+    print("youtube analyze")
+
+    # behavior_log에서 app_metadata 추출
+    behavior_log = state.get("behavior_log", {})
+    app_metadata = behavior_log.get("app_metadata")
+
+    # app_metadata가 없으면 스킵
+    if not app_metadata:
+        return {}
+
+    # title 또는 channel 중 하나라도 있으면 분석 수행
+    title = app_metadata.get("title", "")
+    channel = app_metadata.get("channel", "")
+
+    if not title and not channel:
+        return {}
+
+    # 유튜브 영상 분석 수행
+    result = youtube_analyzer.invoke(f"""
+You are a YouTube video analysis expert.
+Your task is to accurately classify the **type** and **main content keywords** of a video using only the title and channel name.
+
+---
+
+**Input:**
+- Video title: "{title if title else "Unknown"}"
+- Channel name: "{channel if channel else "Unknown"}"
+
+---
+
+### 🎬 Video Type Categories (10 total)
+Select the **primary format** of the video (choose one):
+
+1. **EDUCATIONAL**
+   - Keywords: lecture, course, learn, understand, concept, principle, explain
+   - Examples: "Introduction to Calculus", "Programming Basics Course"
+
+2. **ENTERTAINMENT**
+   - Keywords: funny, reaction, challenge, prank, mukbang, show
+   - Examples: "Friends Try Extreme Challenge", "Funny Reaction Compilation"
+
+3. **NEWS_INFO**
+   - Keywords: news, issue, analysis, report, trend, commentary
+   - Examples: "Today's IT News", "Real Estate Market Analysis"
+
+4. **VLOG**
+   - Keywords: daily, routine, vlog, trip, travel, life
+   - Examples: "A Day in My Life", "Travel Vlog in Tokyo"
+
+5. **SHORT_FORM**
+   - Keywords: shocking, legend, twist, viral, wow, unbelievable, short clip
+   - Examples: "Unbelievable Twist Ending!", "Shocking True Story"
+   - **Note:** Often short-form content (under 1 minute) with clickbait or emotional titles.
+
+6. **GAMING**
+   - Keywords: gameplay, walkthrough, highlight, live, playthrough
+   - Examples: "League of Legends Highlights", "Minecraft Survival"
+
+7. **MUSIC**
+   - Keywords: song, music video, cover, mv, performance, instrument
+   - Examples: "New Music Video", "Piano Cover of BTS Song"
+
+8. **REVIEW**
+   - Keywords: review, unboxing, comparison, recommendation, feedback
+   - Examples: "iPhone 15 Review", "Top 5 Restaurants in Seoul"
+
+9. **TUTORIAL**
+   - Keywords: how to, guide, make, create, tutorial, tips
+   - Examples: "Photoshop Editing Tutorial", "How to Code in Python"
+
+10. **UNKNOWN**
+    - For cases where the title is too vague or lacks sufficient information.
+
+---
+
+### 🏷️ Content Keywords (multiple allowed)
+
+After deciding the `video_type`, select **one or more keywords** that describe the **main topics or subjects** the video covers.
+
+**Available keywords:**
+HISTORY, SCIENCE, TECH, FOOD, TRAVEL, HEALTH, FITNESS, BEAUTY, FASHION,
+IDOL, SPORTS, POLITICS, ECONOMY, ART, MOVIE, MUSIC, GAME, ANIMAL,
+EDUCATION, DAILY, LIFESTYLE, OTHER
+
+**Guidelines for keyword selection:**
+- Choose keywords that reflect **what the video is about**, not its format.
+  (e.g., "TRAVEL" for a vlog about a trip, "TECH" for a review of new gadgets)
+- If multiple themes are covered, include all relevant ones (e.g., ["FOOD", "TRAVEL"]).
+- Use "OTHER" only if no listed keyword fits.
+
+---
+
+**Classification Rules:**
+1. Focus on the main ideas or subjects in the title.
+2. Use the channel name as a supporting cue (e.g., "Cooking with Emma" → FOOD, EDUCATIONAL).
+""")
+
+    return {"video_type": result.video_type, "keywords": result.keywords}
+
+
 def analyze_behavior_node(state: InterventionState) -> dict:
     """1단계: 행동 패턴 분석
     사용자의 앱 사용 로그를 분석하여 패턴 파악.
+    유튜브 영상 정보가 있으면 함께 고려.
     """
 
     # Validate behavior_log is present
@@ -47,8 +155,16 @@ def analyze_behavior_node(state: InterventionState) -> dict:
     # usage_timestamp에서 time_slot 계산, 시간대 반환
     time_slot = get_time_slot_from_timestamp(behavior_log["usage_timestamp"])
 
-    # LLM을 사용한 행동 패턴 분석
-    analysis_prompt = get_behavior_analysis_prompt(behavior_log, time_slot)
+    # 유튜브 영상 정보 가져오기 (youtube_analyze_node에서 생성됨)
+    video_info = None
+    if state.get("video_type"):
+        video_info = {
+            "video_type": state.get("video_type"),
+            "keywords": state.get("keywords", []),
+        }
+
+    # LLM을 사용한 행동 패턴 분석 (video 정보 포함)
+    analysis_prompt = get_behavior_analysis_prompt(behavior_log, time_slot, video_info)
 
     # with_structured_output()을 사용할 때는 문자열로 직접 전달
     analysis = behavior_analyzer.invoke(analysis_prompt)
@@ -195,7 +311,8 @@ def build_intervention_agent() -> StateGraph:
     """실시간 개입 에이전트 그래프 구성.
 
     워크플로우:
-    1. analyze_behavior: 행동 패턴 분석
+    0. youtube_analyze: 유튜브 영상 분석 (조건부)
+    1. analyze_behavior: 행동 패턴 분석 (유튜브 정보 활용)
     2. decide_intervention: 개입 필요성 판단 (Command로 분기)
     3. generate_mission: 미션 생성 (LLM + API 호출)
     4. generate_message: 넛지 메시지 생성
@@ -204,13 +321,15 @@ def build_intervention_agent() -> StateGraph:
     workflow = StateGraph(InterventionState)
 
     # 노드 추가
+    workflow.add_node("youtube_analyze_node", youtube_analyze_node)
     workflow.add_node("analyze_behavior_node", analyze_behavior_node)
     workflow.add_node("decide_intervention_node", decide_intervention_node)
     workflow.add_node("mission_node", mission_node)
     workflow.add_node("message_node", message_node)
 
     # 엣지 추가
-    workflow.add_edge(START, "analyze_behavior_node")
+    workflow.add_edge(START, "youtube_analyze_node")
+    workflow.add_edge("youtube_analyze_node", "analyze_behavior_node")
     workflow.add_edge("analyze_behavior_node", "decide_intervention_node")
     # decide_intervention에서 조건부 라우팅 (Command 사용)
     # intervention_needed=True → generate_mission, False → END

@@ -3,7 +3,8 @@
   "dependencies": ["."],
   "graphs": {
     "intervention": "./src/agent/intervention_agent.py:intervention_agent",
-    "evaluation": "./src/agent/evaluation_agent.py:evaluation_agent"
+    "evaluation": "./src/agent/evaluation_agent.py:evaluation_agent",
+    "youtube": "./src/agent/youtube_agent.py:youtube_agent"
   },
   "env": ".env",
   "python_version": "3.12",

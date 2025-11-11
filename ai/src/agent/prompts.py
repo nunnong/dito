@@ -54,17 +54,20 @@ EFFECTIVENESS_THRESHOLD_LOW = 0.4  # 0.4 미만: 비효과적, 전략 조정 필
 # =============================================================================
 
 
-def get_behavior_analysis_prompt(behavior_log: dict, time_slot: str) -> str:
+def get_behavior_analysis_prompt(
+    behavior_log: dict, time_slot: str, video: dict = None
+) -> str:
     """행동 패턴 분석 프롬프트 생성
 
     Args:
         behavior_log: 앱 사용 로그 데이터
         time_slot: 시간대 ("morning", "afternoon", "evening", "night")
+        video: 유튜브 영상 정보 (video_type, keywords 포함, optional)
 
     Returns:
         분석 프롬프트 문자열
     """
-    return f"""
+    base_prompt = f"""
 당신은 디지털 사용패턴 분석 전문가입니다.
 사용자의 앱 사용 데이터를 분석하여 패턴을 파악하세요.
 
@@ -74,10 +77,29 @@ def get_behavior_analysis_prompt(behavior_log: dict, time_slot: str) -> str:
 - 사용 시점: {behavior_log.get("usage_timestamp", "Unknown")}
 - 시간대: {time_slot}
 - 최근 앱 전환 횟수: {behavior_log.get("recent_app_switches", 0)}회
+"""
 
+    # 유튜브 영상 정보가 있으면 추가
+    if video and video.get("video_type"):
+        keywords_str = ", ".join(video.get("keywords", []))
+        base_prompt += f"""
+시청 영상 정보:
+- 영상 타입: {video.get("video_type", "UNKNOWN")}
+- 콘텐츠 키워드: {keywords_str}
+
+**영상 타입별 분석 가이드라인**:
+- SHORT_FORM: 클릭베이트성 숏폼 영상 → 심각도 +2~3 (중독성 높음)
+- ENTERTAINMENT: 엔터테인먼트 콘텐츠 → 장시간 시청 시 심각도 +1~2
+- EDUCATIONAL: 교육 콘텐츠 → 심각도 -1~2 (학습 목적 고려)
+- VLOG, NEWS_INFO: 정보성 콘텐츠 → 적정 시청 시 심각도 유지
+"""
+
+    base_prompt += """
 패턴 유형을 판단하고, 트리거 이벤트를 명확히 식별하세요.
 심각도 점수(0-10)와 주요 지표들을 포함하세요.
 """
+
+    return base_prompt
 
 
 def get_intervention_decision_prompt(behavior_pattern: str, trigger_event: str) -> str:
