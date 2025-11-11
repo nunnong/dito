@@ -8,7 +8,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.GroupInfo
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
