@@ -4,7 +4,6 @@ import android.content.Context
 import com.dito.app.core.network.AIService
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
-import com.google.android.datatransport.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Module
 import dagger.Provides
