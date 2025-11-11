@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.groups.repository;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.ssafy.Dito.domain._common.CostumeUrlUtil;
 import com.ssafy.Dito.domain.groups.dto.response.EquippedItemInfo;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
 import com.ssafy.Dito.domain.groups.dto.response.ParticipantInfo;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Repository;
 public class GroupParticipantQueryRepository {
 
     private final JPAQueryFactory jpaQueryFactory;
+    private final CostumeUrlUtil costumeUrlUtil;
 
     private final QGroupParticipant groupParticipant = QGroupParticipant.groupParticipant;
     private final QUser user = QUser.user;
@@ -70,7 +72,27 @@ public class GroupParticipantQueryRepository {
                 userItem.id.user.id.in(userIds),
                 userItem.isEquipped.eq(true)
             )
-            .fetch();
+            .fetch()
+            .stream()
+            .map(equipItem -> {
+                // userId 추출
+                Long userId = Long.parseLong(equipItem.userItemId().split("_")[0]);
+                // CostumeUrlUtil을 사용하여 URL 변환
+                String transformedUrl = costumeUrlUtil.getCostumeUrl(
+                    equipItem.imgUrl(),
+                    userId,
+                    false
+                );
+                // 변환된 URL로 새 EquippedItemInfo 생성
+                return new EquippedItemInfo(
+                    equipItem.userItemId(),
+                    equipItem.itemId(),
+                    equipItem.type(),
+                    equipItem.name(),
+                    transformedUrl
+                );
+            })
+            .toList();
 
         // 4. userId별로 장착 아이템 그룹화
         Map<Long, List<EquippedItemInfo>> equippedItemsByUser = allEquippedItems.stream()
