@@ -127,7 +127,7 @@ fun GroupScreen(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.race_logo),
+                    painter = painterResource(id = R.drawable.group_main_img),
                     contentDescription = null,
                     modifier = Modifier
                         .size(300.dp)
