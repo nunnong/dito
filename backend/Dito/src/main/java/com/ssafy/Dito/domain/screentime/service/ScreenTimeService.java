@@ -60,7 +60,7 @@ public class ScreenTimeService {
 
         // 1. Summary 갱신 (upsert)
         ScreenTimeDailySummary summary = summaryRepository
-            .findByGroupIdAndUserIdAndDate(request.groupId(), userId, request.date())
+            .findByGroupIdAndUserIdAndDate(request.groupId(), userId, request.date().toString())
             .orElse(null);
 
         log.info("  기존 Summary 조회 결과: {}", summary != null ? "존재" : "없음");
@@ -167,7 +167,7 @@ public class ScreenTimeService {
 
         // Summary 데이터 조회 (챌린지 기간 내)
         List<ScreenTimeDailySummary> summaries = summaryRepository
-            .findByGroupIdAndDateBetween(groupId, startDate, endDate);
+            .findByGroupIdAndDateBetween(groupId, startDate.toString(), endDate.toString());
 
         log.info("📊 Summary 조회 결과 - groupId: {}, startDate: {}, endDate: {}, summaries.size: {}",
             groupId, startDate, endDate, summaries.size());
@@ -270,7 +270,7 @@ public class ScreenTimeService {
     public List<ScreenTimeDailySummary> getUserScreenTime(Long groupId, Long userId,
                                                           LocalDate startDate, LocalDate endDate) {
         return summaryRepository.findByGroupIdAndUserIdAndDateBetween(
-            groupId, userId, startDate, endDate
+            groupId, userId, startDate.toString(), endDate.toString()
         );
     }
 

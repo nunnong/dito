@@ -45,7 +45,7 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
 
     @Field("date")
     @Indexed
-    private LocalDate date;
+    private String date;  // "yyyy-MM-dd" 형식의 String (timezone 문제 방지)
 
     @Field("total_minutes")
     private Integer totalMinutes;
@@ -58,7 +58,7 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
                                    Integer totalMinutes, LocalDateTime lastUpdatedAt) {
         this.groupId = groupId;
         this.userId = userId;
-        this.date = date;
+        this.date = date.toString();  // LocalDate를 "yyyy-MM-dd" String으로 변환
         this.totalMinutes = totalMinutes;
         this.lastUpdatedAt = lastUpdatedAt;
     }
@@ -83,5 +83,12 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
     public void updateScreenTime(Integer newTotalMinutes) {
         this.totalMinutes = newTotalMinutes;
         this.lastUpdatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * date를 LocalDate로 반환 (프론트 호환성)
+     */
+    public LocalDate getDateAsLocalDate() {
+        return LocalDate.parse(this.date);
     }
 }
