@@ -73,7 +73,12 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
                 // 미션 알림 - 미션 추적 시작
                 Log.d(TAG, "미션 알림 감지: mission_id=${data["mission_id"]}")
-                handleMissionMessage(data)
+
+                // AI 팀에서 보내는 deep_link 활용
+                val deepLink = data["deep_link"] ?: "dito://mission/${data["mission_id"]}"
+                Log.d(TAG, "딥링크: $deepLink")
+
+                handleMissionMessage(data, deepLink)
             } else {
                 // 일반 알림 - 격려 메시지
                 Log.d(TAG, "일반 알림 감지 (mission_id 없음)")
@@ -82,7 +87,7 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 showNotification(
                     title = title,
                     body = body,
-                    interventionId = null
+                    deepLink = null
                 )
             }
         }
@@ -94,7 +99,7 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 showNotification(
                     title = notification.title ?: "디토",
                     body = notification.body ?: "",
-                    interventionId = null
+                    deepLink = null
                 )
             }
         }
@@ -104,14 +109,14 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
      * 알림 표시
      * @param title 알림 제목
      * @param body 알림 내용
-     * @param interventionId Intervention ID (deep link용)
+     * @param deepLink 딥링크 URI (예: dito://mission/7)
      */
-    private fun showNotification(title: String, body: String, interventionId: String?) {
+    private fun showNotification(title: String, body: String, deepLink: String?) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Deep link intent 생성
-        val intent = if (interventionId != null) {
-            Intent(Intent.ACTION_VIEW, Uri.parse("dito://intervention/$interventionId")).apply {
+        // 딥링크 방식으로 Intent 생성
+        val intent = if (deepLink != null) {
+            Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                 setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
@@ -121,9 +126,13 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             }
         }
 
+        Log.d(TAG, "Intent 생성 완료")
+        Log.d(TAG, "   Deep Link: $deepLink")
+        Log.d(TAG, "   Data URI: ${intent.data}")
+
         val pendingIntent = PendingIntent.getActivity(
             this,
-            interventionId?.hashCode() ?: 0,
+            deepLink?.hashCode() ?: 0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -139,10 +148,10 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .build()
 
-        val notificationId = interventionId?.hashCode() ?: NOTIFICATION_ID_BASE
+        val notificationId = deepLink?.hashCode() ?: NOTIFICATION_ID_BASE
         notificationManager.notify(notificationId, notification)
 
-        Log.d(TAG, "알림 표시 완료: id=$notificationId, title=$title")
+        Log.d(TAG, "✅ 알림 표시 완료: id=$notificationId, title=$title")
     }
 
     /**
@@ -167,7 +176,7 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    private fun handleMissionMessage(data: Map<String, String>) {
+    private fun handleMissionMessage(data: Map<String, String>, deepLink: String) {
         val missionId = data["mission_id"] ?: return
         val missionType = data["mission_type"] ?: "REST"
         val instruction = data["message"] ?: "미션을 수행하세요"  // AI 팀: instruction → message
@@ -216,9 +225,7 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 else -> "🎯 새로운 미션!"
             },
             body = notificationBody,
-            interventionId = missionId
+            deepLink = deepLink
         )
     }
 }
-
-

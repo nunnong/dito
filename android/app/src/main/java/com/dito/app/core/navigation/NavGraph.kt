@@ -1,5 +1,6 @@
 package com.dito.app.core.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -8,6 +9,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.dito.app.MainActivity
 import com.dito.app.PermissionTestScreen
 import com.dito.app.MainScreen
 import com.dito.app.feature.auth.AuthViewModel
@@ -20,10 +22,12 @@ import com.dito.app.feature.group.ChallengeResultScreen
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
- @Composable
+@Composable
 fun DitoNavGraph(
     navController: NavHostController,
     startDestination: String = Route.Splash.path,
+
+    deepLinkUri: Uri? = null
 ) {
     NavHost(
         navController = navController,
@@ -35,7 +39,7 @@ fun DitoNavGraph(
             LaunchedEffect(Unit) {
                 delay(1200)
                 navController.navigate(Route.Login.path) {
-                    popUpTo(Route.Splash.path) { inclusive = true } // 뒤로가기 시 스플래시로 못 돌아가게
+                    popUpTo(Route.Splash.path) { inclusive = true }
                     launchSingleTop = true
                 }
             }
@@ -45,14 +49,13 @@ fun DitoNavGraph(
         composable(Route.Login.path) {
             LoginScreen(
                 onLoginSuccess = {
-
                     navController.navigate(Route.Home.path){
                         popUpTo(Route.Login.path){ inclusive = true }
                         launchSingleTop = true
                     }
                 },
                 onNavigateToSignUp = {
-                     navController.navigate(Route.SignupCredential.path)
+                    navController.navigate(Route.SignupCredential.path)
                 }
             )
         }
@@ -188,9 +191,13 @@ fun DitoNavGraph(
             )
         }
 
-        // 6) 메인 화면 (Home)
+        // 7) 메인 화면 (Home) - 딥링크 파싱해서 MainScreen으로 전달
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
+
+
+            val (navigateTo, missionId) = parseDeepLink(deepLinkUri)
+
             MainScreen(
                 onLogout = {
                     authViewModel.logout(
@@ -204,11 +211,14 @@ fun DitoNavGraph(
                         }
                     )
                 },
-                outerNavController = navController
+                outerNavController = navController,
+                // 딥링크에서 파싱한 navigation 정보
+                initialNavigateTo = navigateTo,
+                initialMissionId = missionId
             )
         }
 
-        // 7) 권한 재확인 화면
+        // 8) 권한 재확인 화면
         composable(Route.PermissionRecheck.path) {
             SignUpPermissionScreen(
                 mode = com.dito.app.feature.auth.PermissionScreenMode.RECHECK,
@@ -218,17 +228,40 @@ fun DitoNavGraph(
             )
         }
 
-        // 8) 테스트 화면 (권한 테스트)
+        // 9) 테스트 화면 (권한 테스트)
         composable(Route.Test.path) {
             PermissionTestScreen()
         }
 
-        // 9) 챌린지 결과 화면
+        // 10) 챌린지 결과 화면
         composable(Route.ChallengeResult.path) {
             ChallengeResultScreen(
                 onNavigateToTab = { /* 탭 이동 */ },
                 onClose = { navController.popBackStack() }
             )
         }
+    }
+}
+
+/**
+ * 딥링크 URI를 파싱하여 navigation 정보 추출
+ *
+ * @param deepLinkUri 딥링크 URI (예: dito://mission/7)
+ * @return Pair<navigateTo, missionId>
+ *
+ * 지원하는 딥링크:
+ * - dito://mission/{missionId} → ("mission_notifications", missionId)
+ */
+private fun parseDeepLink(deepLinkUri: Uri?): Pair<String?, String?> {
+    if (deepLinkUri == null) {
+        return Pair(null, null)
+    }
+
+    return when (deepLinkUri.host) {
+        "mission" -> {
+            val missionId = deepLinkUri.lastPathSegment  // "7"
+            Pair("mission_notifications", missionId)
+        }
+        else -> Pair(null, null)
     }
 }

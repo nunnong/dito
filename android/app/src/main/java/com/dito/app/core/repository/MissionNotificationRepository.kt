@@ -52,7 +52,7 @@ class MissionNotificationRepository @Inject constructor(
                 Log.d("MissionNotification", "현재 페이지: ${body.pageInfo.page}")
                 Log.d("MissionNotification", "다음 페이지 존재: ${body.pageInfo.hasNext}")
 
-                if (body.error == false) {
+                if (!body.error) {
                     Result.success(body)
                 } else {
                     Log.e("MissionNotification", "API 에러: ${body.message}")

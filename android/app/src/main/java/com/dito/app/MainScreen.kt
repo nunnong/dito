@@ -1,5 +1,6 @@
 package com.dito.app
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -35,7 +36,10 @@ fun MainScreen(
     onNavigateToShop: () -> Unit = {},
     initialShowShop: Boolean = false,
     onBackFromShop: () -> Unit = {},
-    outerNavController: NavController? = null
+    outerNavController: NavController? = null,
+    // FCM 알림에서 전달된 navigation 정보
+    initialNavigateTo: String? = null,
+    initialMissionId: String? = null
 ) {
     val innerNavController = rememberNavController()
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
@@ -45,6 +49,9 @@ fun MainScreen(
 
     // 권한 체크 상태 (무한 네비게이션 방지)
     var isCheckingPermissions by remember { mutableStateOf(false) }
+
+    // FCM 알림 처리 완료 플래그
+    var hasHandledNotification by remember { mutableStateOf(false) }
 
     // 화면이 다시 보일 때마다 권한 상태 확인
     DisposableEffect(lifecycleOwner) {
@@ -77,6 +84,24 @@ fun MainScreen(
         innerNavController.navigate("home") {
             popUpTo("home") { inclusive = true }
             launchSingleTop = true
+        }
+    }
+
+    // FCM 알림에서 전달된 navigation 처리
+    LaunchedEffect(initialNavigateTo, initialMissionId) {
+        if (!hasHandledNotification && initialNavigateTo == "mission_notifications") {
+            Log.d("MainScreen", "🎯 FCM 알림 감지: mission_id=$initialMissionId")
+
+            // Home 화면이 완전히 로드된 후 mission_notification으로 이동
+            // 약간의 딜레이를 주어 innerNavController가 준비되도록 함
+            kotlinx.coroutines.delay(500)
+
+            innerNavController.navigate("mission_notification") {
+                launchSingleTop = true
+            }
+
+            hasHandledNotification = true
+            Log.d("MainScreen", "✅ 미션 알림 화면으로 이동 완료")
         }
     }
 
