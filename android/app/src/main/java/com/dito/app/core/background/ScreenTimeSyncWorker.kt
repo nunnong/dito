@@ -153,7 +153,8 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
                 totalMinutes = totalMinutes
             )
 
-            val token = authTokenManager.getBearerToken()
+//            val token = authTokenManager.getBearerToken()
+            val token = authTokenManager.getAccessToken()
             if (token == null) {
                 Log.w(TAG, "⚠️ 토큰이 없어 Backend 전송 불가")
                 return false
@@ -190,8 +191,16 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
      * 사용자 ID 가져오기
      */
     private fun getUserId(): Long? {
-        val sharedPref = applicationContext.getSharedPreferences("dito_prefs", Context.MODE_PRIVATE)
-        val userId = sharedPref.getLong("user_id", -1L)
-        return if (userId > 0) userId else null
+        // AuthTokenManager가 user_prefs에 Int로 저장하므로, 먼저 user_prefs 확인
+        val userPrefs = applicationContext.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+        val userIdInt = userPrefs.getInt("user_id", -1)
+        if (userIdInt > 0) {
+            return userIdInt.toLong()
+        }
+
+        // fallback: dito_prefs도 확인 (레거시 호환성)
+        val ditoPrefs = applicationContext.getSharedPreferences("dito_prefs", Context.MODE_PRIVATE)
+        val userIdLong = ditoPrefs.getLong("user_id", -1L)
+        return if (userIdLong > 0) userIdLong else null
     }
 }
