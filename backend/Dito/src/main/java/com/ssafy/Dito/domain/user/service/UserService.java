@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.user.service;
 
+import com.ssafy.Dito.domain._common.CostumeUrlUtil;
 import com.ssafy.Dito.domain.user.dto.request.FrequencyReq;
 import com.ssafy.Dito.domain.user.dto.request.NicknameReq;
 import com.ssafy.Dito.domain.user.dto.response.MainRes;
@@ -21,6 +22,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserQueryRepository userQueryRepository;
+    private final CostumeUrlUtil costumeUrlUtil;
 
     @Transactional(readOnly = true)
     public ProfileRes getProfile() {
@@ -56,10 +58,10 @@ public class UserService {
     public MainRes getMainPage() {
         long userId = JwtAuthentication.getUserId();
         MainRes res = userQueryRepository.getMainPage(userId);
-
+        String costumeUrl = costumeUrlUtil.getCostumeUrl(res.costumeUrl(), userId, false);
         return new MainRes(
                 res.nickname(),
-                appendSuffix(res.costumeUrl(), "_4"),
+                costumeUrl,
                 res.backgroundUrl(),
                 res.coinBalance(),
                 res.weeklyGoal(),
@@ -75,12 +77,5 @@ public class UserService {
             throw new PageNotFoundException("사용자를 찾을 수 없습니다.");
         }
         return res;
-    }
-
-    private String appendSuffix(String url, String suffix) {
-        if (url == null || url.isBlank()) return url;
-        if (url.contains(suffix + ".")) return url;
-        int idx = url.lastIndexOf(".");
-        return idx == -1 ? url : url.substring(0, idx) + suffix + url.substring(idx);
     }
 }

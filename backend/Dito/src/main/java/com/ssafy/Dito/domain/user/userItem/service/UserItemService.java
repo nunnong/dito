@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.user.userItem.service;
 
+import com.ssafy.Dito.domain._common.CostumeUrlUtil;
 import com.ssafy.Dito.domain.item.entity.Item;
 import com.ssafy.Dito.domain.item.entity.Type;
 import com.ssafy.Dito.domain.item.repository.ItemRepository;
@@ -23,15 +24,13 @@ public class UserItemService {
 
     private final UserItemQueryRepository userItemQueryRepository;
     private final UserItemRepository userItemRepository;
-    private final ItemRepository itemRepository;
-    private final UserRepository userRepository;
+    private final CostumeUrlUtil costumeUrlUtil;
 
     @Transactional(readOnly = true)
     public Page<ClosetRes> getUserCloset(Type type, long pageNumber) {
         long userId = JwtAuthentication.getUserId();
         Page<ClosetRes> page = userItemQueryRepository.getUserCloset(userId, type, pageNumber);
 
-        // COSTUME 아닐 땐 그대로 리턴
         if (type != Type.COSTUME) {
             return page;
         }
@@ -39,20 +38,9 @@ public class UserItemService {
         return page.map(closet -> new ClosetRes(
                 closet.itemId(),
                 closet.name(),
-                addSuffixToImageUrl(closet.imageUrl(), "_4"),
+                costumeUrlUtil.getCostumeUrl(closet.imageUrl(), userId, false),
                 closet.isEquipped()
         ));
-    }
-
-    private String addSuffixToImageUrl(String url, String suffix) {
-        if (url == null || url.isEmpty()) {
-            return url;
-        }
-        int lastDotIndex = url.lastIndexOf('.');
-        if (lastDotIndex == -1) {
-            return url;
-        }
-        return url.substring(0, lastDotIndex) + suffix + url.substring(lastDotIndex);
     }
 
     @Transactional
