@@ -59,7 +59,7 @@ public class MissionService {
         return savedMission.getId();
     }
 
-    public List<AiMissionRes> getMissionForAi(AiReq req) {
-        return missionQueryRepository.getAiMissionRes(req);
+    public List<AiMissionRes> getMissionForAi(Long userId) {
+        return missionQueryRepository.getAiMissionRes(userId);
     }
 }
