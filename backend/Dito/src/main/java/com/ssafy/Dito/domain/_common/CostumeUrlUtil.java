@@ -2,22 +2,29 @@ package com.ssafy.Dito.domain._common;
 
 import com.ssafy.Dito.domain.status.entity.Status;
 import com.ssafy.Dito.domain.status.repository.StatusRepository;
-
-import com.ssafy.Dito.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+@Component
 @RequiredArgsConstructor
 public class CostumeUrlUtil {
 
-    private final UserRepository userRepository;
     private final StatusRepository statusRepository;
 
-    public String getCostumeUrl(String costumeUrl, long userId){
+    public String getCostumeUrl(String costumeUrl, long userId, boolean isOnlyThree){
 
         Status status = statusRepository.getByUserId(userId);
 
-        // 점수기준 1~5 뭘 붙일지
+        int score = status.getTotalStat();
 
-        return null;
+        String num = isOnlyThree ? "_3" : "_" + Math.min(score / 20 + 1, 5);
+
+        if (costumeUrl.contains(num + ".")) return costumeUrl;
+
+        int idx = costumeUrl.lastIndexOf(".");
+
+        return idx == -1
+            ? costumeUrl
+            : costumeUrl.substring(0, idx) + num + costumeUrl.substring(idx);
     }
 }

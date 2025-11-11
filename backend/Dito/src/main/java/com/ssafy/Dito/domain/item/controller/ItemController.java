@@ -29,11 +29,11 @@ public class ItemController {
 
     @Operation(summary = "상점 아이탬 조회(페이지네이션)")
     @GetMapping("/shop")
-    public ResponseEntity<PageResult<ShopItemRes>> getShopCostume(
+    public ResponseEntity<PageResult<ShopItemRes>> getShopItem(
         @RequestParam Type type,
         @RequestParam long page_number
     ) {
-        Page<ShopItemRes> res = itemService.getShopCostume(type, page_number);
+        Page<ShopItemRes> res = itemService.getShopItem(type, page_number);
         return ApiResponse.ok(res);
     }
 

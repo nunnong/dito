@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.item.service;
 
+import com.ssafy.Dito.domain._common.CostumeUrlUtil;
 import com.ssafy.Dito.domain.item.dto.request.PurchaseItemReq;
 import com.ssafy.Dito.domain.item.dto.response.ItemRes;
 import com.ssafy.Dito.domain.item.dto.response.ShopItemRes;
@@ -14,6 +15,7 @@ import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.domain.user.userItem.entity.UserItem;
 import com.ssafy.Dito.domain.user.userItem.repository.UserItemRepository;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -27,39 +29,29 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final UserItemRepository userItemRepository;
     private final ItemQueryRepository itemQueryRepository;
+    private final CostumeUrlUtil costumeUrlUtil;
 
     @Transactional(readOnly = true)
-    public Page<ShopItemRes> getShopCostume(Type type, long pageNumber) {
+    public Page<ShopItemRes> getShopItem(Type type, long pageNumber) {
         long userId = JwtAuthentication.getUserId();
         Page<ShopItemRes> page = itemQueryRepository.getItemPage(userId, type, pageNumber);
 
-        // 이미지 URL에 _3 추가
         return page.map(shopItemRes -> {
-            var modifiedItems = shopItemRes.items().stream()
+            List<ItemRes> modifiedItems = shopItemRes.items().stream()
                 .map(item -> new ItemRes(
                     item.ItemId(),
                     item.name(),
                     item.price(),
                         type == Type.COSTUME
-                                ? addSuffixToImageUrl(item.imageUrl(), "_3")
+                            ? costumeUrlUtil.getCostumeUrl(item.imageUrl(), userId, true)
                                 : item.imageUrl(),
                     item.onSale(),
                     item.isPurchased()
                 ))
                 .toList();
+
             return new ShopItemRes(shopItemRes.coin_balance(), modifiedItems);
         });
-    }
-
-    private String addSuffixToImageUrl(String url, String suffix) {
-        if (url == null || url.isEmpty()) {
-            return url;
-        }
-        int lastDotIndex = url.lastIndexOf('.');
-        if (lastDotIndex == -1) {
-            return url;
-        }
-        return url.substring(0, lastDotIndex) + suffix + url.substring(lastDotIndex);
     }
 
     @Transactional
