@@ -5,15 +5,15 @@ import kotlinx.serialization.Serializable
 
 /**
  * 그룹 참가 응답 DTO
- * 챌린지 초대 코드를 입력했을 때, 다음 페이지에 뜨는 그룹 정보
+ * 챌린지 그룹 참가 성공 시 받는 데이터
  */
 @Serializable
 data class JoinGroupResponse(
-    @SerialName("group_id")
+    @SerialName("groupId")
     val groupId: Long,
-    @SerialName("group_name")
+    @SerialName("groupName")
     val groupName: String,
-    val period: Long,
+    val period: Int,
     @SerialName("goalDescription")
     val goalDescription: String,
     @SerialName("penaltyDescription")
