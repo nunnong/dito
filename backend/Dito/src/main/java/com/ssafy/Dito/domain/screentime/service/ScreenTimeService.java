@@ -161,6 +161,14 @@ public class ScreenTimeService {
         List<ScreenTimeDailySummary> summaries = summaryRepository
             .findByGroupIdAndDateBetween(groupId, startDate, endDate);
 
+        log.info("📊 Summary 조회 결과 - groupId: {}, startDate: {}, endDate: {}, summaries.size: {}",
+            groupId, startDate, endDate, summaries.size());
+
+        for (ScreenTimeDailySummary s : summaries) {
+            log.info("  - userId: {}, date: {}, totalMinutes: {}",
+                s.getUserId(), s.getDate(), s.getTotalMinutes());
+        }
+
         // 사용자별 총 스크린타임 집계
         Map<Long, Integer> userTotalScreenTime = new HashMap<>();
         for (ScreenTimeDailySummary summary : summaries) {
