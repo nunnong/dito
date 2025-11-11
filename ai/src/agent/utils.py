@@ -379,3 +379,213 @@ def send_notification(state: InterventionState) -> MissionNotificationResult:
         db_user_id=db_user_id,
         error_stage=None,
     )
+
+
+# =============================================================================
+# 평가 관련 함수 (Evaluation Functions)
+# =============================================================================
+
+
+def fetch_mission_info(mission_id: int) -> dict | None:
+    """미션 정보 조회 API 호출
+
+    Args:
+        mission_id: 미션 ID
+
+    Returns:
+        미션 정보 dict if successful, None if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return None
+
+    print(f"     🔍 미션 정보 조회 중... (mission_id={mission_id})")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f"{SPRING_SERVER_URL}/api/mission/{mission_id}",
+                headers=headers,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            mission_data = result.get("data")
+            if not mission_data:
+                print("     ❌ 미션 정보 조회 실패: data 필드 없음")
+                return None
+
+            # data가 리스트인 경우 첫 번째 요소 추출
+            if isinstance(mission_data, list) and len(mission_data) > 0:
+                mission_data = mission_data[0]
+
+            print(f"     ✅ 미션 정보 조회 완료: {mission_data.get('missionType')}")
+            return mission_data
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 미션 정보 조회 실패: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return None
+
+
+def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> tuple[str, str]:
+    """미션 평가 및 피드백 생성
+
+    behavior_logs와 mission의 targetApp을 비교하여 성공/실패 판정하고,
+    LLM을 사용하여 상세한 피드백을 생성합니다.
+
+    Args:
+        mission_info: 미션 정보 (missionType, targetApp 등)
+        behavior_logs: BehaviorLog 목록
+
+    Returns:
+        (evaluation_result, feedback) tuple
+        - evaluation_result: "SUCCESS" | "FAILURE"
+        - feedback: 평가 피드백 메시지 (LLM 생성)
+    """
+    target_app = mission_info.get("targetApp", "")
+    mission_type = mission_info.get("missionType", "")
+    mission_text = mission_info.get("missionText", "")
+
+    # targetApp 사용 여부 확인
+    has_violation = False
+    violation_details = []
+
+    for log in behavior_logs:
+        if log.get("log_type") != "APP_USAGE":
+            continue
+
+        app_name = log.get("app_name", "")
+        package_name = log.get("package_name", "")
+        duration = log.get("duration_seconds", 0)
+
+        # targetApp과 일치하는지 확인 (app_name 또는 package_name)
+        if target_app in [app_name, package_name]:
+            has_violation = True
+            violation_details.append({
+                "app": app_name or package_name,
+                "duration": duration,
+                "timestamp": log.get("timestamp", "")
+            })
+
+    evaluation_result = "FAILURE" if has_violation else "SUCCESS"
+
+    # LLM으로 피드백 생성
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    system_prompt = """당신은 디지털 디톡스 앱 '디토'의 미션 평가 AI입니다.
+사용자의 미션 수행 결과를 분석하고, 친근하고 격려하는 피드백을 제공합니다.
+
+피드백 작성 가이드:
+- 성공 시: 구체적으로 칭찬하고, 다음 목표를 제시
+- 실패 시: 긍정적으로 격려하고, 개선 방안 제안
+- 최대 2-3문장으로 간결하게 작성
+- 반말 사용 (친근한 톤)
+"""
+
+    if evaluation_result == "SUCCESS":
+        user_prompt = f"""미션: {mission_text}
+미션 타입: {mission_type}
+제한 앱: {target_app}
+
+결과: 성공! 제한된 앱을 사용하지 않았습니다.
+
+사용자를 칭찬하는 긍정적인 피드백을 작성해주세요."""
+    else:
+        violation_summary = ", ".join([
+            f"{v['app']} ({v['duration']}초)"
+            for v in violation_details
+        ])
+        user_prompt = f"""미션: {mission_text}
+미션 타입: {mission_type}
+제한 앱: {target_app}
+
+결과: 실패. 다음 앱을 사용했습니다:
+{violation_summary}
+
+사용자를 격려하고 다음에는 성공할 수 있도록 응원하는 피드백을 작성해주세요."""
+
+    response = llm.invoke([
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt)
+    ])
+
+    feedback = response.content.strip()
+
+    print(f"     평가 결과: {evaluation_result}")
+    print(f"     피드백: {feedback}")
+
+    return evaluation_result, feedback
+
+
+def send_evaluation_fcm(user_id: int, result: str, feedback: str, mission_id: int) -> bool:
+    """평가 결과 FCM 알림 전송
+
+    Args:
+        user_id: DB user ID
+        result: "SUCCESS" | "FAILURE"
+        feedback: 평가 피드백 메시지
+        mission_id: 미션 ID
+
+    Returns:
+        True if successful, False if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return False
+
+    print("     📱 평가 결과 FCM 전송 중...")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    # 제목 결정
+    title = "🎉 미션 성공!" if result == "SUCCESS" else "💪 다음엔 성공!"
+
+    fcm_payload = {
+        "user_id": user_id,
+        "title": title,
+        "message": feedback,
+        "mission_id": str(mission_id),
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{SPRING_SERVER_URL}/api/fcm/send",
+                json=fcm_payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            result_data = response.json()
+
+            if result_data.get("success"):
+                print(f"     ✅ 평가 FCM 전송 완료")
+                return True
+            else:
+                print(f"     ❌ 평가 FCM 전송 실패: {result_data.get('error')}")
+                return False
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 평가 FCM HTTP 오류: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return False

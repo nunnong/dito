@@ -53,16 +53,23 @@ class InterventionState(TypedDict):
 
 
 class EvaluationState(TypedDict):
-    """지연된 평가 에이전트의 상태"""
+    """미션 평가 에이전트의 상태"""
 
-    # 필수 입력 필드 (초기 상태에서 제공되어야 함)
-    user_id: str  # DB user ID (int)
+    # 필수 입력 필드 (백엔드로부터 제공)
+    user_id: int  # DB user ID
     mission_id: int
-    mission_type: str
+    behavior_logs: list[dict]  # BehaviorLog 목록
 
-    # Optional - 효과 측정 (워크플로우 중 생성)
-    pre_intervention_usage: NotRequired[dict]
-    post_intervention_usage: NotRequired[dict]
+    # Optional - 미션 정보 (API 조회 결과)
+    mission_info: NotRequired[dict]  # GET /api/mission/{id} 응답
+    mission_type: NotRequired[str]  # mission_info에서 추출
+    target_app: NotRequired[str]
+
+    # Optional - 평가 결과
+    evaluation_result: NotRequired[str]  # "SUCCESS" | "FAILURE"
+    feedback: NotRequired[str]  # 평가 추론 내용
+
+    # Optional - 효과 측정
     effectiveness_score: NotRequired[float]  # 0.0 ~ 1.0
     behavior_change_detected: NotRequired[bool]
 
@@ -70,6 +77,9 @@ class EvaluationState(TypedDict):
     adjustment_needed: NotRequired[bool]
     adjustment_reason: NotRequired[str]
     new_strategy: NotRequired[str]
+
+    # Optional - FCM 전송
+    fcm_sent: NotRequired[bool]
 
 
 # =============================================================================
