@@ -1,5 +1,6 @@
 package com.dito.app.core.repository
 
+import android.util.Base64
 import android.util.Log
 import com.dito.app.core.data.auth.SignInRequest
 import com.dito.app.core.data.auth.SignUpRequest
@@ -11,6 +12,9 @@ import com.dito.app.core.storage.GroupManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.int
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -60,6 +64,15 @@ class AuthRepository @Inject constructor(
                     authTokenManager.saveAccessToken(authData.accessToken)
                     authTokenManager.saveRefreshToken(authData.refreshToken)
                     authTokenManager.savePersonalId(username)
+
+                    // JWT에서 userId 추출 및 저장
+                    val userId = extractUserIdFromJWT(authData.accessToken)
+                    if (userId != null) {
+                        authTokenManager.saveUserId(userId)
+                        Log.d(TAG, "✅ 사용자 ID 저장: $userId")
+                    } else {
+                        Log.w(TAG, "⚠️ JWT에서 userId 추출 실패")
+                    }
 
                     Log.d(TAG, "✅ 로그인 성공: username=$username")
                     Result.success(Unit)
@@ -270,6 +283,38 @@ class AuthRepository @Inject constructor(
      */
     fun isLoggedIn(): Boolean {
         return authTokenManager.isLoggedIn()
+    }
+
+    /**
+     * JWT 토큰에서 userId 추출
+     * @param token JWT access token
+     * @return userId (Int) 또는 null
+     */
+    private fun extractUserIdFromJWT(token: String): Int? {
+        return try {
+            // JWT는 "header.payload.signature" 형식
+            val parts = token.split(".")
+            if (parts.size != 3) {
+                Log.e(TAG, "JWT 형식 오류: parts.size=${parts.size}")
+                return null
+            }
+
+            // payload 부분 (index 1) 디코딩
+            val payload = parts[1]
+            val decodedBytes = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_WRAP)
+            val decodedString = String(decodedBytes, Charsets.UTF_8)
+
+            Log.d(TAG, "JWT payload 디코딩: $decodedString")
+
+            // JSON 파싱
+            val jsonElement = json.parseToJsonElement(decodedString)
+            val userId = jsonElement.jsonObject["userId"]?.jsonPrimitive?.int
+
+            userId
+        } catch (e: Exception) {
+            Log.e(TAG, "JWT userId 추출 실패", e)
+            null
+        }
     }
 
     /**

@@ -7,7 +7,10 @@ import com.dito.app.core.data.group.Participant
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
+import com.dito.app.core.storage.GroupPreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +59,7 @@ data class GroupChallengeUiState(
 
 @HiltViewModel
 class GroupChallengeViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val groupManager: GroupManager,
     private val groupRepository: GroupRepository
 ) : ViewModel() {
@@ -149,6 +153,9 @@ class GroupChallengeViewModel @Inject constructor(
                                 else -> GroupManager.STATUS_NO_CHALLENGE
                             }
                         )
+
+                        // 스크린타임 동기화를 위해 active_group_id 저장
+                        GroupPreferenceManager.setActiveGroupId(context, groupDetail.groupId)
 
                         // UI 상태 업데이트
                         _uiState.value = _uiState.value.copy(
@@ -272,6 +279,9 @@ class GroupChallengeViewModel @Inject constructor(
                             endDate = endDate,
                             isLeader = true
                         )
+
+                        // 스크린타임 동기화를 위해 active_group_id 저장
+                        GroupPreferenceManager.setActiveGroupId(context, id)
 
                         android.util.Log.d("GroupViewModel", "저장 완료 - status: ${groupManager.getChallengeStatus()}")
 
@@ -461,6 +471,9 @@ class GroupChallengeViewModel @Inject constructor(
                         endDate = "",
                         isLeader = false
                     )
+
+                    // 스크린타임 동기화를 위해 active_group_id 저장
+                    GroupPreferenceManager.setActiveGroupId(context, groupId)
 
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
