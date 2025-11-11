@@ -156,7 +156,7 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<Unit>
 
-    
+
     // 초대 코드로 입장
     @POST("/challenges/groups/join")
     suspend fun getGroupInfo(
@@ -177,7 +177,7 @@ interface ApiService {
         @Path("group_id") groupId: Long,
         @Header("Authorization") token: String
     ): Response<ApiResponse<GetRankingResponse>>
-    
+
     // 그룹 챌린지 참여자 목록 조회
     @GET("/challenges/groups/{group_id}/participants")
     suspend fun getGroupParticipants(
