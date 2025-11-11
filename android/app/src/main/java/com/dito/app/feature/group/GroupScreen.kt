@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.dito.app.R
+import androidx.compose.ui.platform.LocalContext
+import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
@@ -49,10 +51,13 @@ fun GroupScreen(
     navController: NavController? = null,
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(key1 = Unit) {
         viewModel.refreshGroupInfo()
+        // GroupScreen 진입 시 스크린타임 동기화
+        ScreenTimeSyncWorker.triggerImmediateSync(context)
     }
 
     // 스플래시 화면 표시

@@ -296,14 +296,13 @@ private fun ClosetItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(32.dp)
-                    .background(Primary, CircleShape)
-                    .border(1.dp, Color.Black, CircleShape),
+                    .background(Color.Black, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "적용중",
                     style = DitoTypography.labelMedium,
-                    color = Color.Black
+                    color = Color.White
                 )
             }
         } else {
@@ -311,14 +310,15 @@ private fun ClosetItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(32.dp)
-                    .background(Color.Black, CircleShape)
+                    .background(Primary, CircleShape)
+                    .border(1.dp, Color.Black, CircleShape)
                     .clickable { onApply() },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "적용하기",
                     style = DitoTypography.labelMedium,
-                    color = Color.White
+                    color = Color.Black
                 )
             }
         }
