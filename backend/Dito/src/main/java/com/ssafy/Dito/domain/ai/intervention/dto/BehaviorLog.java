@@ -14,7 +14,12 @@ import jakarta.validation.constraints.Positive;
     {
       "app_name": "YouTube",
       "duration_seconds": 1200,
-      "usage_timestamp": "2025-01-10T15:30:00"
+      "usage_timestamp": "2025-01-10T15:30:00",
+      "recent_app_switches": 7,
+      "app_metadata": {
+        "title": "디토는 무엇일까요?",
+        "channel": "dito"
+      }
     }
     """)
 public record BehaviorLog(
@@ -32,6 +37,14 @@ public record BehaviorLog(
         @NotBlank(message = "사용 시점은 필수입니다")
         @JsonProperty("usage_timestamp")
         @Schema(description = "사용 시점 (ISO 8601)", example = "2025-01-10T15:30:00")
-        String usageTimestamp
+        String usageTimestamp,
+
+        @JsonProperty("recent_app_switches")
+        @Schema(description = "최근 앱 전환 횟수 (옵션)", example = "7")
+        Integer recentAppSwitches,
+
+        @JsonProperty("app_metadata")
+        @Schema(description = "앱 메타데이터 (옵션, 유튜브용)")
+        AppMetadata appMetadata
 ) {
 }

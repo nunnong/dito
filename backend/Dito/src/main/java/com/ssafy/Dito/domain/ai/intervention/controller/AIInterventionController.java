@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -58,9 +59,16 @@ public class AIInterventionController {
                   "behavior_log": {
                     "app_name": "YouTube",
                     "duration_seconds": 1200,
-                    "usage_timestamp": "2025-01-10T15:30:00"
+                    "usage_timestamp": "2025-01-10T15:30:00",
+                    "recent_app_switches": 7,
+                    "app_metadata": {
+                      "title": "디토는 무엇일까요?",
+                      "channel": "dito"
+                    }
                   }
                 }
+
+                * recent_app_switches와 app_metadata는 옵션 필드입니다.
                 """
     )
     public ResponseEntity<InterventionResponse> handleIntervention(
@@ -74,14 +82,23 @@ public class AIInterventionController {
         User user = userRepository.getByPersonalId(personalId);
 
         // 2. AI 요청 페이로드 구성
-        Map<String, Object> behaviorLog = Map.of(
-                "app_name", request.behaviorLog().appName(),
-                "duration_seconds", request.behaviorLog().durationSeconds(),
-                "usage_timestamp", request.behaviorLog().usageTimestamp(),
-                "recent_app_switches", 2  // TODO: MongoDB에서 조회
-        );
+        Map<String, Object> behaviorLog = new HashMap<>();
+        behaviorLog.put("app_name", request.behaviorLog().appName());
+        behaviorLog.put("duration_seconds", request.behaviorLog().durationSeconds());
+        behaviorLog.put("usage_timestamp", request.behaviorLog().usageTimestamp());
 
-        
+        // 옵션 필드: null이 아닌 경우만 추가
+        if (request.behaviorLog().recentAppSwitches() != null) {
+            behaviorLog.put("recent_app_switches", request.behaviorLog().recentAppSwitches());
+        }
+        if (request.behaviorLog().appMetadata() != null) {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("title", request.behaviorLog().appMetadata().title());
+            metadata.put("channel", request.behaviorLog().appMetadata().channel());
+            behaviorLog.put("app_metadata", metadata);
+        }
+
+
 
         Map<String, Object> aiRequest = Map.of(
                 "assistant_id", "intervention",
