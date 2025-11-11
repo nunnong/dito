@@ -108,9 +108,9 @@ def mission_node(state: InterventionState) -> dict:
         coin_reward=10,
         duration_seconds=mission.duration_seconds,
         target_app=state.get("behavior_log", {}).get("app_name", "All Apps"),
-        stat_change_self_care=1,
-        stat_change_focus=1,
-        stat_change_sleep=1,
+        stat_change_self_care=10,
+        stat_change_focus=20,
+        stat_change_sleep=30,
         prompt="AI Intervention V1",
     )
 
@@ -183,10 +183,7 @@ def message_node(state: InterventionState) -> dict:
     result = send_notification(updated_state)
 
     # 결과 처리: nudge_message와 fcm_sent를 모두 반환
-    return {
-        "nudge_message": truncated_message,
-        "fcm_sent": result.fcm_sent
-    }
+    return {"nudge_message": truncated_message, "fcm_sent": result.fcm_sent}
 
 
 # =============================================================================
