@@ -13,7 +13,7 @@ object Checker {
     private const val TAG = "Checker"
 
     // === 타이밍(테스트/운영 스위치 가능) ===
-    const val TEST_CHECKER_MS = 20 * 1000L  // 20초 (테스트)
+    const val TEST_CHECKER_MS = 10 * 1000L  // 10초 (테스트)
     const val PRODUCTION_CHECKER_MS = 30 * 60 * 1000L // 30분 (운영)
     const val TITLE_CHANGE_SAVE_DELAY_MS: Long = 1_000L // 제목 변경 시 저장 지연
     const val STOP_DEBOUNCE_MS: Long = 300L // STOPPED 연속 이벤트 디바운스
@@ -205,7 +205,7 @@ object Checker {
         }
 
         // 애매한 콘텐츠도 실시간 호출
-        Log.w(TAG, "콘텐츠 판단 애매함 → TRACK_1 (실시간 AI)")
+        Log.w(TAG, "콘텐츠 판단 애매함 → TRACK_1 (실시간 AI 호출)")
         return createCheckPoint(title, channel, watchTime, timestamp)
     }
 
@@ -219,7 +219,7 @@ object Checker {
             appName = "YouTube",
             videoTitle = title,
             channelName = channel,
-            durationSeconds = (watchTime / 1000).toInt() + 7200, //테스트용 시간 뻥튀기
+            durationSeconds = (watchTime / 1000).toInt(),
             usageTimestamp = formatTimestamp(timestamp)
         )
     }
