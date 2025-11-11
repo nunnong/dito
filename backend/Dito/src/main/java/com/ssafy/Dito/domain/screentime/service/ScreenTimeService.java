@@ -51,6 +51,9 @@ public class ScreenTimeService {
      */
     @Transactional
     public ScreenTimeUpdateRes updateScreenTime(ScreenTimeUpdateReq request, Long userId) {
+        log.info("💾 스크린타임 저장 요청 - groupId: {}, userId: {}, date: {}, totalMinutes: {}",
+            request.groupId(), userId, request.date(), request.totalMinutes());
+
         // 그룹 존재 여부 확인
         GroupChallenge group = groupChallengeRepository.findById(request.groupId())
             .orElseThrow(() -> new GroupNotFoundException());
@@ -59,6 +62,8 @@ public class ScreenTimeService {
         ScreenTimeDailySummary summary = summaryRepository
             .findByGroupIdAndUserIdAndDate(request.groupId(), userId, request.date())
             .orElse(null);
+
+        log.info("  기존 Summary 조회 결과: {}", summary != null ? "존재" : "없음");
 
         String status;
         if (summary == null) {
@@ -75,7 +80,10 @@ public class ScreenTimeService {
             summary.updateScreenTime(request.totalMinutes());
             status = "updated";
         }
-        summaryRepository.save(summary);
+        ScreenTimeDailySummary saved = summaryRepository.save(summary);
+
+        log.info("  ✅ Summary 저장 완료 - id: {}, groupId: {}, userId: {}, date: {}, totalMinutes: {}",
+            saved.getId(), saved.getGroupId(), saved.getUserId(), saved.getDate(), saved.getTotalMinutes());
 
         // 2. Snapshot 생성 (항상 INSERT)
         ScreenTimeSnapshot snapshot = ScreenTimeSnapshot.create(
