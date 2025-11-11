@@ -42,6 +42,7 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnPrimary
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.PrimaryContainer
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
@@ -109,16 +110,9 @@ fun GroupScreen(
 
     Box(
         modifier = Modifier.fillMaxSize()
-    ) {
-        // 배경 이미지
-        Image(
-            painter = painterResource(id = R.drawable.group_challenge_gif),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
 
-        // 메인 컨텐츠ㅓ
+    ) {
+        // 메인 컨텐츠
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,24 +122,27 @@ fun GroupScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-
+            Row(
+                modifier = Modifier.padding(bottom = Spacing.m),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.race_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(300.dp)
+                )
+            }
 
             Row(
                 modifier = Modifier.padding(bottom = Spacing.m),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.dito),
+                    painter = painterResource(id = R.drawable.group_main_img),
                     contentDescription = null,
                     modifier = Modifier
-                        .size(135.dp)
-                )
-
-                Image(
-                    painter = painterResource(id = R.drawable.melon),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(135.dp)
+                        .size(300.dp)
                 )
             }
 
@@ -189,16 +186,10 @@ fun GroupScreen(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
+                        .background(Primary)
                         .clickable { viewModel.onCreateDialogOpen() }
                         .padding(vertical = Spacing.l)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.star),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.s))
                     Text(
                         text = "방 만들기",
                         color = Color.Black,
@@ -218,16 +209,10 @@ fun GroupScreen(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
+                        .background(Primary)
                         .clickable { viewModel.onJoinDialogOpen() }
                         .padding(vertical = Spacing.l)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.mail),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.s))
                     Text(
                         text = "입장하기",
                         color = Color.Black,

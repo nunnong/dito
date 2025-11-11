@@ -1,5 +1,6 @@
 package com.dito.app.feature.group
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -170,6 +171,9 @@ fun OngoingChallengeScreen(
 
                         val backgroundImgUrl =
                             participant?.equipedItems?.find { it.type == "background" }?.imgUrl
+
+                        Log.d("OngoingChallenge", "Background Image URL: $backgroundImgUrl")
+
                         val costumeImgUrl =
                             participant?.equipedItems?.find { it.type == "costume" }?.imgUrl
 
@@ -198,6 +202,7 @@ fun OngoingChallengeScreen(
                             costumeImgUrl = costumeImgUrl,
                             isLast = isLast
                         )
+
                     }
                 }
             }
