@@ -162,7 +162,7 @@ class AppMonitoringService : AccessibilityService() {
         }
     }
 
-    // 20초 후에도 여전히 동일 앱이면 AI 호출
+    // 10초 후에도 여전히 동일 앱이면 AI 호출
     private fun scheduleAICheck(packageName: String, startTime: Long) {
         aiCheckJob = CoroutineScope(Dispatchers.IO).launch {
             val delayMs = Checker.TEST_CHECKER_MS
@@ -172,9 +172,9 @@ class AppMonitoringService : AccessibilityService() {
 
             val currentTime = System.currentTimeMillis()
 
-            // ⚠️ 테스트용: YouTube 사용시간을 4시간으로 강제 설정
+            // 테스트용: YouTube 사용시간을 30분으로 강제 설정
             val duration = if (packageName == PKG_YOUTUBE) {
-                4 * 60 * 60 * 1000L // 4시간 (밀리초)
+                30 * 60 * 1000L
             } else {
                 currentTime - startTime
             }
@@ -189,7 +189,7 @@ class AppMonitoringService : AccessibilityService() {
             // YouTube: 탐색(비재생) 경로
             // ================
             if (packageName == PKG_YOUTUBE) {
-                // 최근 20초 이상 비재생 상태면 '탐색'으로 간주
+                // 최근 10초 이상 비재생 상태면 '탐색'으로 간주
                 val exploring = PlaybackProbe.isNotPlayingFor(Checker.TEST_CHECKER_MS)
 
                 if (!exploring) {
