@@ -1,6 +1,5 @@
 package com.dito.app.feature.group
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,7 +50,7 @@ fun OngoingChallengeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // 화면이 다시 활성화될 때마다 순위 조회
+    // 화면이 다시 활성화될 때마다 순위 조회 (참여자 정보도 함께 로드됨)
     val lifecycleEvent = rememberLifecycleEvent()
     LaunchedEffect(lifecycleEvent) {
         if (lifecycleEvent == Lifecycle.Event.ON_RESUME) {
@@ -69,10 +68,10 @@ fun OngoingChallengeScreen(
     ) {
         // 배경 이미지
         Image(
-            painter = painterResource(id = R.drawable.race),
+            painter = painterResource(id = R.drawable.groupscreen),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             alpha = 0.8f
         )
 
@@ -154,7 +153,6 @@ fun OngoingChallengeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 랭킹 카드들 (동적으로 생성)
             if (rankings.isNotEmpty()) {
                 Row(
                     modifier = Modifier
@@ -166,6 +164,10 @@ fun OngoingChallengeScreen(
                     rankings.take(4).forEach { rankingItem ->
                         val participant =
                             uiState.participants.find { it.userId == rankingItem.userId }
+
+                        // 디버깅용 로그
+                        android.util.Log.d("OngoingChallenge", "Participant ${participant?.nickname}: equipedItems = ${participant?.equipedItems?.map { "${it.type}: ${it.imgUrl}" }}")
+
                         val backgroundImgUrl =
                             participant?.equipedItems?.find { it.type == "background" }?.imgUrl
                         val costumeImgUrl =
@@ -183,7 +185,6 @@ fun OngoingChallengeScreen(
                             else -> 140.dp
                         }
 
-                        val isFirst = rankingItem.rank == 1
                         val isLast =
                             rankingItem.rank == uiState.participants.size && uiState.participants.size > 1
 
@@ -195,7 +196,6 @@ fun OngoingChallengeScreen(
                             height = height,
                             backgroundImgUrl = backgroundImgUrl,
                             costumeImgUrl = costumeImgUrl,
-                            isFirst = isFirst,
                             isLast = isLast
                         )
                     }
@@ -247,20 +247,31 @@ fun InfoCard(icon: Int, title: String, value: String) {
             .border(2.dp, Color.Black, RoundedCornerShape(8.dp))
             .background(Color.White, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         Image(
             painter = painterResource(id = icon),
             contentDescription = title,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier
+                .size(24.dp)
+                .padding(top = 2.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = "$title : $value",
-            style = DitoTypography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
+        Column {
+            Text(
+                text = title,
+                style = DitoTypography.bodyLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
+                style = DitoTypography.bodyMedium,
+                fontWeight = FontWeight.Normal,
+                color = Color.Black
+            )
+        }
     }
 }
 
@@ -273,7 +284,6 @@ fun RankCard(
     height: Dp,
     backgroundImgUrl: String?,
     costumeImgUrl: String?,
-    isFirst: Boolean,
     isLast: Boolean
 ) {
     Box(contentAlignment = Alignment.Center) {
@@ -319,7 +329,7 @@ fun RankCard(
                         model = backgroundImgUrl,
                         contentDescription = "$name background",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        contentScale = ContentScale.Crop
                     )
                 }
 
@@ -329,7 +339,7 @@ fun RankCard(
                         model = costumeImgUrl,
                         contentDescription = "$name costume",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
@@ -341,17 +351,6 @@ fun RankCard(
                 fontWeight = FontWeight.Bold,
                 color = Color.Black,
                 textAlign = TextAlign.Center
-            )
-        }
-
-        if (isFirst) {
-            Image(
-                painter = painterResource(id = R.drawable.crown),
-                contentDescription = "Crown",
-                modifier = Modifier
-                    .size(40.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-20).dp)
             )
         }
 

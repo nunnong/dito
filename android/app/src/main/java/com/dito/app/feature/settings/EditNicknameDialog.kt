@@ -33,6 +33,7 @@ import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.Surface
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
@@ -162,7 +163,7 @@ fun ChangeNickName(
                     Spacer(Modifier.height(Spacing.s))
                     Text(
                         text = errorMessage,
-                        color = Error,
+                        color = OnSurface,
                         style = DitoTypography.bodySmall,
                         modifier = Modifier.padding(horizontal = Spacing.m)
                     )
@@ -181,7 +182,7 @@ fun ChangeNickName(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(if (isValid) Primary else ErrorContainer)
+                        .background(if (isValid) Primary else Color.White)
                         .clickable(enabled = isValid && !uiState.isLoading) {
                             viewModel.updateNickname(nickName) {
                                 onDismiss()
@@ -192,7 +193,7 @@ fun ChangeNickName(
                 ) {
                     Text(
                         text = if (uiState.isLoading) "변경 중..." else "변경하기",
-                        color = if (isValid) Color.Black else OnErrorContainer,
+                        color = Color.Black,
                         style = DitoCustomTextStyles.titleKMedium
                     )
                 }

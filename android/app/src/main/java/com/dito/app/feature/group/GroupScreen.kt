@@ -107,13 +107,13 @@ fun GroupScreen(
     ) {
         // 배경 이미지
         Image(
-            painter = painterResource(id = R.drawable.groupscreen),
+            painter = painterResource(id = R.drawable.group_challenge_gif),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
 
-        // 메인 컨텐츠
+        // 메인 컨텐츠ㅓ
         Column(
             modifier = Modifier
                 .fillMaxSize()
