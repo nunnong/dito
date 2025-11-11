@@ -102,8 +102,8 @@ def send_fcm_notification(state: EvaluationState) -> dict:
     else:
         print("     ⚠️ FCM 전송 실패 (계속 진행)")
 
-    # 미션 결과 DB 저장
-    result_saved = submit_mission_result(mission_id, evaluation_result)
+    # 미션 결과 DB 저장 (feedback 포함)
+    result_saved = submit_mission_result(mission_id, evaluation_result, feedback)
 
     if result_saved:
         print("     ✅ 미션 결과 DB 저장 완료")

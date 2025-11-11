@@ -447,7 +447,7 @@ def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> 
 
     Args:
         mission_info: 미션 정보 (missionType, targetApp 등)
-        behavior_logs: BehaviorLog 목록
+        behavior_logs: BehaviorLog 목록 (빈 배열일 수 있음)
 
     Returns:
         (evaluation_result, feedback) tuple
@@ -457,6 +457,19 @@ def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> 
     target_app = mission_info.get("targetApp", "")
     mission_type = mission_info.get("missionType", "")
     mission_text = mission_info.get("missionText", "")
+
+    # behavior_logs가 빈 배열인 경우 처리
+    if not behavior_logs or len(behavior_logs) == 0:
+        print("     ℹ️ behavior_logs가 비어있음 - 앱 사용 기록 없음")
+        evaluation_result = "SUCCESS"
+
+        # 빈 배열인 경우 간단한 피드백 반환 (LLM 호출 없이)
+        feedback = "미션 시간 동안 앱을 전혀 사용하지 않았어! 완벽한 디지털 디톡스야. 이 습관을 계속 유지해보자! 💪"
+
+        print(f"     평가 결과: {evaluation_result}")
+        print(f"     피드백: {feedback}")
+
+        return evaluation_result, feedback
 
     # targetApp 사용 여부 확인
     has_violation = False
@@ -591,12 +604,13 @@ def send_evaluation_fcm(user_id: int, result: str, feedback: str, mission_id: in
         return False
 
 
-def submit_mission_result(mission_id: int, result: str) -> bool:
+def submit_mission_result(mission_id: int, result: str, feedback: str = "") -> bool:
     """미션 결과 제출 API 호출
 
     Args:
         mission_id: 미션 ID
         result: "SUCCESS" | "FAILURE" | "IGNORE"
+        feedback: 평가 피드백 메시지
 
     Returns:
         True if successful, False if failed
@@ -614,7 +628,8 @@ def submit_mission_result(mission_id: int, result: str) -> bool:
 
     payload = {
         "mission_id": mission_id,
-        "result": result  # "SUCCESS" | "FAILURE" | "IGNORE"
+        "result": result,  # "SUCCESS" | "FAILURE" | "IGNORE"
+        "feedback": feedback  # 평가 피드백
     }
 
     try:
