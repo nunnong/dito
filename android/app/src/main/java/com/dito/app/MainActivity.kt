@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -49,8 +50,14 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
+    // 🔧 mutableStateOf로 딥링크 관리 (Compose가 자동으로 recomposition)
+    private val deepLinkUriState = mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // onCreate 시점의 딥링크 처리
+        handleDeepLink(intent)
 
         setContent {
             DitoTheme {
@@ -59,13 +66,66 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    // Splash → Login → (로그인 성공) → Test 화면 순서
+
+                    // 🎯 State로 관리되는 딥링크 URI
+                    val deepLinkUri by deepLinkUriState
+
+                    // Splash → Login → (로그인 성공) → Home 화면 순서
                     DitoNavGraph(
                         navController = navController,
-                        startDestination = Route.Splash.path
+                        startDestination = Route.Splash.path,
+                        deepLinkUri = deepLinkUri
                     )
                 }
             }
+        }
+    }
+
+    /**
+     * 앱이 이미 실행 중일 때 새로운 Intent를 받는 경우
+     * (예: 알림을 클릭했을 때)
+     *
+     * 🚨 recreate()를 호출하면 Navigation이 초기화되기 전에
+     * navigate가 호출되어 크래시 발생!
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        Log.d(TAG, "🔔 onNewIntent 호출")
+
+        // 딥링크 처리 (State 업데이트 → Compose가 자동 recomposition)
+        handleDeepLink(intent)
+    }
+
+    /**
+     * Intent에서 딥링크 URI 추출 및 State 업데이트
+     *
+     * 지원하는 딥링크 형식:
+     * - dito://mission/{missionId}  → 미션 알림 화면으로 이동
+     */
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data
+
+        if (uri != null) {
+            Log.d(TAG, "🔗 딥링크 감지: $uri")
+            Log.d(TAG, "   scheme: ${uri.scheme}")  // dito
+            Log.d(TAG, "   host: ${uri.host}")      // mission
+            Log.d(TAG, "   path: ${uri.path}")      // /9
+
+            // 딥링크 파싱
+            when (uri.host) {
+                "mission" -> {
+                    val missionId = uri.lastPathSegment
+                    Log.d(TAG, "   📋 미션 ID: $missionId")
+                }
+            }
+
+            // 🎯 State 업데이트 → Compose가 자동으로 recomposition
+            deepLinkUriState.value = uri
+
+        } else {
+            Log.d(TAG, "🏠 일반 앱 실행 (딥링크 없음)")
         }
     }
 
@@ -266,13 +326,6 @@ fun PermissionTestScreen() {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
-//        PermissionCard(
-//            title = "💚 헬스 정보",
-//            description = "걸음 수, 심박수, 수면, 이동거리 데이터를 확인합니다",
-//            buttonText = "헬스 정보 보기",
-//            onClick = onNavigateToHealth
-//        )
     }
 }
 

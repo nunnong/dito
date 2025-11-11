@@ -315,14 +315,13 @@ private fun ShopItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(28.dp)
-                    .background(Primary, CircleShape)
-                    .border(1.dp, Color.Black, CircleShape),
+                    .background(Color.Black, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "보유중",
                     style = DitoCustomTextStyles.titleDSmall,
-                    color = Color.Black
+                    color = Color.White
                 )
             }
         } else {
@@ -330,7 +329,8 @@ private fun ShopItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(28.dp)
-                    .background(Color.Black, CircleShape)
+                    .background(Primary, CircleShape)
+                    .border(1.dp, Color.Black, CircleShape)
                     .clickable { onPurchase() },
                 contentAlignment = Alignment.Center
             ) {
@@ -341,7 +341,7 @@ private fun ShopItemCard(
                     Text(
                         text = item.price.toString(),
                         style = DitoCustomTextStyles.titleDSmall,
-                        color = Color.White
+                        color = Color.Black
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Image(
