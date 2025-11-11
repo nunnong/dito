@@ -47,7 +47,7 @@ class MissionEvaluationWorker @AssistedInject constructor(
             Log.i(TAG, "📊 미션 평가 시작: $missionId")
             Log.d(TAG, "   타입: $missionType, 시간: ${durationSeconds}초")
 
-            triggerFinalAppRecord()
+//            triggerFinalAppRecord()
 
             // 1. Realm에서 미션 추적 로그 수집
             val logs = RealmRepository.getMissionLogs(missionId)
@@ -148,21 +148,21 @@ class MissionEvaluationWorker @AssistedInject constructor(
         }
     }
 
-    private fun triggerFinalAppRecord() {
-        try {
-            Log.d(TAG, "📌 미션 종료 - 마지막 앱 기록 시작")
-
-            // MissionTracker에게 현재 사용 중인 앱 강제 기록 요청
-            missionTracker.recordFinalApp()
-
-            // 기록 완료 대기 (Realm 쓰기 작업 완료 시간)
-            Thread.sleep(200)
-
-            Log.d(TAG, "✅ 마지막 앱 기록 완료")
-        } catch (e: Exception) {
-            Log.e(TAG, "마지막 앱 기록 트리거 실패", e)
-        }
-    }
+//    private fun triggerFinalAppRecord() {
+//        try {
+//            Log.d(TAG, "📌 미션 종료 - 마지막 앱 기록 시작")
+//
+//            // MissionTracker에게 현재 사용 중인 앱 강제 기록 요청
+//            missionTracker.recordFinalApp()
+//
+//            // 기록 완료 대기 (Realm 쓰기 작업 완료 시간)
+//            Thread.sleep(200)
+//
+//            Log.d(TAG, "✅ 마지막 앱 기록 완료")
+//        } catch (e: Exception) {
+//            Log.e(TAG, "마지막 앱 기록 트리거 실패", e)
+//        }
+//    }
 
 
 }
