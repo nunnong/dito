@@ -30,13 +30,14 @@ public class MissionQueryRepository {
     private final QMission mission = QMission.mission;
     private final QMissionResult missionResult = QMissionResult.missionResult;
 
-    public Page<MissionRes> getMissionPage(long pageNum) {
+    public Page<MissionRes> getMissionPage(long userId, long pageNum) {
 
         Pageable pageRequest = PageRequest.of((int) pageNum, PAGE_SIZE);
 
         JPAQuery<Long> countQuery = jpaQueryFactory
+                .select(mission.countDistinct())
                 .from(mission)
-                .select(mission.countDistinct());
+                .where(mission.user.id.eq(userId));
 
         List<MissionRes> res = jpaQueryFactory
                 .select(new QMissionRes(
@@ -49,6 +50,7 @@ public class MissionQueryRepository {
                 ))
                 .from(mission)
                 .leftJoin(missionResult).on(missionResult.mission.eq(mission))
+                .where(mission.user.id.eq(userId))
                 .offset(pageNum * PAGE_SIZE)
                 .limit(PAGE_SIZE)
                 .orderBy(mission.id.desc())
