@@ -8,6 +8,7 @@ import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
 import com.ssafy.Dito.domain.screentime.dto.request.ScreenTimeUpdateReq;
+import com.ssafy.Dito.domain.screentime.dto.request.UpdateCurrentAppReq;
 import com.ssafy.Dito.domain.screentime.dto.response.GroupRankingRes;
 import com.ssafy.Dito.domain.screentime.dto.response.ScreenTimeUpdateRes;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeDailySummaryRepository;
@@ -22,6 +23,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
  * - 하이브리드 방식: Summary (빠른 조회) + Snapshot (검증/분석)
  * - 앱에서 5분마다 스크린타임 갱신
  * - 그룹별 랭킹 조회 최적화
+ * - 실시간 현재 사용 중인 앱 정보 관리
  */
 @Service
 @RequiredArgsConstructor
@@ -42,6 +45,12 @@ public class ScreenTimeService {
     private final GroupParticipantRepository groupParticipantRepository;
 
     private static final int MAX_PARTICIPANTS = 6;
+
+    /**
+     * 사용자별 현재 사용 중인 앱 정보 저장
+     * Key: userId, Value: CurrentAppInfo
+     */
+    private final Map<Long, CurrentAppInfo> currentAppCache = new ConcurrentHashMap<>();
 
     /**
      * 스크린타임 갱신 (5분마다 호출)
@@ -110,9 +119,46 @@ public class ScreenTimeService {
     }
 
     /**
+     * 현재 사용 중인 앱 정보 갱신
+     * 안드로이드 앱에서 포그라운드 앱이 변경될 때마다 호출
+     */
+    public void updateCurrentApp(Long userId, UpdateCurrentAppReq request) {
+        log.info("📱 현재 앱 정보 갱신 - userId: {}, appPackage: {}, appName: {}",
+            userId, request.appPackage(), request.appName());
+
+        currentAppCache.put(userId, new CurrentAppInfo(
+            request.appPackage(),
+            request.appName(),
+            System.currentTimeMillis()
+        ));
+    }
+
+    /**
+     * 현재 사용 중인 앱 정보 조회
+     * 5분 이상 지난 정보는 null 반환 (앱 사용 중이 아닌 것으로 간주)
+     */
+    private CurrentAppInfo getCurrentApp(Long userId) {
+        CurrentAppInfo info = currentAppCache.get(userId);
+
+        if (info == null) {
+            return null;
+        }
+
+        // 5분(300초) 이상 지난 정보는 무효 처리
+        long elapsedSeconds = (System.currentTimeMillis() - info.timestamp) / 1000;
+        if (elapsedSeconds > 300) {
+            currentAppCache.remove(userId);
+            return null;
+        }
+
+        return info;
+    }
+
+    /**
      * 그룹 챌린지 랭킹 조회
      * - 유튜브 사용시간이 적은 순으로 정렬
      * - 그룹 정보 + 참여자 상세 정보 포함
+     * - 현재 사용 중인 앱 정보 포함
      */
     @Transactional(readOnly = true)
     public GroupRankingRes getGroupRanking(Long groupId, Long currentUserId) {
@@ -237,6 +283,14 @@ public class ScreenTimeService {
                 // 1등은 총 베팅 코인을 모두 가져감
                 Integer potentialPrize = (rank == 1) ? group.getTotalBetCoins() : 0;
 
+                // 현재 사용 중인 앱 정보 조회
+                CurrentAppInfo currentApp = getCurrentApp(uid);
+                String currentAppPackage = currentApp != null ? currentApp.appPackage : null;
+                String currentAppName = currentApp != null ? currentApp.appName : null;
+
+                log.info("  - 랭킹 {}위: userId={}, nickname={}, youtubeMinutes={}, currentApp={}",
+                    rank, uid, data.nickname, data.youtubeMinutes, currentAppName);
+
                 return GroupRankingRes.ParticipantRank.of(
                     rank,
                     uid,
@@ -247,8 +301,8 @@ public class ScreenTimeService {
                     data.betCoins,
                     potentialPrize,
                     uid.equals(currentUserId),
-                    null,
-                    null
+                    currentAppPackage,  // 현재 앱 패키지명
+                    currentAppName      // 현재 앱 이름
                 );
             })
             .collect(Collectors.toList());
@@ -294,6 +348,15 @@ public class ScreenTimeService {
             return youtubeCompare;
         }
     }
+
+    /**
+     * 현재 앱 정보 저장 클래스
+     */
+    private record CurrentAppInfo(
+        String appPackage,
+        String appName,
+        long timestamp
+    ) {}
 
     /**
      * 특정 사용자의 특정 기간 스크린타임 조회

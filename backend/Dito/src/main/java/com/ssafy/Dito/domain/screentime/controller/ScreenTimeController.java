@@ -88,7 +88,7 @@ public class ScreenTimeController {
         @Valid @RequestBody UpdateCurrentAppReq request
     ) {
         Long userId = JwtAuthentication.getUserId();
-        screenTimeService.updateCurrentApp(request, userId);
+        screenTimeService.updateCurrentApp(userId, request);
 
         return ApiResponse.of(HttpStatus.OK, "현재 앱 정보 갱신 성공");
     }
