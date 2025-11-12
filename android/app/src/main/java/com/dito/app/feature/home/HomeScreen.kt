@@ -30,6 +30,39 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
+
+@Composable
+fun BounceClickable(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (isPressed: Boolean) -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content(isPressed)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,22 +191,30 @@ fun HomeContent(
                         .width(80.dp)
                         .height(24.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.cart),
-                        contentDescription = "Cart",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onCartClick() },
-                        contentScale = ContentScale.Fit
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.closet),
-                        contentDescription = "Closet",
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable { onClosetClick() },
-                        contentScale = ContentScale.Fit
-                    )
+                    BounceClickable(
+                        onClick = onCartClick,
+                        modifier = Modifier.size(24.dp)
+                    ) { isPressed ->
+                        Image(
+                            painter = painterResource(id = R.drawable.cart),
+                            contentDescription = "Cart",
+                            modifier = Modifier.fillMaxSize(),
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else null,
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    BounceClickable(
+                        onClick = onClosetClick,
+                        modifier = Modifier.size(20.dp)
+                    ) { isPressed ->
+                        Image(
+                            painter = painterResource(id = R.drawable.closet),
+                            contentDescription = "Closet",
+                            modifier = Modifier.fillMaxSize(),
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else null,
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
 
                 // 오른쪽 아이콘 1개
@@ -430,14 +471,17 @@ fun HomeContent(
             }
 
             // 원형 버튼
-            Image(
-                painter = painterResource(id = R.drawable.face_dialog_btn),
-                contentDescription = "Face Dialog Button",
-                modifier = Modifier
-                    .size(60.dp)
-                    .clickable { showDitoFaceDialog = true },
-                contentScale = ContentScale.Fit
-            )
+            BounceClickable(
+                onClick = { showDitoFaceDialog = true },
+                modifier = Modifier.size(60.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.face_dialog_btn),
+                    contentDescription = "Face Dialog Button",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
 }
