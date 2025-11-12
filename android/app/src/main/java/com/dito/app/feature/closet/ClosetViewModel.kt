@@ -111,7 +111,10 @@ class ClosetViewModel @Inject constructor(
     private fun loadItems(isInitialLoad: Boolean) {
         viewModelScope.launch {
             if (isInitialLoad) {
-                _uiState.update { it.copy(isLoading = true) }
+                // For a true initial load, reset items. For the recursive part, we don't.
+                if (_uiState.value.items.isEmpty()) {
+                    _uiState.update { it.copy(isLoading = true) }
+                }
             } else {
                 _uiState.update { it.copy(isLoadingMore = true) }
             }
@@ -122,11 +125,9 @@ class ClosetViewModel @Inject constructor(
             closetRepository.getClosetItems(type = type, page = pageToLoad)
                 .onSuccess { response ->
                     _uiState.update { currentState ->
-                        val newItems = if (isInitialLoad) response.data
-                                       else currentState.items + response.data
-
-                        // Find equipped item URL in the new items
-                        val equippedUrl = newItems.firstOrNull { it.isEquipped }?.imageUrl
+                        val currentItems = if (isInitialLoad && pageToLoad == 0) emptyList() else currentState.items
+                        val newItems = currentItems + response.data
+                        val equippedItem = newItems.firstOrNull { it.isEquipped }
 
                         currentState.copy(
                             isLoading = false,
@@ -135,9 +136,15 @@ class ClosetViewModel @Inject constructor(
                             canPaginate = response.pageInfo.hasNext,
                             currentPage = response.pageInfo.page,
                             error = null,
-                            equippedCostumeUrl = if (currentState.selectedTab == ClosetTab.COSTUME) equippedUrl else currentState.equippedCostumeUrl,
-                            equippedBackgroundUrl = if (currentState.selectedTab == ClosetTab.BACKGROUND) equippedUrl else currentState.equippedBackgroundUrl
+                            equippedCostumeUrl = if (currentState.selectedTab == ClosetTab.COSTUME && equippedItem != null) equippedItem.imageUrl else currentState.equippedCostumeUrl,
+                            equippedBackgroundUrl = if (currentState.selectedTab == ClosetTab.BACKGROUND && equippedItem != null) equippedItem.imageUrl else currentState.equippedBackgroundUrl
                         )
+                    }
+
+                    // If this was part of an initial load, we haven't found the equipped item yet, and there are more pages, load the next page.
+                    val equippedItemFound = _uiState.value.items.any { it.isEquipped }
+                    if (isInitialLoad && !equippedItemFound && _uiState.value.canPaginate) {
+                        loadItems(isInitialLoad = false) // Continue loading the next page
                     }
                 }
                 .onFailure { error ->
