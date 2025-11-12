@@ -51,14 +51,19 @@ public class ScreenTimeService {
      */
     @Transactional
     public ScreenTimeUpdateRes updateScreenTime(ScreenTimeUpdateReq request, Long userId) {
+        log.info("💾 스크린타임 저장 요청 - groupId: {}, userId: {}, date: {}, totalMinutes: {}",
+            request.groupId(), userId, request.date(), request.totalMinutes());
+
         // 그룹 존재 여부 확인
         GroupChallenge group = groupChallengeRepository.findById(request.groupId())
             .orElseThrow(() -> new GroupNotFoundException());
 
         // 1. Summary 갱신 (upsert)
         ScreenTimeDailySummary summary = summaryRepository
-            .findByGroupIdAndUserIdAndDate(request.groupId(), userId, request.date())
+            .findByGroupIdAndUserIdAndDate(request.groupId(), userId, request.date().toString())
             .orElse(null);
+
+        log.info("  기존 Summary 조회 결과: {}", summary != null ? "존재" : "없음");
 
         String status;
         if (summary == null) {
@@ -75,7 +80,10 @@ public class ScreenTimeService {
             summary.updateScreenTime(request.totalMinutes());
             status = "updated";
         }
-        summaryRepository.save(summary);
+        ScreenTimeDailySummary saved = summaryRepository.save(summary);
+
+        log.info("  ✅ Summary 저장 완료 - id: {}, groupId: {}, userId: {}, date: {}, totalMinutes: {}",
+            saved.getId(), saved.getGroupId(), saved.getUserId(), saved.getDate(), saved.getTotalMinutes());
 
         // 2. Snapshot 생성 (항상 INSERT)
         ScreenTimeSnapshot snapshot = ScreenTimeSnapshot.create(
@@ -159,7 +167,15 @@ public class ScreenTimeService {
 
         // Summary 데이터 조회 (챌린지 기간 내)
         List<ScreenTimeDailySummary> summaries = summaryRepository
-            .findByGroupIdAndDateBetween(groupId, startDate, endDate);
+            .findByGroupIdAndDateBetween(groupId, startDate.toString(), endDate.toString());
+
+        log.info("📊 Summary 조회 결과 - groupId: {}, startDate: {}, endDate: {}, summaries.size: {}",
+            groupId, startDate, endDate, summaries.size());
+
+        for (ScreenTimeDailySummary s : summaries) {
+            log.info("  - userId: {}, date: {}, totalMinutes: {}",
+                s.getUserId(), s.getDate(), s.getTotalMinutes());
+        }
 
         // 사용자별 총 스크린타임 집계
         Map<Long, Integer> userTotalScreenTime = new HashMap<>();
@@ -254,7 +270,7 @@ public class ScreenTimeService {
     public List<ScreenTimeDailySummary> getUserScreenTime(Long groupId, Long userId,
                                                           LocalDate startDate, LocalDate endDate) {
         return summaryRepository.findByGroupIdAndUserIdAndDateBetween(
-            groupId, userId, startDate, endDate
+            groupId, userId, startDate.toString(), endDate.toString()
         );
     }
 

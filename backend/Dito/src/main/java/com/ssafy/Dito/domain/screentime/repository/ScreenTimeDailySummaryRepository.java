@@ -20,7 +20,7 @@ public interface ScreenTimeDailySummaryRepository extends MongoRepository<Screen
      * 앱에서 스크린타임 갱신 시 기존 데이터 확인용
      */
     Optional<ScreenTimeDailySummary> findByGroupIdAndUserIdAndDate(
-        Long groupId, Long userId, LocalDate date
+        Long groupId, Long userId, String date
     );
 
     /**
@@ -28,7 +28,7 @@ public interface ScreenTimeDailySummaryRepository extends MongoRepository<Screen
      * 그룹 챌린지 랭킹 계산용
      */
     List<ScreenTimeDailySummary> findByGroupIdAndDateBetween(
-        Long groupId, LocalDate startDate, LocalDate endDate
+        Long groupId, String startDate, String endDate
     );
 
     /**
@@ -36,13 +36,13 @@ public interface ScreenTimeDailySummaryRepository extends MongoRepository<Screen
      * 개인별 스크린타임 추이 분석용
      */
     List<ScreenTimeDailySummary> findByGroupIdAndUserIdAndDateBetween(
-        Long groupId, Long userId, LocalDate startDate, LocalDate endDate
+        Long groupId, Long userId, String startDate, String endDate
     );
 
     /**
      * 특정 사용자의 모든 그룹에서의 특정 날짜 Summary 조회
      */
-    List<ScreenTimeDailySummary> findByUserIdAndDate(Long userId, LocalDate date);
+    List<ScreenTimeDailySummary> findByUserIdAndDate(Long userId, String date);
 
     /**
      * 특정 그룹의 모든 Summary 삭제
