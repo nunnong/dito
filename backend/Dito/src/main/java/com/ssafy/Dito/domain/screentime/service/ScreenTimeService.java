@@ -5,11 +5,14 @@ import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
+import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
 import com.ssafy.Dito.domain.screentime.dto.request.ScreenTimeUpdateReq;
+import com.ssafy.Dito.domain.screentime.dto.request.UpdateCurrentAppReq;
 import com.ssafy.Dito.domain.screentime.dto.response.GroupRankingRes;
 import com.ssafy.Dito.domain.screentime.dto.response.ScreenTimeUpdateRes;
+import com.ssafy.Dito.domain.screentime.repository.CurrentAppUsageRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeDailySummaryRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeSnapshotRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,7 @@ public class ScreenTimeService {
     private final ScreenTimeSnapshotRepository snapshotRepository;
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
+    private final CurrentAppUsageRepository currentAppUsageRepository;
 
     private static final int MAX_PARTICIPANTS = 6;
 
@@ -204,6 +208,16 @@ public class ScreenTimeService {
                 GroupParticipant::getBetCoins
             ));
 
+        // 그룹의 모든 참여자의 현재 앱 사용 정보 조회
+        List<CurrentAppUsage> currentApps = currentAppUsageRepository.findAllByGroupId(groupId);
+        Map<Long, CurrentAppUsage> userCurrentApp = currentApps.stream()
+            .collect(Collectors.toMap(
+                CurrentAppUsage::getUserId,
+                app -> app
+            ));
+
+        log.info("📱 현재 앱 사용 정보 조회 - groupId: {}, 조회된 앱 정보 개수: {}", groupId, currentApps.size());
+
         // 랭킹 계산 (스크린타임 적은 순)
         final int finalDaysElapsed = daysElapsed;
         AtomicInteger rankCounter = new AtomicInteger(1);
@@ -227,6 +241,11 @@ public class ScreenTimeService {
                 // 1등은 총 베팅 코인을 모두 가져감
                 Integer potentialPrize = (rank == 1) ? group.getTotalBetCoins() : 0;
 
+                // 현재 앱 정보 가져오기
+                CurrentAppUsage currentApp = userCurrentApp.get(uid);
+                String currentAppPackage = currentApp != null ? currentApp.getAppPackage() : null;
+                String currentAppName = currentApp != null ? currentApp.getAppName() : null;
+
                 return GroupRankingRes.ParticipantRank.of(
                     rank,
                     uid,
@@ -236,7 +255,9 @@ public class ScreenTimeService {
                     formatTime((int) avgMinutes),
                     data.betCoins,
                     potentialPrize,
-                    uid.equals(currentUserId)
+                    uid.equals(currentUserId),
+                    currentAppPackage,
+                    currentAppName
                 );
             })
             .collect(Collectors.toList());
@@ -290,5 +311,40 @@ public class ScreenTimeService {
     @Transactional(readOnly = true)
     public List<ScreenTimeSnapshot> getUserSnapshots(Long userId, LocalDate date) {
         return snapshotRepository.findByUserIdAndDateOrderByRecordedAtDesc(userId, date);
+    }
+
+    /**
+     * 현재 앱 사용 정보 갱신
+     * - upsert 방식: 기존 데이터가 있으면 업데이트, 없으면 생성
+     * - 한 사용자당 하나의 현재 앱 정보만 유지
+     */
+    @Transactional
+    public void updateCurrentApp(UpdateCurrentAppReq request, Long userId) {
+        log.info("📱 현재 앱 정보 갱신 - groupId: {}, userId: {}, appPackage: {}, appName: {}",
+            request.groupId(), userId, request.appPackage(), request.appName());
+
+        // 기존 데이터 조회
+        CurrentAppUsage currentApp = currentAppUsageRepository
+            .findByGroupIdAndUserId(request.groupId(), userId)
+            .orElse(null);
+
+        if (currentApp == null) {
+            // 신규 생성
+            currentApp = CurrentAppUsage.create(
+                request.groupId(),
+                userId,
+                request.appPackage(),
+                request.appName()
+            );
+            log.info("  ✅ 새로운 현재 앱 정보 생성");
+        } else {
+            // 기존 데이터 업데이트
+            currentApp.update(request.appPackage(), request.appName());
+            log.info("  ✅ 기존 현재 앱 정보 업데이트");
+        }
+
+        currentAppUsageRepository.save(currentApp);
+        log.info("현재 앱 정보 갱신 완료 - userId: {}, groupId: {}, appPackage: {}, appName: {}",
+            userId, request.groupId(), request.appPackage(), request.appName());
     }
 }
