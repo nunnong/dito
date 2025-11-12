@@ -31,7 +31,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.ColorFilter
@@ -40,6 +39,24 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
 
 @Composable
 fun BounceClickable(
@@ -555,62 +572,124 @@ fun HomeContent(
 
 @Composable
 private fun ProgressBarItem(label: String, progress: Float) {
-    // Frame 172/177/178
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(47.67.dp)
-            .background(Color.Black)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        // Frame 173
+    var showValue by remember { mutableStateOf(false) }
+    val animatedProgress = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    // Animate on entry and when progress value changes
+    LaunchedEffect(progress) {
+        animatedProgress.animateTo(
+            targetValue = progress,
+            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+        )
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, label = "progress_bar_scale")
+
+    Box {
+        // Frame 172/177/178
         Row(
             modifier = Modifier
-                .width(80.dp)
-                .height(52.dp)
-                .padding(top = 14.dp, bottom = 14.dp, end = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
-                color = Color.White
-            )
-        }
-
-        // Frame 174 - 프로그레스 바
-        Box(
-            modifier = Modifier
-                .width(171.dp)
-                .height(24.dp)
-                .border(1.dp, Color.White, RectangleShape),
-            contentAlignment = Alignment.CenterStart // Align content to center start
-        ) {
-            // 눈금 선들 (0, 10, 20, ..., 100)
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                repeat(11) { index ->
-                    Spacer(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .fillMaxHeight()
-                            .background(Color.White.copy(alpha = 0.5f))
-                    )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
                 }
+                .fillMaxWidth()
+                .height(47.67.dp)
+                .background(Color.Black)
+                .padding(horizontal = 16.dp)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = {
+                        scope.launch {
+                            animatedProgress.stop()
+                            animatedProgress.snapTo(0f)
+                            animatedProgress.animateTo(
+                                targetValue = progress,
+                                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+                            )
+                            showValue = true
+                            delay(500)
+                            showValue = false
+                        }
+                    }
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            // Frame 173
+            Row(
+                modifier = Modifier
+                    .width(80.dp)
+                    .height(52.dp)
+                    .padding(top = 14.dp, bottom = 14.dp, end = 14.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
+                    color = Color.White
+                )
             }
 
-            // Line 1 - 프로그레스 (노란색)
+            // Frame 174 - 프로그레스 바
             Box(
                 modifier = Modifier
-                    .height(12.dp)
-                    .fillMaxWidth(progress)
-                    .background(Primary, RectangleShape)
-            )
+                    .width(171.dp)
+                    .height(24.dp)
+                    .border(1.dp, Color.White, RectangleShape),
+                contentAlignment = Alignment.CenterStart // Align content to center start
+            ) {
+                // 눈금 선들 (0, 10, 20, ..., 100)
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    repeat(11) { index ->
+                        Spacer(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .fillMaxHeight()
+                                .background(Color.White.copy(alpha = 0.5f))
+                        )
+                    }
+                }
+
+                // Line 1 - 프로그레스 (노란색)
+                Box(
+                    modifier = Modifier
+                        .height(12.dp)
+                        .fillMaxWidth(animatedProgress.value)
+                        .background(Primary, RectangleShape)
+                )
+            }
+        }
+
+        // Tooltip that appears on press
+        AnimatedVisibility(
+            visible = showValue,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = 6.dp, x = (-10).dp),
+            enter = fadeIn(animationSpec = tween(100)) + scaleIn(animationSpec = tween(100), initialScale = 0.8f),
+            exit = fadeOut(animationSpec = tween(100)) + scaleOut(animationSpec = tween(100), targetScale = 0.8f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(Primary, RoundedCornerShape(4.dp))
+                    .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "+${(progress * 100).toInt()}",
+                    style = DitoCustomTextStyles.titleDSmall,
+                    color = Color.Black
+                )
+            }
         }
     }
 }
