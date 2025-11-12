@@ -5,14 +5,11 @@ import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
-import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
 import com.ssafy.Dito.domain.screentime.dto.request.ScreenTimeUpdateReq;
-import com.ssafy.Dito.domain.screentime.dto.request.UpdateCurrentAppReq;
 import com.ssafy.Dito.domain.screentime.dto.response.GroupRankingRes;
 import com.ssafy.Dito.domain.screentime.dto.response.ScreenTimeUpdateRes;
-import com.ssafy.Dito.domain.screentime.repository.CurrentAppUsageRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeDailySummaryRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeSnapshotRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +40,6 @@ public class ScreenTimeService {
     private final ScreenTimeSnapshotRepository snapshotRepository;
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
-    private final CurrentAppUsageRepository currentAppUsageRepository;
 
     private static final int MAX_PARTICIPANTS = 6;
 
@@ -116,7 +111,7 @@ public class ScreenTimeService {
 
     /**
      * 그룹 챌린지 랭킹 조회
-     * - 스크린타임이 적은 순으로 정렬
+     * - 유튜브 사용시간이 적은 순으로 정렬
      * - 그룹 정보 + 참여자 상세 정보 포함
      */
     @Transactional(readOnly = true)
@@ -181,25 +176,34 @@ public class ScreenTimeService {
             groupId, startDate, endDate, summaries.size());
 
         for (ScreenTimeDailySummary s : summaries) {
-            log.info("  - userId: {}, date: {}, totalMinutes: {}",
-                s.getUserId(), s.getDate(), s.getTotalMinutes());
+            log.info("  - userId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {}",
+                s.getUserId(), s.getDate(), s.getTotalMinutes(), s.getYoutubeMinutes());
         }
 
-        // 사용자별 총 유튜브 스크린타임 집계 (변경)
+        // 사용자별 총 스크린타임 집계
+        Map<Long, Integer> userTotalTime = new HashMap<>();
         Map<Long, Integer> userYoutubeTime = new HashMap<>();
-        for (ScreenTimeDailySummary summary : summaries) {
 
+        for (ScreenTimeDailySummary summary : summaries) {
+            Long userId = summary.getUserId();
+
+            // totalMinutes 집계
+            Integer totalMinutes = summary.getTotalMinutes();
+            if (totalMinutes == null) {
+                totalMinutes = 0;
+            }
+            userTotalTime.merge(userId, totalMinutes, Integer::sum);
+
+            // youtubeMinutes 집계
             Integer youtubeMinutes = summary.getYoutubeMinutes();
-            if (youtubeMinutes != null) {
+            if (youtubeMinutes == null) {
                 youtubeMinutes = 0;
             }
-
-            userYoutubeTime.merge(
-                summary.getUserId(),
-                youtubeMinutes,
-                Integer::sum
-            );
+            userYoutubeTime.merge(userId, youtubeMinutes, Integer::sum);
         }
+
+        log.info("📊 집계된 사용자별 총 스크린타임: {}", userTotalTime);
+        log.info("📊 집계된 사용자별 유튜브 시간: {}", userYoutubeTime);
 
         // 참여자별 베팅 코인 정보
         Map<Long, Integer> userBetCoins = participants.stream()
@@ -208,59 +212,48 @@ public class ScreenTimeService {
                 GroupParticipant::getBetCoins
             ));
 
-        // 그룹의 모든 참여자의 현재 앱 사용 정보 조회
-        List<CurrentAppUsage> currentApps = currentAppUsageRepository.findAllByGroupId(groupId);
-        Map<Long, CurrentAppUsage> userCurrentApp = currentApps.stream()
-            .collect(Collectors.toMap(
-                CurrentAppUsage::getUserId,
-                app -> app
-            ));
-
-        log.info("📱 현재 앱 사용 정보 조회 - groupId: {}, 조회된 앱 정보 개수: {}", groupId, currentApps.size());
-
-        // 랭킹 계산 (스크린타임 적은 순)
+        // 랭킹 계산 (유튜브 사용시간 적은 순)
         final int finalDaysElapsed = daysElapsed;
         AtomicInteger rankCounter = new AtomicInteger(1);
         List<GroupRankingRes.ParticipantRank> rankings = participants.stream()
             .map(participant -> {
                 Long uid = participant.getId().getUser().getId();
                 String nickname = participant.getId().getUser().getNickname();
+                Integer totalMinutes = userTotalTime.getOrDefault(uid, 0);
                 Integer youtubeMinutes = userYoutubeTime.getOrDefault(uid, 0);
                 Integer betCoins = userBetCoins.getOrDefault(uid, 0);
 
-                return Map.entry(uid, new RankingData(nickname, youtubeMinutes, betCoins));
+                return Map.entry(uid, new RankingData(nickname, totalMinutes, youtubeMinutes, betCoins));
             })
-            .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용
+            .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (유튜브 시간 기준)
             .map(entry -> {
                 Long uid = entry.getKey();
                 RankingData data = entry.getValue();
 
                 int rank = rankCounter.getAndIncrement();
-                double avgMinutes = finalDaysElapsed > 0 ? data.totalMinutes / (double) finalDaysElapsed : 0.0;
+                double avgTotalMinutes = finalDaysElapsed > 0 ? data.totalMinutes / (double) finalDaysElapsed : 0.0;
+                double avgYoutubeMinutes = finalDaysElapsed > 0 ? data.youtubeMinutes / (double) finalDaysElapsed : 0.0;
 
                 // 1등은 총 베팅 코인을 모두 가져감
                 Integer potentialPrize = (rank == 1) ? group.getTotalBetCoins() : 0;
-
-                // 현재 앱 정보 가져오기
-                CurrentAppUsage currentApp = userCurrentApp.get(uid);
-                String currentAppPackage = currentApp != null ? currentApp.getAppPackage() : null;
-                String currentAppName = currentApp != null ? currentApp.getAppName() : null;
 
                 return GroupRankingRes.ParticipantRank.of(
                     rank,
                     uid,
                     data.nickname,
                     null, // 프로필 이미지 (User 엔티티에 없음)
-                    formatTime(data.totalMinutes),
-                    formatTime((int) avgMinutes),
+                    formatTime(data.youtubeMinutes), // 유튜브 총 시간
+                    formatTime((int) avgYoutubeMinutes), // 유튜브 평균 시간
                     data.betCoins,
                     potentialPrize,
                     uid.equals(currentUserId),
-                    currentAppPackage,
-                    currentAppName
+                    null,
+                    null
                 );
             })
             .collect(Collectors.toList());
+
+        log.info("📊 최종 랭킹 (유튜브 시간 기준): {}", rankings);
 
         return GroupRankingRes.of(groupInfo, rankings);
     }
@@ -283,14 +276,22 @@ public class ScreenTimeService {
 
     /**
      * 랭킹 정렬을 위한 내부 데이터 클래스
+     * 유튜브 사용시간 기준으로 정렬
      */
-    private record RankingData(String nickname, int totalMinutes, int betCoins)
+    private record RankingData(String nickname, int totalMinutes, int youtubeMinutes, int betCoins)
         implements Comparable<RankingData> {
 
         @Override
         public int compareTo(RankingData other) {
-            // 스크린타임 적은 순으로 정렬
-            return Integer.compare(this.totalMinutes, other.totalMinutes);
+            // 유튜브 사용시간 적은 순으로 정렬
+            int youtubeCompare = Integer.compare(this.youtubeMinutes, other.youtubeMinutes);
+
+            // 유튜브 시간이 같으면 총 스크린타임으로 비교
+            if (youtubeCompare == 0) {
+                return Integer.compare(this.totalMinutes, other.totalMinutes);
+            }
+
+            return youtubeCompare;
         }
     }
 
@@ -311,40 +312,5 @@ public class ScreenTimeService {
     @Transactional(readOnly = true)
     public List<ScreenTimeSnapshot> getUserSnapshots(Long userId, LocalDate date) {
         return snapshotRepository.findByUserIdAndDateOrderByRecordedAtDesc(userId, date);
-    }
-
-    /**
-     * 현재 앱 사용 정보 갱신
-     * - upsert 방식: 기존 데이터가 있으면 업데이트, 없으면 생성
-     * - 한 사용자당 하나의 현재 앱 정보만 유지
-     */
-    @Transactional
-    public void updateCurrentApp(UpdateCurrentAppReq request, Long userId) {
-        log.info("📱 현재 앱 정보 갱신 - groupId: {}, userId: {}, appPackage: {}, appName: {}",
-            request.groupId(), userId, request.appPackage(), request.appName());
-
-        // 기존 데이터 조회
-        CurrentAppUsage currentApp = currentAppUsageRepository
-            .findByGroupIdAndUserId(request.groupId(), userId)
-            .orElse(null);
-
-        if (currentApp == null) {
-            // 신규 생성
-            currentApp = CurrentAppUsage.create(
-                request.groupId(),
-                userId,
-                request.appPackage(),
-                request.appName()
-            );
-            log.info("  ✅ 새로운 현재 앱 정보 생성");
-        } else {
-            // 기존 데이터 업데이트
-            currentApp.update(request.appPackage(), request.appName());
-            log.info("  ✅ 기존 현재 앱 정보 업데이트");
-        }
-
-        currentAppUsageRepository.save(currentApp);
-        log.info("현재 앱 정보 갱신 완료 - userId: {}, groupId: {}, appPackage: {}, appName: {}",
-            userId, request.groupId(), request.appPackage(), request.appName());
     }
 }
