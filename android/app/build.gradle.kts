@@ -123,6 +123,8 @@ dependencies {
     // ========== Coil (이미지 로딩) ============
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+
     // ========== Wearable Data Layer (폰-워치 통신) ==========
     implementation("com.google.android.gms:play-services-wearable:18.2.0")
 

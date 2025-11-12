@@ -10,6 +10,7 @@ import com.dito.app.core.storage.GroupManager
 import com.dito.app.core.storage.GroupPreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -177,7 +178,7 @@ class GroupChallengeViewModel @Inject constructor(
 
                         // 진행 중이면 자동 갱신 시작
                         if (status == ChallengeStatus.IN_PROGRESS) {
-                            startAutoRefresh()
+//                            startAutoRefresh()
                             loadRanking()
                         }
                     } else {
@@ -351,7 +352,7 @@ class GroupChallengeViewModel @Inject constructor(
                         )
 
                         // 챌린지 시작 시 자동 갱신 시작
-                        startAutoRefresh()
+//                        startAutoRefresh()
                         // 최초 순위 조회
                         loadRanking()
                     }
@@ -503,16 +504,16 @@ class GroupChallengeViewModel @Inject constructor(
     /**
      * 5분마다 순위 자동 갱신 시작
      */
-    private fun startAutoRefresh() {
-        stopAutoRefresh() // 기존 작업이 있으면 중단
-
-        updateRankingJob = viewModelScope.launch {
-            while (true) {
-                loadRanking() // 5분마다 순위 조회
-                delay(5 * 60 * 1000L) // 5분 대기
-            }
-        }
-    }
+//    private fun startAutoRefresh() {
+//        stopAutoRefresh() // 기존 작업이 있으면 중단
+//
+//        updateRankingJob = viewModelScope.launch {
+//            while (true) {
+//                loadRanking() // 1분마다 순위 조회
+//                delay(1 * 60 * 1000L) // 1분 대기
+//            }
+//        }
+//    }
 
     /**
      * 자동 갱신 중단
@@ -526,23 +527,41 @@ class GroupChallengeViewModel @Inject constructor(
      * 순위 조회
      */
     fun loadRanking() {
-        val groupId = groupManager.getGroupId()
-        if (groupId == 0L) return
-
         viewModelScope.launch {
-            groupRepository.getRanking(groupId).fold(
-                onSuccess = { response ->
-                    _uiState.value = _uiState.value.copy(
-                        groupInfo = response.groupInfo,
-                        rankings = response.rankings
-                    )
-                },
-                onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = error.message
-                    )
+            try {
+                // groupInfo 외에도 GroupManager에서 groupId 가져오기
+                val groupId = _uiState.value.groupInfo?.groupId
+                    ?: groupManager.getGroupId()
+
+                if (groupId == 0L) {
+                    Log.w("GroupViewModel", "⚠️ groupId가 없어 랭킹 조회 스킵")
+                    return@launch
                 }
-            )
+
+                Log.d("GroupViewModel", "📊 랭킹 조회 시작 - groupId: $groupId")
+
+                val response = groupRepository.getRanking(groupId)
+
+                response.fold(
+                    onSuccess = { rankingRes ->
+                        _uiState.value = _uiState.value.copy(
+                            rankings = rankingRes.rankings,
+                            groupInfo = rankingRes.groupInfo
+                        )
+                        Log.d("GroupViewModel", "✅ 랭킹 조회 성공 - ${rankingRes.rankings.size}명")
+
+
+                        rankingRes.rankings.forEach { rank ->
+                            Log.d("GroupViewModel", "  ${rank.rank}위: ${rank.nickname} - ${rank.totalScreenTimeFormatted}")
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("GroupViewModel", "❌ 랭킹 조회 실패: ${error.message}", error)
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("GroupViewModel", "❌ 랭킹 조회 예외", e)
+            }
         }
     }
 }

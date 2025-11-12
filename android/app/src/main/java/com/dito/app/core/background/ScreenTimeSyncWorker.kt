@@ -107,23 +107,31 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
                 return@withContext Result.failure()
             }
 
-            // 오늘 하루 스크린타임 수집
-            val todayScreenTime = screenTimeCollector.getTodayScreenTimeMinutes()
+            // 오늘 하루 스크린타임 수집 (전체 + YouTube)
             val today = LocalDate.now().toString()
+            val totalMinutes = screenTimeCollector.getTodayScreenTimeMinutes()
+            val youtubeMinutes = screenTimeCollector.getYouTubeUsageMinutes()
 
-            Log.d(TAG, "📊 오늘 스크린타임: ${todayScreenTime}분 (그룹 ID: $groupId)")
+            Log.d(TAG, "📊 스크린타임 수집 완료")
+            Log.d(TAG, "  - 전체: ${totalMinutes}분")
+            Log.d(TAG, "  - YouTube: ${youtubeMinutes}분")
 
             // 1단계: 로컬 Realm 저장 (오프라인 대비)
             val localId = ScreenTimeRepository.saveScreenTimeLocal(
                 groupId = groupId,
                 userId = userId,
                 date = today,
-                totalMinutes = todayScreenTime
+                totalMinutes = totalMinutes
             )
             Log.d(TAG, "✅ [1/2] 로컬 저장 완료: $localId")
 
-            // 2단계: Backend API 호출 (MongoDB에 저장됨)
-            val apiSuccess = uploadToBackendAPI(groupId, today, todayScreenTime)
+            // 2단계 - Backend API 호출 (YouTube 시간 포함)
+            val apiSuccess = uploadToBackendAPI(
+                groupId = groupId,
+                date = today,
+                totalMinutes = totalMinutes,
+                youtubeMinutes = youtubeMinutes
+            )
 
             // 결과 처리
             if (apiSuccess) {
@@ -143,22 +151,33 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
     }
 
     /**
-     * Backend API로 전송 (Backend가 MongoDB에 저장)
+     * 수정: Backend API로 전송 (YouTube 시간 포함)
      */
-    private suspend fun uploadToBackendAPI(groupId: Long, date: String, totalMinutes: Int): Boolean {
+    private suspend fun uploadToBackendAPI(
+        groupId: Long,
+        date: String,
+        totalMinutes: Int,
+        youtubeMinutes: Int
+    ): Boolean {
         return try {
             val request = ScreenTimeUpdateRequest(
                 groupId = groupId,
                 date = date,
-                totalMinutes = totalMinutes
+                totalMinutes = totalMinutes,
+                youtubeMinutes = youtubeMinutes  // ✅ YouTube 시간 포함
             )
 
-//            val token = authTokenManager.getBearerToken()
             val token = authTokenManager.getAccessToken()
             if (token == null) {
                 Log.w(TAG, "⚠️ 토큰이 없어 Backend 전송 불가")
                 return false
             }
+
+            Log.d(TAG, "📤 Backend API 전송 중...")
+            Log.d(TAG, "  - groupId: $groupId")
+            Log.d(TAG, "  - date: $date")
+            Log.d(TAG, "  - totalMinutes: $totalMinutes")
+            Log.d(TAG, "  - youtubeMinutes: $youtubeMinutes")
 
             val response = apiService.updateScreenTime(
                 token = token,
@@ -167,15 +186,18 @@ class ScreenTimeSyncWorker @AssistedInject constructor(
 
             if (response.isSuccessful && response.body()?.error == false) {
                 val data = response.body()?.data
-                Log.d(TAG, "Backend API 전송 성공: ${data?.status}")
+                Log.d(TAG, "✅ Backend API 전송 성공")
+                Log.d(TAG, "  - status: ${data?.status}")
+                Log.d(TAG, "  - totalMinutes: ${data?.totalMinutes}")
+                Log.d(TAG, "  - youtubeMinutes: ${data?.youtubeMinutes}")
                 true
             } else {
-                Log.e(TAG, "Backend API 전송 실패: ${response.code()} ${response.message()}")
+                Log.e(TAG, "❌ Backend API 전송 실패: ${response.code()} ${response.message()}")
                 false
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Backend API 전송 예외", e)
+            Log.e(TAG, "❌ Backend API 전송 예외", e)
             false
         }
     }

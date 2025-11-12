@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,18 +45,44 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.hardShadow
 import com.dito.app.core.ui.util.rememberLifecycleEvent
+import kotlinx.coroutines.launch
 
 @Composable
 fun OngoingChallengeScreen(
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 화면이 다시 활성화될 때마다 순위 조회
-    val lifecycleEvent = rememberLifecycleEvent()
-    LaunchedEffect(lifecycleEvent) {
-        if (lifecycleEvent == Lifecycle.Event.ON_RESUME) {
-            viewModel.loadRanking()
+    // 화면 활성화 시 즉시 조회 + 10초마다 자동 갱신
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val lifecycleObserver = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 화면 진입 시 즉시 한 번 조회
+                viewModel.loadRanking()
+                android.util.Log.d("OngoingChallenge", "🎬 화면 진입 - 즉시 랭킹 조회")
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+
+        // 10초마다 자동 갱신
+        val autoRefreshJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+            while (true) {
+                kotlinx.coroutines.delay(10 * 1000L)
+
+                // 화면이 활성화 상태일 때만 갱신
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    viewModel.loadRanking()
+                    android.util.Log.d("OngoingChallenge", "🔄 자동 갱신 (10초 주기)")
+                }
+            }
+        }
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
+            autoRefreshJob.cancel()
+            android.util.Log.d("OngoingChallenge", "🛑 자동 갱신 중단")
         }
     }
 

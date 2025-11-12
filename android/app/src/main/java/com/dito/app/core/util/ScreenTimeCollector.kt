@@ -7,6 +7,7 @@ import android.util.Log
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 /**
  * 스크린타임 수집 유틸리티
@@ -29,6 +30,42 @@ class ScreenTimeCollector(private val context: Context) {
     fun getTodayScreenTimeMinutes(): Int {
         val (startTime, endTime) = getTodayRange()
         return getScreenTimeMinutes(startTime, endTime)
+    }
+
+    fun getYouTubeUsageMinutes(): Int {
+        if (!hasUsageStatsPermission()) {
+            Log.w("ScreenTimeCollector", "사용 기록 권한 없음")
+            return 0
+        }
+
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE)
+                as UsageStatsManager
+
+        val endTime = System.currentTimeMillis()
+        val startTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        val stats = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY,
+            startTime,
+            endTime
+        )
+
+        val youtubePackage = "com.google.android.youtube"
+        val youtubeStats = stats?.firstOrNull {
+            it.packageName == youtubePackage
+        }
+
+        val totalMillis = youtubeStats?.totalTimeInForeground ?: 0L
+        val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalMillis).toInt()
+
+        Log.d("ScreenTimeCollector", "YouTube 사용시간: ${totalMinutes}분 (${totalMillis}ms)")
+
+        return totalMinutes
     }
 
     /**
