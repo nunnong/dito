@@ -40,6 +40,33 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 
 @Composable
+fun BounceClickable(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (isPressed: Boolean) -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content(isPressed)
+    }
+}
+
+@Composable
 fun ShopScreen(
     viewModel: ShopViewModel = hiltViewModel(),
     onBackClick: () -> Unit = {}
@@ -138,15 +165,18 @@ private fun ShopHeader(onBackClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.angle_left),
-            contentDescription = "Back",
-            modifier = Modifier
-                .size(28.dp)
-                .clickable { onBackClick() },
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(Color.White)
-        )
+        BounceClickable(
+            onClick = onBackClick,
+            modifier = Modifier.size(28.dp)
+        ) { isPressed ->
+            Image(
+                painter = painterResource(id = R.drawable.angle_left),
+                contentDescription = "Back",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White)
+            )
+        }
         Text(
             text = "상점",
             style = DitoTypography.headlineMedium,
