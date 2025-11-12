@@ -15,6 +15,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.dito.app.core.ui.designsystem.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 
 /**
  * 상점 레몬 부족 알림 모달
@@ -54,14 +61,30 @@ private fun ShopInsufficientCoinsDialogContent(
         )
 
         // 확인 버튼 (노란색)
+        val interactionSource = remember { MutableInteractionSource() }
+        val isPressed by interactionSource.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (isPressed) 0.9f else 1f,
+            animationSpec = tween(durationMillis = 50),
+            label = "insufficient_button_scale"
+        )
+
         Box(
             modifier = Modifier
                 .width(70.dp)
                 .height(32.dp)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .hardShadow(DitoHardShadow.ButtonSmall.copy(cornerRadius = 4.dp))
                 .background(Primary, RoundedCornerShape(4.dp))
                 .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
-                .clickable { onDismiss() },
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onDismiss
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(
