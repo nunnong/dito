@@ -204,9 +204,10 @@ fun HomeContent(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     var animationKey by remember { mutableStateOf(0) }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
+            if (event == Lifecycle.Event.ON_START) {
                 animationKey++
             }
         }
@@ -596,6 +597,7 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
 
     // Animate on entry and when progress value changes
     LaunchedEffect(animationKey) {
+        animatedProgress.stop()
         animatedProgress.snapTo(0f)
         animatedProgress.animateTo(
             targetValue = progress,
