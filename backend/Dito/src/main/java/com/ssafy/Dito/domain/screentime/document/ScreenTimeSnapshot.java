@@ -28,9 +28,9 @@ import java.time.LocalDateTime;
 @Document(collection = "screen_time_snapshots")
 @CompoundIndexes({
     @CompoundIndex(name = "user_date_idx",
-                   def = "{'user_id': 1, 'date': -1}"),
+        def = "{'user_id': 1, 'date': -1}"),
     @CompoundIndex(name = "group_user_recorded_idx",
-                   def = "{'group_id': 1, 'user_id': 1, 'recorded_at': -1}")
+        def = "{'group_id': 1, 'user_id': 1, 'recorded_at': -1}")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -55,6 +55,9 @@ public class ScreenTimeSnapshot extends MongoBaseDocument {
     @Field("screen_time_minutes")
     private Integer screenTimeMinutes;
 
+    @Field("youtube_minutes")
+    private Integer youtubeMinutes;
+
     /**
      * TTL 인덱스 - 30일 후 자동 삭제
      * MongoDB에서 자동으로 문서 삭제 처리
@@ -65,13 +68,14 @@ public class ScreenTimeSnapshot extends MongoBaseDocument {
 
     @Builder
     private ScreenTimeSnapshot(Long groupId, Long userId, LocalDate date,
-                               LocalDateTime recordedAt, Integer screenTimeMinutes,
-                               Instant expireAt) {
+        LocalDateTime recordedAt, Integer screenTimeMinutes,Integer youtubeMinutes,
+        Instant expireAt) {
         this.groupId = groupId;
         this.userId = userId;
         this.date = date;
         this.recordedAt = recordedAt;
         this.screenTimeMinutes = screenTimeMinutes;
+        this.youtubeMinutes = youtubeMinutes;
         this.expireAt = expireAt;
     }
 
@@ -80,7 +84,7 @@ public class ScreenTimeSnapshot extends MongoBaseDocument {
      * TTL은 30일 후로 자동 설정
      */
     public static ScreenTimeSnapshot create(Long groupId, Long userId,
-                                            LocalDate date, Integer screenTimeMinutes) {
+        LocalDate date, Integer screenTimeMinutes, Integer youtubeMinutes) {
         LocalDateTime now = LocalDateTime.now();
         // 30일 후 자동 삭제 설정
         Instant expireAt = now.plusDays(30).atZone(java.time.ZoneId.systemDefault()).toInstant();
@@ -91,6 +95,7 @@ public class ScreenTimeSnapshot extends MongoBaseDocument {
             .date(date)
             .recordedAt(now)
             .screenTimeMinutes(screenTimeMinutes)
+            .youtubeMinutes(youtubeMinutes)
             .expireAt(expireAt)
             .build();
     }
