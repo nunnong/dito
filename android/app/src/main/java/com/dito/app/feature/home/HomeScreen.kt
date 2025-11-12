@@ -1,5 +1,7 @@
 package com.dito.app.feature.home
 
+import android.media.MediaPlayer
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,6 +64,23 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.dito.app.core.ui.designsystem.BounceClickable
+
+fun playPopSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.pop)
+    mediaPlayer?.start()
+    mediaPlayer?.setOnCompletionListener { mp ->
+        mp.release()
+    }
+}
+
+fun playWiggleSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.wiggle)
+    mediaPlayer?.setVolume(0.2f, 0.2f) // Reduce volume to 50%
+    mediaPlayer?.start()
+    mediaPlayer?.setOnCompletionListener { mp ->
+        mp.release()
+    }
+}
 
 
 
@@ -168,6 +187,7 @@ fun HomeContent(
     onClosetClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     var showDitoFaceDialog by remember { mutableStateOf(false) }
@@ -248,7 +268,10 @@ fun HomeContent(
                         .height(24.dp)
                 ) {
                     BounceClickable(
-                        onClick = onCartClick,
+                        onClick = {
+                            playPopSound(context)
+                            onCartClick()
+                        },
                         modifier = Modifier.size(24.dp)
                     ) { isPressed ->
                         Image(
@@ -260,7 +283,10 @@ fun HomeContent(
                         )
                     }
                     BounceClickable(
-                        onClick = onClosetClick,
+                        onClick = {
+                            playPopSound(context)
+                            onClosetClick()
+                        },
                         modifier = Modifier.size(20.dp)
                     ) { isPressed ->
                         Image(
@@ -388,6 +414,7 @@ fun HomeContent(
                     WiggleClickable(
                         modifier = Modifier.size(110.dp),
                         onClick = {
+                            playWiggleSound(context)
                             android.util.Log.d("HomeScreen", "Character clicked!")
                         }
                     ) {
@@ -551,7 +578,10 @@ fun HomeContent(
 
             // 원형 버튼
             BounceClickable(
-                onClick = { showDitoFaceDialog = true },
+                onClick = {
+                    playPopSound(context)
+                    showDitoFaceDialog = true
+                },
                 modifier = Modifier.size(60.dp)
             ) {
                 Image(
