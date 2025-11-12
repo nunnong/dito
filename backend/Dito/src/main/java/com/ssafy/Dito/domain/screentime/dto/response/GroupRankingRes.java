@@ -97,13 +97,20 @@ public record GroupRankingRes(
         Integer potentialPrize,
 
         @Schema(description = "본인 여부", example = "true")
-        Boolean isMe
+        Boolean isMe,
+
+        @Schema(description = "현재 사용 중인 앱 패키지명", example = "com.google.android.youtube")
+        String currentAppPackage,
+
+        @Schema(description = "현재 사용 중인 앱 이름", example = "YouTube")
+        String currentAppName
     ) {
         public static ParticipantRank of(Integer rank, Long userId, String nickname, String profileImage,
                                          String totalScreenTimeFormatted, String avgDailyScreenTimeFormatted,
-                                         Integer betCoins, Integer potentialPrize, Boolean isMe) {
+                                         Integer betCoins, Integer potentialPrize, Boolean isMe,
+                                         String currentAppPackage, String currentAppName) {
             return new ParticipantRank(rank, userId, nickname, profileImage, totalScreenTimeFormatted,
-                avgDailyScreenTimeFormatted, betCoins, potentialPrize, isMe);
+                avgDailyScreenTimeFormatted, betCoins, potentialPrize, isMe, currentAppPackage, currentAppName);
         }
     }
 

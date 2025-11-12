@@ -1,9 +1,11 @@
 package com.ssafy.Dito.domain.screentime.controller;
 
 import com.ssafy.Dito.domain.screentime.dto.request.ScreenTimeUpdateReq;
+import com.ssafy.Dito.domain.screentime.dto.request.UpdateCurrentAppReq;
 import com.ssafy.Dito.domain.screentime.dto.response.ScreenTimeUpdateRes;
 import com.ssafy.Dito.domain.screentime.service.ScreenTimeService;
 import com.ssafy.Dito.global.dto.ApiResponse;
+import com.ssafy.Dito.global.dto.CommonResult;
 import com.ssafy.Dito.global.dto.SingleResult;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -61,5 +64,32 @@ public class ScreenTimeController {
         ScreenTimeUpdateRes response = screenTimeService.updateScreenTime(request, userId);
 
         return ApiResponse.ok(response);
+    }
+
+    @Operation(
+        summary = "현재 앱 사용 정보 갱신",
+        description = "사용자가 현재 사용 중인 앱 정보를 갱신합니다. 앱 전환 시마다 호출됩니다.\n\n" +
+            "- 그룹 챌린지 랭킹 화면에 실시간 앱 아이콘 표시용\n" +
+            "- 같은 사용자의 기존 정보가 있으면 업데이트 (upsert)\n" +
+            "- 없으면 새로 생성"
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "현재 앱 정보 갱신 성공"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청"
+        )
+    })
+    @PostMapping("/current-app")
+    public ResponseEntity<CommonResult> updateCurrentApp(
+        @Valid @RequestBody UpdateCurrentAppReq request
+    ) {
+        Long userId = JwtAuthentication.getUserId();
+        screenTimeService.updateCurrentApp(request, userId);
+
+        return ApiResponse.of(HttpStatus.OK, "현재 앱 정보 갱신 성공");
     }
 }
