@@ -29,6 +29,45 @@ import coil.compose.AsyncImage
 import com.dito.app.R
 import com.dito.app.core.data.shop.ShopItem
 import com.dito.app.core.ui.designsystem.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+
+@Composable
+fun BounceClickable(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (isPressed: Boolean) -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.8f else 1f,
+        label = "scale"
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content(isPressed)
+    }
+}
 
 @Composable
 fun ShopScreen(
@@ -129,15 +168,18 @@ private fun ShopHeader(onBackClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.angle_left),
-            contentDescription = "Back",
-            modifier = Modifier
-                .size(28.dp)
-                .clickable { onBackClick() },
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(Color.White)
-        )
+        BounceClickable(
+            onClick = onBackClick,
+            modifier = Modifier.size(28.dp)
+        ) { isPressed ->
+            Image(
+                painter = painterResource(id = R.drawable.angle_left),
+                contentDescription = "Back",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White)
+            )
+        }
         Text(
             text = "상점",
             style = DitoTypography.headlineMedium,
@@ -199,8 +241,34 @@ private fun CoinDisplay(
     coins: Int,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.8f else 1f,
+        label = "coin_scale"
+    )
+    val lemonRotation = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
     Row(
         modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    scope.launch {
+                        for (i in 0..1) {
+                            lemonRotation.animateTo(targetValue = -15f, animationSpec = tween(75))
+                            lemonRotation.animateTo(targetValue = 15f, animationSpec = tween(75))
+                        }
+                        lemonRotation.animateTo(targetValue = 0f, animationSpec = tween(75))
+                    }
+                }
+            )
             .widthIn(min = 81.dp)
             .height(36.dp)
             .hardShadow(DitoHardShadow.ButtonSmall.copy(cornerRadius = 48.dp))
@@ -218,7 +286,11 @@ private fun CoinDisplay(
         Image(
             painter = painterResource(id = R.drawable.lemon),
             contentDescription = "Coin",
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier
+                .size(20.dp)
+                .graphicsLayer {
+                    rotationZ = lemonRotation.value
+                },
             contentScale = ContentScale.Fit
         )
     }
@@ -325,13 +397,34 @@ private fun ShopItemCard(
                 )
             }
         } else {
+            var isPressed by remember { mutableStateOf(false) }
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.85f else 1f,
+                label = "purchase_button_scale"
+            )
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(28.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
                     .background(Primary, CircleShape)
                     .border(1.dp, Color.Black, CircleShape)
-                    .clickable { onPurchase() },
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                isPressed = true
+                                tryAwaitRelease()
+                                isPressed = false
+                            },
+                            onTap = {
+                                onPurchase()
+                            }
+                        )
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Row(

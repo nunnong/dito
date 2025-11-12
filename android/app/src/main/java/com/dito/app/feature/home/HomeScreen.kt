@@ -1,5 +1,7 @@
 package com.dito.app.feature.home
 
+import android.media.MediaPlayer
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +32,91 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.dito.app.core.ui.designsystem.BounceClickable
+
+fun playPopSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.pop)
+    mediaPlayer?.start()
+    mediaPlayer?.setOnCompletionListener { mp ->
+        mp.release()
+    }
+}
+
+fun playWiggleSound(context: Context) {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.wiggle)
+    mediaPlayer?.setVolume(0.2f, 0.2f) // Reduce volume to 50%
+    mediaPlayer?.start()
+    mediaPlayer?.setOnCompletionListener { mp ->
+        mp.release()
+    }
+}
+
+
+
+@Composable
+fun WiggleClickable(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val rotation = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                rotationZ = rotation.value
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    scope.launch {
+                        for (i in 0..1) {
+                            rotation.animateTo(targetValue = -15f, animationSpec = tween(75))
+                            rotation.animateTo(targetValue = 15f, animationSpec = tween(75))
+                        }
+                        rotation.animateTo(targetValue = 0f, animationSpec = tween(75))
+                    }
+                    onClick()
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,9 +187,31 @@ fun HomeContent(
     onClosetClick: () -> Unit,
     onNotificationClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     var showDitoFaceDialog by remember { mutableStateOf(false) }
+
+    val coinInteractionSource = remember { MutableInteractionSource() }
+    val isCoinPressed by coinInteractionSource.collectIsPressedAsState()
+    val coinScale by animateFloatAsState(if (isCoinPressed) 0.8f else 1f, label = "coin_scale")
+    val lemonRotation = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var animationKey by remember { mutableStateOf(0) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                animationKey++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     if (showDitoFaceDialog) {
         DitoFaceDialog(onDismiss = { showDitoFaceDialog = false })
@@ -158,22 +267,36 @@ fun HomeContent(
                         .width(80.dp)
                         .height(24.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.cart),
-                        contentDescription = "Cart",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onCartClick() },
-                        contentScale = ContentScale.Fit
-                    )
-                    Image(
-                        painter = painterResource(id = R.drawable.closet),
-                        contentDescription = "Closet",
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable { onClosetClick() },
-                        contentScale = ContentScale.Fit
-                    )
+                    BounceClickable(
+                        onClick = {
+                            playPopSound(context)
+                            onCartClick()
+                        },
+                        modifier = Modifier.size(24.dp)
+                    ) { isPressed ->
+                        Image(
+                            painter = painterResource(id = R.drawable.cart),
+                            contentDescription = "Cart",
+                            modifier = Modifier.fillMaxSize(),
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else null,
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                    BounceClickable(
+                        onClick = {
+                            playPopSound(context)
+                            onClosetClick()
+                        },
+                        modifier = Modifier.size(20.dp)
+                    ) { isPressed ->
+                        Image(
+                            painter = painterResource(id = R.drawable.closet),
+                            contentDescription = "Closet",
+                            modifier = Modifier.fillMaxSize(),
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else null,
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
 
                 // 오른쪽 아이콘 1개
@@ -288,9 +411,12 @@ fun HomeContent(
                     Spacer(modifier = Modifier.height(16.dp)) // Increased space
 
                     // 캐릭터 이미지 + 배경
-                    Box(
+                    WiggleClickable(
                         modifier = Modifier.size(110.dp),
-                        contentAlignment = Alignment.Center
+                        onClick = {
+                            playWiggleSound(context)
+                            android.util.Log.d("HomeScreen", "Character clicked!")
+                        }
                     ) {
                         // 캐릭터 이미지
                         if (homeData.costumeUrl.isNotEmpty()) {
@@ -338,6 +464,23 @@ fun HomeContent(
                         // 코인 박스
                         Row(
                             modifier = Modifier
+                                .graphicsLayer {
+                                    scaleX = coinScale
+                                    scaleY = coinScale
+                                }
+                                .clickable(
+                                    interactionSource = coinInteractionSource,
+                                    indication = null,
+                                    onClick = {
+                                        scope.launch {
+                                            for (i in 0..1) {
+                                                lemonRotation.animateTo(targetValue = -15f, animationSpec = tween(75))
+                                                lemonRotation.animateTo(targetValue = 15f, animationSpec = tween(75))
+                                            }
+                                            lemonRotation.animateTo(targetValue = 0f, animationSpec = tween(75))
+                                        }
+                                    }
+                                )
                                 .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
                                 .widthIn(min = 97.dp) // 최소 너비 설정
                                 .height(36.dp)
@@ -345,7 +488,7 @@ fun HomeContent(
                                 .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = homeData.coinBalance.toString(),
@@ -355,7 +498,11 @@ fun HomeContent(
                             Image(
                                 painter = painterResource(id = R.drawable.lemon),
                                 contentDescription = "Coin",
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .graphicsLayer {
+                                        rotationZ = lemonRotation.value
+                                    },
                                 contentScale = ContentScale.Fit
                             )
                         }
@@ -388,9 +535,9 @@ fun HomeContent(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ProgressBarItem(label = "자기관리", progress = homeData.selfCareStatus / 100.0f)
-                        ProgressBarItem(label = "집중", progress = homeData.focusStatus / 100.0f)
-                        ProgressBarItem(label = "수면", progress = homeData.sleepStatus / 100.0f)
+                        ProgressBarItem(label = "자기관리", progress = homeData.selfCareStatus / 100.0f, animationKey = animationKey)
+                        ProgressBarItem(label = "집중", progress = homeData.focusStatus / 100.0f, animationKey = animationKey)
+                        ProgressBarItem(label = "수면", progress = homeData.sleepStatus / 100.0f, animationKey = animationKey)
                     }
                 }
             }
@@ -430,76 +577,153 @@ fun HomeContent(
             }
 
             // 원형 버튼
-            Image(
-                painter = painterResource(id = R.drawable.face_dialog_btn),
-                contentDescription = "Face Dialog Button",
-                modifier = Modifier
-                    .size(60.dp)
-                    .clickable { showDitoFaceDialog = true },
-                contentScale = ContentScale.Fit
-            )
+            BounceClickable(
+                onClick = {
+                    playPopSound(context)
+                    showDitoFaceDialog = true
+                },
+                modifier = Modifier.size(60.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.face_dialog_btn),
+                    contentDescription = "Face Dialog Button",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ProgressBarItem(label: String, progress: Float) {
-    // Frame 172/177/178
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(47.67.dp)
-            .background(Color.Black)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        // Frame 173
+private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) {
+    var showValue by remember { mutableStateOf(false) }
+    val animatedProgress = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    // Animate on entry and when progress value changes
+    LaunchedEffect(animationKey) {
+        animatedProgress.stop()
+        animatedProgress.snapTo(0f)
+        animatedProgress.animateTo(
+            targetValue = progress,
+            animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+        )
+    }
+
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, label = "progress_bar_scale")
+
+    Box {
+        // Frame 172/177/178
         Row(
             modifier = Modifier
-                .width(80.dp)
-                .height(52.dp)
-                .padding(top = 14.dp, bottom = 14.dp, end = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
-                color = Color.White
-            )
-        }
-
-        // Frame 174 - 프로그레스 바
-        Box(
-            modifier = Modifier
-                .width(171.dp)
-                .height(24.dp)
-                .border(1.dp, Color.White, RectangleShape),
-            contentAlignment = Alignment.CenterStart // Align content to center start
-        ) {
-            // 눈금 선들 (0, 10, 20, ..., 100)
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                repeat(11) { index ->
-                    Spacer(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .fillMaxHeight()
-                            .background(Color.White.copy(alpha = 0.5f))
-                    )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
                 }
+                .fillMaxWidth()
+                .height(47.67.dp)
+                .background(Color.Black)
+                .padding(horizontal = 16.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            try {
+                                awaitRelease()
+                            } finally {
+                                isPressed = false
+                            }
+                        },
+                        onTap = {
+                            scope.launch {
+                                animatedProgress.stop()
+                                animatedProgress.snapTo(0f)
+                                animatedProgress.animateTo(
+                                    targetValue = progress,
+                                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+                                )
+                                showValue = true
+                                delay(500)
+                                showValue = false
+                            }
+                        }
+                    )
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            // Frame 173
+            Row(
+                modifier = Modifier
+                    .width(80.dp)
+                    .height(52.dp)
+                    .padding(top = 14.dp, bottom = 14.dp, end = 14.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = label,
+                    style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
+                    color = Color.White
+                )
             }
 
-            // Line 1 - 프로그레스 (노란색)
+            // Frame 174 - 프로그레스 바
             Box(
                 modifier = Modifier
-                    .height(12.dp)
-                    .fillMaxWidth(progress)
-                    .background(Primary, RectangleShape)
-            )
+                    .width(171.dp)
+                    .height(24.dp)
+                    .border(1.dp, Color.White, RectangleShape),
+                contentAlignment = Alignment.CenterStart // Align content to center start
+            ) {
+                // 눈금 선들 (0, 10, 20, ..., 100)
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    repeat(11) { index ->
+                        Spacer(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .fillMaxHeight()
+                                .background(Color.White.copy(alpha = 0.5f))
+                        )
+                    }
+                }
+
+                // Line 1 - 프로그레스 (노란색)
+                Box(
+                    modifier = Modifier
+                        .height(12.dp)
+                        .fillMaxWidth(animatedProgress.value)
+                        .background(Primary, RectangleShape)
+                )
+            }
+        }
+
+        // Tooltip that appears on press
+        AnimatedVisibility(
+            visible = showValue,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = 6.dp, x = (-10).dp),
+            enter = fadeIn(animationSpec = tween(100)) + scaleIn(animationSpec = tween(100), initialScale = 0.8f),
+            exit = fadeOut(animationSpec = tween(100)) + scaleOut(animationSpec = tween(100), targetScale = 0.8f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(Primary, RoundedCornerShape(4.dp))
+                    .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "+${(progress * 100).toInt()}",
+                    style = DitoCustomTextStyles.titleDSmall,
+                    color = Color.Black
+                )
+            }
         }
     }
 }
