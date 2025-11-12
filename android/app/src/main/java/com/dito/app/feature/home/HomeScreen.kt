@@ -57,6 +57,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun BounceClickable(
@@ -197,6 +201,20 @@ fun HomeContent(
     val coinScale by animateFloatAsState(if (isCoinPressed) 0.8f else 1f, label = "coin_scale")
     val lemonRotation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var animationKey by remember { mutableStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                animationKey++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     if (showDitoFaceDialog) {
         DitoFaceDialog(onDismiss = { showDitoFaceDialog = false })
@@ -513,9 +531,9 @@ fun HomeContent(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ProgressBarItem(label = "자기관리", progress = homeData.selfCareStatus / 100.0f)
-                        ProgressBarItem(label = "집중", progress = homeData.focusStatus / 100.0f)
-                        ProgressBarItem(label = "수면", progress = homeData.sleepStatus / 100.0f)
+                        ProgressBarItem(label = "자기관리", progress = homeData.selfCareStatus / 100.0f, animationKey = animationKey)
+                        ProgressBarItem(label = "집중", progress = homeData.focusStatus / 100.0f, animationKey = animationKey)
+                        ProgressBarItem(label = "수면", progress = homeData.sleepStatus / 100.0f, animationKey = animationKey)
                     }
                 }
             }
@@ -571,13 +589,14 @@ fun HomeContent(
 }
 
 @Composable
-private fun ProgressBarItem(label: String, progress: Float) {
+private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) {
     var showValue by remember { mutableStateOf(false) }
     val animatedProgress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
     // Animate on entry and when progress value changes
-    LaunchedEffect(progress) {
+    LaunchedEffect(animationKey) {
+        animatedProgress.snapTo(0f)
         animatedProgress.animateTo(
             targetValue = progress,
             animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
