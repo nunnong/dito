@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -24,22 +23,24 @@ import java.time.LocalDateTime;
  */
 @Document(collection = "current_app_usage")
 @CompoundIndexes({
-    @CompoundIndex(name = "group_user_unique_idx",
+    @CompoundIndex(
+        name = "group_user_unique_idx",
         def = "{'group_id': 1, 'user_id': 1}",
-        unique = true),
-    @CompoundIndex(name = "group_idx",
-        def = "{'group_id': 1}")
+        unique = true
+    ),
+    @CompoundIndex(
+        name = "group_idx",
+        def = "{'group_id': 1}"
+    )
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CurrentAppUsage extends MongoBaseDocument {
 
     @Field("group_id")
-    @Indexed
     private Long groupId;
 
     @Field("user_id")
-    @Indexed
     private Long userId;
 
     @Field("app_package")
@@ -52,8 +53,13 @@ public class CurrentAppUsage extends MongoBaseDocument {
     private LocalDateTime lastUpdatedAt;
 
     @Builder
-    private CurrentAppUsage(Long groupId, Long userId, String appPackage,
-                           String appName, LocalDateTime lastUpdatedAt) {
+    private CurrentAppUsage(
+        Long groupId,
+        Long userId,
+        String appPackage,
+        String appName,
+        LocalDateTime lastUpdatedAt
+    ) {
         this.groupId = groupId;
         this.userId = userId;
         this.appPackage = appPackage;
@@ -64,8 +70,12 @@ public class CurrentAppUsage extends MongoBaseDocument {
     /**
      * 새로운 현재 앱 정보 생성
      */
-    public static CurrentAppUsage create(Long groupId, Long userId,
-                                        String appPackage, String appName) {
+    public static CurrentAppUsage create(
+        Long groupId,
+        Long userId,
+        String appPackage,
+        String appName
+    ) {
         return CurrentAppUsage.builder()
             .groupId(groupId)
             .userId(userId)
