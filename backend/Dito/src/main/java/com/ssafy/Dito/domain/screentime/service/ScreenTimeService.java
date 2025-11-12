@@ -51,12 +51,13 @@ public class ScreenTimeService {
      */
     @Transactional
     public ScreenTimeUpdateRes updateScreenTime(ScreenTimeUpdateReq request, Long userId) {
-        log.info("💾 스크린타임 저장 요청 - groupId: {}, userId: {}, date: {}, totalMinutes: {}",
-            request.groupId(), userId, request.date(), request.totalMinutes());
+        log.info("💾 스크린타임 저장 요청 - groupId: {}, userId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {}",
+            request.groupId(), userId, request.date(), request.totalMinutes(),
+            request.youtubeMinutes());
 
         // 그룹 존재 여부 확인
         GroupChallenge group = groupChallengeRepository.findById(request.groupId())
-            .orElseThrow(() -> new GroupNotFoundException());
+            .orElseThrow(GroupNotFoundException::new);
 
         // 1. Summary 갱신 (upsert)
         ScreenTimeDailySummary summary = summaryRepository
@@ -72,36 +73,39 @@ public class ScreenTimeService {
                 request.groupId(),
                 userId,
                 request.date(),
-                request.totalMinutes()
+                request.totalMinutes(),
+                request.youtubeMinutes()
             );
             status = "created";
         } else {
             // 기존 데이터 갱신
-            summary.updateScreenTime(request.totalMinutes());
+            summary.updateScreenTime(request.totalMinutes(), request.youtubeMinutes());
             status = "updated";
         }
         ScreenTimeDailySummary saved = summaryRepository.save(summary);
 
-        log.info("  ✅ Summary 저장 완료 - id: {}, groupId: {}, userId: {}, date: {}, totalMinutes: {}",
-            saved.getId(), saved.getGroupId(), saved.getUserId(), saved.getDate(), saved.getTotalMinutes());
+        log.info("  ✅ Summary 저장 완료 - id: {}, groupId: {}, userId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {}",
+            saved.getId(), saved.getGroupId(), saved.getUserId(), saved.getDate(), saved.getTotalMinutes(), saved.getYoutubeMinutes());
 
         // 2. Snapshot 생성 (항상 INSERT)
         ScreenTimeSnapshot snapshot = ScreenTimeSnapshot.create(
             request.groupId(),
             userId,
             request.date(),
-            request.totalMinutes()
+            request.totalMinutes(),
+            request.youtubeMinutes()
         );
         snapshotRepository.save(snapshot);
 
-        log.info("스크린타임 갱신 완료 - userId: {}, groupId: {}, date: {}, totalMinutes: {}, status: {}",
-            userId, request.groupId(), request.date(), request.totalMinutes(), status);
+        log.info("스크린타임 갱신 완료 - userId: {}, groupId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {},status: {}",
+            userId, request.groupId(), request.date(), request.totalMinutes(), request.youtubeMinutes(),status);
 
         return ScreenTimeUpdateRes.of(
             request.groupId(),
             userId,
             request.date(),
             request.totalMinutes(),
+            request.youtubeMinutes(),
             status
         );
     }
@@ -115,7 +119,7 @@ public class ScreenTimeService {
     public GroupRankingRes getGroupRanking(Long groupId, Long currentUserId) {
         // 그룹 정보 조회
         GroupChallenge group = groupChallengeRepository.findById(groupId)
-            .orElseThrow(() -> new GroupNotFoundException());
+            .orElseThrow(GroupNotFoundException::new);
 
         LocalDate startDate = group.getStartDate();
         LocalDate endDate = group.getEndDate();
@@ -177,12 +181,18 @@ public class ScreenTimeService {
                 s.getUserId(), s.getDate(), s.getTotalMinutes());
         }
 
-        // 사용자별 총 스크린타임 집계
-        Map<Long, Integer> userTotalScreenTime = new HashMap<>();
+        // 사용자별 총 유튜브 스크린타임 집계 (변경)
+        Map<Long, Integer> userYoutubeTime = new HashMap<>();
         for (ScreenTimeDailySummary summary : summaries) {
-            userTotalScreenTime.merge(
+
+            Integer youtubeMinutes = summary.getYoutubeMinutes();
+            if (youtubeMinutes != null) {
+                youtubeMinutes = 0;
+            }
+
+            userYoutubeTime.merge(
                 summary.getUserId(),
-                summary.getTotalMinutes(),
+                youtubeMinutes,
                 Integer::sum
             );
         }
@@ -201,10 +211,10 @@ public class ScreenTimeService {
             .map(participant -> {
                 Long uid = participant.getId().getUser().getId();
                 String nickname = participant.getId().getUser().getNickname();
-                Integer totalMinutes = userTotalScreenTime.getOrDefault(uid, 0);
+                Integer youtubeMinutes = userYoutubeTime.getOrDefault(uid, 0);
                 Integer betCoins = userBetCoins.getOrDefault(uid, 0);
 
-                return Map.entry(uid, new RankingData(nickname, totalMinutes, betCoins));
+                return Map.entry(uid, new RankingData(nickname, youtubeMinutes, betCoins));
             })
             .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용
             .map(entry -> {

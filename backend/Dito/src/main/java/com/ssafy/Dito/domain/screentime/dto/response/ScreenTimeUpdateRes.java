@@ -22,10 +22,13 @@ public record ScreenTimeUpdateRes(
     @Schema(description = "총 스크린타임 (분)", example = "120")
     Integer totalMinutes,
 
+    @Schema(description = "총 유튜브 스크린타임 (분)", example = "120")
+    Integer youtubeMinutes,
+
     @Schema(description = "처리 상태", example = "updated")
     String status
 ) {
-    public static ScreenTimeUpdateRes of(Long groupId, Long userId, LocalDate date, Integer totalMinutes, String status) {
-        return new ScreenTimeUpdateRes(groupId, userId, date, totalMinutes, status);
+    public static ScreenTimeUpdateRes of(Long groupId, Long userId, LocalDate date, Integer totalMinutes, Integer youtubeMinutes,String status) {
+        return new ScreenTimeUpdateRes(groupId, userId, date, totalMinutes, youtubeMinutes,status);
     }
 }

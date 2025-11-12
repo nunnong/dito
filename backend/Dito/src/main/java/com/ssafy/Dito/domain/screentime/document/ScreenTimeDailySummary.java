@@ -50,16 +50,20 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
     @Field("total_minutes")
     private Integer totalMinutes;
 
+    @Field("youtube_minutes")
+    private Integer youtubeMinutes;
+
     @Field("last_updated_at")
     private LocalDateTime lastUpdatedAt;
 
     @Builder
     private ScreenTimeDailySummary(Long groupId, Long userId, LocalDate date,
-                                   Integer totalMinutes, LocalDateTime lastUpdatedAt) {
+                                   Integer totalMinutes, Integer youtubeMinutes,LocalDateTime lastUpdatedAt) {
         this.groupId = groupId;
         this.userId = userId;
         this.date = date.toString();  // LocalDate를 "yyyy-MM-dd" String으로 변환
         this.totalMinutes = totalMinutes;
+        this.youtubeMinutes = youtubeMinutes != null ? youtubeMinutes : 0;
         this.lastUpdatedAt = lastUpdatedAt;
     }
 
@@ -67,12 +71,12 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
      * 새로운 일별 Summary 생성
      */
     public static ScreenTimeDailySummary create(Long groupId, Long userId,
-                                                LocalDate date, Integer totalMinutes) {
+                                                LocalDate date,Integer totalMinutes, Integer youtubeMinutes) {
         return ScreenTimeDailySummary.builder()
             .groupId(groupId)
             .userId(userId)
             .date(date)
-            .totalMinutes(totalMinutes)
+            .totalMinutes(totalMinutes).youtubeMinutes(youtubeMinutes)
             .lastUpdatedAt(LocalDateTime.now())
             .build();
     }
@@ -80,8 +84,9 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
     /**
      * 스크린타임 갱신
      */
-    public void updateScreenTime(Integer newTotalMinutes) {
+    public void updateScreenTime(Integer newTotalMinutes, Integer newYoutubeMinutes) {
         this.totalMinutes = newTotalMinutes;
+        this.youtubeMinutes = newYoutubeMinutes != null ? newYoutubeMinutes : 0;
         this.lastUpdatedAt = LocalDateTime.now();
     }
 
