@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -37,6 +38,7 @@ fun ClosetScreen(
     onBackClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val gridState = rememberLazyGridState()
 
     Column(
         modifier = Modifier
@@ -70,6 +72,7 @@ fun ClosetScreen(
                     items = uiState.items,
                     canPaginate = uiState.canPaginate,
                     isLoadingMore = uiState.isLoadingMore,
+                    gridState = gridState,
                     onLoadMore = viewModel::loadMoreItems,
                     onApply = { itemId ->
                         viewModel.equipItem(itemId)
@@ -207,11 +210,10 @@ private fun ItemGrid(
     items: List<ClosetItem>,
     canPaginate: Boolean,
     isLoadingMore: Boolean,
+    gridState: LazyGridState,
     onLoadMore: () -> Unit,
     onApply: (Long) -> Unit // Changed to Long for itemId
 ) {
-    val gridState = rememberLazyGridState()
-
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(3),
@@ -220,7 +222,10 @@ private fun ItemGrid(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        itemsIndexed(items) { index, item ->
+        itemsIndexed(
+            items = items,
+            key = { index, item -> item.itemId }
+        ) { index, item ->
             ClosetItemCard(
                 item = item,
                 onApply = {

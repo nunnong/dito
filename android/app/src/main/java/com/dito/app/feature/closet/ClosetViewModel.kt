@@ -93,7 +93,7 @@ class ClosetViewModel @Inject constructor(
                         )
                     }
                     // After optimistic update, trigger a full reload to get accurate item status
-                    loadItems(isInitialLoad = true)
+                    // loadItems(isInitialLoad = true) // Removed this line
                 }
                 .onFailure { error ->
                     android.util.Log.e("ClosetViewModel", "equipItem onFailure: ${error.message}")
