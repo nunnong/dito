@@ -36,6 +36,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun BounceClickable(
@@ -61,6 +65,40 @@ fun BounceClickable(
         contentAlignment = Alignment.Center
     ) {
         content(isPressed)
+    }
+}
+
+@Composable
+fun WiggleClickable(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val rotation = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                rotationZ = rotation.value
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {
+                    scope.launch {
+                        for (i in 0..1) {
+                            rotation.animateTo(targetValue = -15f, animationSpec = tween(75))
+                            rotation.animateTo(targetValue = 15f, animationSpec = tween(75))
+                        }
+                        rotation.animateTo(targetValue = 0f, animationSpec = tween(75))
+                    }
+                    onClick()
+                }
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        content()
     }
 }
 
@@ -136,6 +174,12 @@ fun HomeContent(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     var showDitoFaceDialog by remember { mutableStateOf(false) }
+
+    val coinInteractionSource = remember { MutableInteractionSource() }
+    val isCoinPressed by coinInteractionSource.collectIsPressedAsState()
+    val coinScale by animateFloatAsState(if (isCoinPressed) 0.8f else 1f, label = "coin_scale")
+    val lemonRotation = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
 
     if (showDitoFaceDialog) {
         DitoFaceDialog(onDismiss = { showDitoFaceDialog = false })
@@ -329,9 +373,11 @@ fun HomeContent(
                     Spacer(modifier = Modifier.height(16.dp)) // Increased space
 
                     // 캐릭터 이미지 + 배경
-                    Box(
+                    WiggleClickable(
                         modifier = Modifier.size(110.dp),
-                        contentAlignment = Alignment.Center
+                        onClick = {
+                            android.util.Log.d("HomeScreen", "Character clicked!")
+                        }
                     ) {
                         // 캐릭터 이미지
                         if (homeData.costumeUrl.isNotEmpty()) {
@@ -379,6 +425,23 @@ fun HomeContent(
                         // 코인 박스
                         Row(
                             modifier = Modifier
+                                .graphicsLayer {
+                                    scaleX = coinScale
+                                    scaleY = coinScale
+                                }
+                                .clickable(
+                                    interactionSource = coinInteractionSource,
+                                    indication = null,
+                                    onClick = {
+                                        scope.launch {
+                                            for (i in 0..1) {
+                                                lemonRotation.animateTo(targetValue = -15f, animationSpec = tween(75))
+                                                lemonRotation.animateTo(targetValue = 15f, animationSpec = tween(75))
+                                            }
+                                            lemonRotation.animateTo(targetValue = 0f, animationSpec = tween(75))
+                                        }
+                                    }
+                                )
                                 .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
                                 .widthIn(min = 97.dp) // 최소 너비 설정
                                 .height(36.dp)
@@ -386,7 +449,7 @@ fun HomeContent(
                                 .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = homeData.coinBalance.toString(),
@@ -396,7 +459,11 @@ fun HomeContent(
                             Image(
                                 painter = painterResource(id = R.drawable.lemon),
                                 contentDescription = "Coin",
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .graphicsLayer {
+                                        rotationZ = lemonRotation.value
+                                    },
                                 contentScale = ContentScale.Fit
                             )
                         }
