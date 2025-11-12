@@ -20,6 +20,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
+import java.time.LocalDate
+import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
+import com.dito.app.core.util.ScreenTimeCollector
+import com.dito.app.core.di.ServiceLocator
+import com.dito.app.core.storage.GroupPreferenceManager
+import com.dito.app.core.data.screentime.UpdateCurrentAppRequest
 
 @AndroidEntryPoint
 class AppMonitoringService : AccessibilityService() {
@@ -44,6 +52,8 @@ class AppMonitoringService : AccessibilityService() {
             }
         }
     }
+
+    private var youtubePeriodicSyncJob: Job? = null
 
     @Inject
     lateinit var aiAgent: AIAgent
@@ -159,6 +169,137 @@ class AppMonitoringService : AccessibilityService() {
 
         if (Checker.isTargetApp(newApp)) {
             scheduleAICheck(newApp, timestamp)
+        }
+
+        // 현재 사용 중인 앱 서버에 전송
+        sendCurrentAppToServer(newApp, getAppName(newApp))
+
+        // YouTube 사용 중일 때 30초마다 스크린타임 전송
+        if(newApp == "com.google.android.youtube"){
+            startYoutubePeriodicSync()
+            Log.d(TAG, "🎬 YouTube 앱 진입 - 30초마다 스크린타임 자동 전송 시작")
+        }else{
+            stopYoutubePeriodicSync()
+            Log.d(TAG, "📱 다른 앱 전환 - YouTube 자동 전송 중단")
+        }
+    }
+
+    private fun stopYoutubePeriodicSync() {
+        youtubePeriodicSyncJob?.cancel()
+        youtubePeriodicSyncJob = null
+    }
+
+    private fun startYoutubePeriodicSync() {
+        // 기존 작업이 있으면 중단
+        youtubePeriodicSyncJob?.cancel()
+
+        youtubePeriodicSyncJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                try {
+                    // 즉시 스크린타임 전송
+                    sendScreenTimeImmediately()
+
+                    Log.d(TAG, "📤 YouTube 사용 중 - 스크린타임 전송 완료")
+
+                    // 30초 대기
+                    delay(30 * 1000L)
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ YouTube 주기적 전송 오류", e)
+                    delay(30 * 1000L)  // 에러 시에도 30초 후 재시도
+                }
+            }
+        }
+    }
+
+    private suspend fun sendScreenTimeImmediately() {
+        try {
+            val activeGroupId = GroupPreferenceManager.getActiveGroupId(this@AppMonitoringService)
+
+            // SharedPreferences에서 직접 토큰 가져오기
+            val prefs = applicationContext.getSharedPreferences("user_prefs", android.content.Context.MODE_PRIVATE)
+            val token = prefs.getString("access_token", null)
+
+            if (activeGroupId == null) {
+                Log.d(TAG, "활성 그룹 없음 - 스크린타임 전송 스킵")
+                return
+            }
+
+            if (token.isNullOrEmpty()) {
+                Log.d(TAG, "토큰 없음 - 스크린타임 전송 스킵")
+                return
+            }
+
+            // 현재 스크린타임 수집
+            val today = LocalDate.now().toString()
+            val totalMinutes = ScreenTimeCollector(this@AppMonitoringService).getTodayScreenTimeMinutes()
+            val youtubeMinutes = ScreenTimeCollector(this@AppMonitoringService).getYouTubeUsageMinutes()
+
+            Log.d(TAG, "📊 스크린타임 수집 - 전체: ${totalMinutes}분, YouTube: ${youtubeMinutes}분")
+
+            // API 요청
+            val request = ScreenTimeUpdateRequest(
+                groupId = activeGroupId.toLong(),
+                date = today,
+                totalMinutes = totalMinutes,
+                youtubeMinutes = youtubeMinutes
+            )
+
+            val response = ServiceLocator.apiService.updateScreenTime(
+                token = "Bearer $token",
+                request = request
+            )
+
+            if (response.isSuccessful) {
+                Log.d(TAG, "✅ 스크린타임 즉시 전송 성공 - YouTube: ${youtubeMinutes}분")
+            } else {
+                Log.w(TAG, "⚠️ 스크린타임 전송 실패: ${response.code()} - ${response.message()}")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 스크린타임 전송 예외: ${e.message}", e)
+        }
+    }
+
+    private fun sendCurrentAppToServer(packageName: String, appName: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val activeGroupId = GroupPreferenceManager.getActiveGroupId(this@AppMonitoringService)
+
+                // SharedPreferences에서 직접 토큰 가져오기
+                val prefs = applicationContext.getSharedPreferences("user_prefs", android.content.Context.MODE_PRIVATE)
+                val token = prefs.getString("access_token", null)
+
+                if (activeGroupId == null) {
+                    Log.d(TAG, "활성 그룹 없음 - 현재 앱 전송 스킵")
+                    return@launch
+                }
+
+                if (token.isNullOrEmpty()) {
+                    Log.d(TAG, "토큰 없음 - 현재 앱 전송 스킵")
+                    return@launch
+                }
+
+                val request = UpdateCurrentAppRequest(
+                    groupId = activeGroupId.toLong(),
+                    appPackage = packageName,
+                    appName = appName
+                )
+
+                val response = ServiceLocator.apiService.updateCurrentApp(
+                    token = "Bearer $token",
+                    request = request
+                )
+
+                if (response.isSuccessful) {
+                    Log.d(TAG, "✅ 현재 앱 전송 성공: $appName ($packageName)")
+                } else {
+                    Log.w(TAG, "⚠️ 현재 앱 전송 실패: ${response.code()}")
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 현재 앱 전송 예외: ${e.message}", e)
+            }
         }
     }
 
@@ -380,6 +521,7 @@ class AppMonitoringService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopYoutubePeriodicSync()
 
         // 마지막 세션 저장
         if (currentApp.isNotEmpty() && currentAppStartTime > 0) {

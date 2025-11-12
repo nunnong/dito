@@ -60,5 +60,9 @@ data class RankingItem(
     @SerialName("potentialPrize")
     val potentialPrize: Int,
     @SerialName("isMe")
-    val isMe: Boolean
+    val isMe: Boolean,
+    @SerialName("currentAppPackage")
+    val currentAppPackage: String? = null,
+    @SerialName("currentAppName")
+    val currentAppName: String? = null
 )

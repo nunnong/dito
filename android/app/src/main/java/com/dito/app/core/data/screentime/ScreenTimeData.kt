@@ -79,3 +79,13 @@ data class ParticipantRank(
     val potentialPrize: Int,
     val isMe: Boolean
 )
+
+/**
+ * 현재 사용 중인 앱 정보 전송 요청
+ */
+@Serializable
+data class UpdateCurrentAppRequest(
+    val groupId: Long,
+    val appPackage: String,
+    val appName: String
+)

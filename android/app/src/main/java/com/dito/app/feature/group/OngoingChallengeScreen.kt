@@ -223,7 +223,8 @@ fun OngoingChallengeScreen(
                             backgroundImgUrl = backgroundImgUrl,
                             costumeImgUrl = costumeImgUrl,
                             isFirst = isFirst,
-                            isLast = isLast
+                            isLast = isLast,
+                            currentAppPackage = rankingItem.currentAppPackage
                         )
                     }
                 }
@@ -257,6 +258,19 @@ fun OngoingChallengeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+/**
+ * 앱 패키지 이름에 따라 커스텀 아이콘 리소스를 반환
+ */
+fun getAppIconResource(packageName: String?): Int {
+    return when (packageName) {
+        "com.google.android.youtube" -> R.drawable.ic_youtube
+        "com.instagram.android" -> R.drawable.ic_instagram
+        "com.android.chrome" -> R.drawable.ic_chrome
+        "com.twitter.android" -> R.drawable.ic_twitter
+        else -> R.drawable.ic_default_app
     }
 }
 
@@ -301,7 +315,8 @@ fun RankCard(
     backgroundImgUrl: String?,
     costumeImgUrl: String?,
     isFirst: Boolean,
-    isLast: Boolean
+    isLast: Boolean,
+    currentAppPackage: String? = null
 ) {
     Box(contentAlignment = Alignment.Center) {
         Column(
@@ -330,33 +345,51 @@ fun RankCard(
                 color = Color.Black
             )
 
-            // 캐릭터 이미지
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
-                    .background(Color.White, RoundedCornerShape(24.dp))
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
+            // 캐릭터 이미지 + 현재 앱 아이콘
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 배경 이미지 (먼저 그려짐)
-                if (backgroundImgUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = backgroundImgUrl,
-                        contentDescription = "$name background",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
+                // 캐릭터 이미지
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
+                        .background(Color.White, RoundedCornerShape(24.dp))
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // 배경 이미지 (먼저 그려짐)
+                    if (backgroundImgUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = backgroundImgUrl,
+                            contentDescription = "$name background",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+
+                    // 의상 이미지 (배경 위에 그려짐)
+                    if (costumeImgUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = costumeImgUrl,
+                            contentDescription = "$name costume",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
                 }
 
-                // 의상 이미지 (배경 위에 그려짐)
-                if (costumeImgUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = costumeImgUrl,
-                        contentDescription = "$name costume",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                // 현재 사용 중인 앱 아이콘 (캐릭터 옆에 표시)
+                if (currentAppPackage != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Image(
+                        painter = painterResource(id = getAppIconResource(currentAppPackage)),
+                        contentDescription = "Current App",
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
                     )
                 }
             }
