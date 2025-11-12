@@ -29,6 +29,7 @@ import coil.compose.AsyncImage
 import com.dito.app.R
 import com.dito.app.core.data.closet.ClosetItem
 import com.dito.app.core.ui.designsystem.*
+import com.dito.app.core.ui.designsystem.BounceClickable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -37,32 +38,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 
-@Composable
-fun BounceClickable(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable (isPressed: Boolean) -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
 
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        content(isPressed)
-    }
-}
 
 /** 옷장 화면 */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -351,7 +327,6 @@ private fun ClosetItemCard(
             var isPressed by remember { mutableStateOf(false) }
             val scale by animateFloatAsState(
                 targetValue = if (isPressed) 0.85f else 1f,
-                animationSpec = tween(durationMillis = 100),
                 label = "apply_button_scale"
             )
 

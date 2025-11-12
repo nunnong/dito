@@ -47,7 +47,10 @@ fun BounceClickable(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.8f else 1f,
+        label = "scale"
+    )
 
     Box(
         modifier = modifier
@@ -242,7 +245,6 @@ private fun CoinDisplay(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.8f else 1f,
-        animationSpec = tween(durationMillis = 50),
         label = "coin_scale"
     )
     val lemonRotation = remember { Animatable(0f) }
@@ -398,7 +400,6 @@ private fun ShopItemCard(
             var isPressed by remember { mutableStateOf(false) }
             val scale by animateFloatAsState(
                 targetValue = if (isPressed) 0.85f else 1f,
-                animationSpec = tween(durationMillis = 100),
                 label = "purchase_button_scale"
             )
 

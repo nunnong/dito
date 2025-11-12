@@ -109,7 +109,6 @@ private fun ConfirmButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = tween(durationMillis = 50),
         label = "confirm_button_scale"
     )
 
@@ -152,7 +151,6 @@ private fun CancelButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = tween(durationMillis = 50),
         label = "cancel_button_scale"
     )
 

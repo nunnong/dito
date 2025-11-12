@@ -65,7 +65,6 @@ private fun ShopInsufficientCoinsDialogContent(
         val isPressed by interactionSource.collectIsPressedAsState()
         val scale by animateFloatAsState(
             targetValue = if (isPressed) 0.9f else 1f,
-            animationSpec = tween(durationMillis = 50),
             label = "insufficient_button_scale"
         )
 

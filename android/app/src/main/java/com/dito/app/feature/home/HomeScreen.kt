@@ -61,33 +61,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.dito.app.core.ui.designsystem.BounceClickable
 
-@Composable
-fun BounceClickable(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable (isPressed: Boolean) -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (isPressed) 0.8f else 1f, label = "scale")
 
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        content(isPressed)
-    }
-}
 
 @Composable
 fun WiggleClickable(
@@ -605,8 +581,7 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
         )
     }
 
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, label = "progress_bar_scale")
 
     Box {
@@ -621,23 +596,31 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
                 .height(47.67.dp)
                 .background(Color.Black)
                 .padding(horizontal = 16.dp)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = {
-                        scope.launch {
-                            animatedProgress.stop()
-                            animatedProgress.snapTo(0f)
-                            animatedProgress.animateTo(
-                                targetValue = progress,
-                                animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                            )
-                            showValue = true
-                            delay(500)
-                            showValue = false
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            try {
+                                awaitRelease()
+                            } finally {
+                                isPressed = false
+                            }
+                        },
+                        onTap = {
+                            scope.launch {
+                                animatedProgress.stop()
+                                animatedProgress.snapTo(0f)
+                                animatedProgress.animateTo(
+                                    targetValue = progress,
+                                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
+                                )
+                                showValue = true
+                                delay(500)
+                                showValue = false
+                            }
                         }
-                    }
-                ),
+                    )
+                },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
