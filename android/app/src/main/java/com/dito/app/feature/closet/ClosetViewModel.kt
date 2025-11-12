@@ -63,8 +63,7 @@ class ClosetViewModel @Inject constructor(
 
     fun equipItem(itemId: Long) {
         viewModelScope.launch {
-            android.util.Log.d("ClosetViewModel", "equipItem called for itemId: $itemId")
-            _uiState.update { it.copy(isLoading = true, error = null, equipMessage = null) }
+            // _uiState.update { it.copy(isLoading = true, error = null, equipMessage = null) } // Removed isLoading update
 
             closetRepository.equipItem(itemId)
                 .onSuccess { equipResponse ->
@@ -84,7 +83,7 @@ class ClosetViewModel @Inject constructor(
                         val newlyEquippedUrl = updatedItems.firstOrNull { it.itemId == itemId }?.imageUrl
 
                         currentState.copy(
-                            isLoading = false,
+                            // isLoading = false, // Removed isLoading update
                             items = updatedItems, // Optimistically update
                             equipMessage = equipResponse.message,
                             error = null,
@@ -99,7 +98,7 @@ class ClosetViewModel @Inject constructor(
                     android.util.Log.e("ClosetViewModel", "equipItem onFailure: ${error.message}")
                     _uiState.update {
                         it.copy(
-                            isLoading = false,
+                            // isLoading = false, // Removed isLoading update
                             error = error.message ?: "아이템 적용에 실패했습니다.",
                             equipMessage = null
                         )
