@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.screentime.repository;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.mongodb.repository.Query;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,6 +28,7 @@ public interface ScreenTimeDailySummaryRepository extends MongoRepository<Screen
      * 특정 그룹의 특정 기간 내 모든 사용자의 Summary 조회
      * 그룹 챌린지 랭킹 계산용
      */
+    @Query("{ 'group_id': ?0, 'date': { $gte: ?1, $lte: ?2 } }")
     List<ScreenTimeDailySummary> findByGroupIdAndDateBetween(
         Long groupId, String startDate, String endDate
     );
@@ -35,6 +37,7 @@ public interface ScreenTimeDailySummaryRepository extends MongoRepository<Screen
      * 특정 그룹, 사용자의 특정 기간 내 Summary 조회
      * 개인별 스크린타임 추이 분석용
      */
+    @Query("{ 'group_id': ?0, 'user_id': ?1, 'date': { $gte: ?2, $lte: ?3 } }")
     List<ScreenTimeDailySummary> findByGroupIdAndUserIdAndDateBetween(
         Long groupId, Long userId, String startDate, String endDate
     );
