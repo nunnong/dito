@@ -45,9 +45,23 @@ fun GroupMemberScreen(
     period: Int = 0,
     goal: String = "",
     penalty: String = "",
-    participants: List<com.dito.app.core.data.group.Participant> = emptyList()
+    participants: List<com.dito.app.core.data.group.Participant> = emptyList(),
+    onStartPolling: () -> Unit = {},
+    onStopPolling: () -> Unit = {}
 ) {
     val participantCount = participants.size
+
+    // 폴링 시작 및 정리
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        onStartPolling()
+    }
+
+    // 화면을 떠날 때 폴링 중지
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            onStopPolling()
+        }
+    }
 
     Box(
         modifier = Modifier

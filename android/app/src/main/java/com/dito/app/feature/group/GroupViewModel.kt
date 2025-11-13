@@ -52,7 +52,6 @@ data class GroupChallengeUiState(
     val joinedGroupPeriod: Int = 0,
     val challengeStatus: ChallengeStatus = ChallengeStatus.NO_CHALLENGE,
     val participants: List<Participant> = emptyList(),
-    val groupInfo: GroupInfo? = null,
     val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null
 )
@@ -69,6 +68,7 @@ class GroupChallengeViewModel @Inject constructor(
     val uiState: StateFlow<GroupChallengeUiState> = _uiState.asStateFlow()
 
     private var updateRankingJob: Job? = null
+    private var participantsPollingJob: Job? = null
 
     init {
         // 서버에서 최신 그룹 정보 불러오기
@@ -77,6 +77,7 @@ class GroupChallengeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
+        stopParticipantsPolling()
     }
 
     private fun loadChallengeState() {
@@ -380,7 +381,6 @@ class GroupChallengeViewModel @Inject constructor(
             startDate = "",
             endDate = "",
             participants = emptyList(),
-            groupInfo = null,
             rankings = emptyList()
         )
     }
@@ -552,6 +552,31 @@ class GroupChallengeViewModel @Inject constructor(
     }
 
     /**
+     * 참여자 목록 1초마다 폴링 시작 (PENDING 상태에서만 사용)
+     */
+    fun startParticipantsPolling() {
+        val groupId = groupManager.getGroupId()
+        if (groupId == 0L) return
+
+        stopParticipantsPolling() // 기존 폴링이 있으면 중단
+
+        participantsPollingJob = viewModelScope.launch {
+            while (true) {
+                loadParticipants(groupId)
+                delay(1000L) // 1초 대기
+            }
+        }
+    }
+
+    /**
+     * 참여자 목록 폴링 중단
+     */
+    fun stopParticipantsPolling() {
+        participantsPollingJob?.cancel()
+        participantsPollingJob = null
+    }
+
+    /**
      * 순위 조회 (참여자 정보도 함께 로드)
      */
     fun loadRanking() {
@@ -562,7 +587,6 @@ class GroupChallengeViewModel @Inject constructor(
             groupRepository.getRanking(groupId).fold(
                 onSuccess = { response ->
                     _uiState.value = _uiState.value.copy(
-                        groupInfo = response.groupInfo,
                         rankings = response.rankings
                     )
                     // 순위 조회 후 참여자 정보도 함께 로드 (장착 아이템 정보 포함)

@@ -81,7 +81,9 @@ fun GroupScreen(
                     penalty = uiState.penalty,
                     participants = uiState.participants,
                     isStarted = false,
-                    onStartChallenge = { viewModel.onChallengeStarted() }
+                    onStartChallenge = { viewModel.onChallengeStarted() },
+                    onStartPolling = { viewModel.startParticipantsPolling() },
+                    onStopPolling = { viewModel.stopParticipantsPolling() }
                 )
             } else {
                 // 참가자 화면
@@ -91,7 +93,9 @@ fun GroupScreen(
                     period = uiState.period,
                     goal = uiState.goal,
                     penalty = uiState.penalty,
-                    participants = uiState.participants
+                    participants = uiState.participants,
+                    onStartPolling = { viewModel.startParticipantsPolling() },
+                    onStopPolling = { viewModel.stopParticipantsPolling() }
                 )
             }
             return

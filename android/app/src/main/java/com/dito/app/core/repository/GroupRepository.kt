@@ -281,7 +281,7 @@ class GroupRepository @Inject constructor(
 
                 Log.d(TAG, "참여자 목록 조회 시도: groupId=$groupId")
 
-                val response = apiService.getGroupParticipants(groupId, "Beare* $token")
+                val response = apiService.getGroupParticipants(groupId, "Bearer $token")
 
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!

@@ -53,10 +53,24 @@ fun GroupLeaderScreen(
     penalty: String,
     participants: List<Participant> = emptyList(),
     isStarted: Boolean = false,
-    onStartChallenge: () -> Unit = {}
+    onStartChallenge: () -> Unit = {},
+    onStartPolling: () -> Unit = {},
+    onStopPolling: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val participantCount = participants.size
+
+    // 폴링 시작 및 정리
+    LaunchedEffect(Unit) {
+        onStartPolling()
+    }
+
+    // 화면을 떠날 때 폴링 중지
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            onStopPolling()
+        }
+    }
 
     fun formatDate(date: String): String {
         return try {
