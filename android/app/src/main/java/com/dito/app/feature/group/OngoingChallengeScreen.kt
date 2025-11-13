@@ -58,7 +58,11 @@ fun OngoingChallengeScreen(
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val lifecycleObserver = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                // 화면 진입 시 즉시 한 번 조회
+                // 화면 진입 시 그룹 상세 정보 조회 (GroupManager에 저장)
+                viewModel.refreshGroupInfo()
+                android.util.Log.d("OngoingChallenge", "🎬 화면 진입 - 그룹 상세 정보 조회")
+
+                // 화면 진입 시 즉시 한 번 랭킹 조회
                 viewModel.loadRanking()
                 android.util.Log.d("OngoingChallenge", "🎬 화면 진입 - 즉시 랭킹 조회")
             }
@@ -74,7 +78,7 @@ fun OngoingChallengeScreen(
                 // 화면이 활성화 상태일 때만 갱신
                 if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                     viewModel.loadRanking()
-                    android.util.Log.d("OngoingChallenge", "🔄 자동 갱신 (10초 주기)")
+                    android.util.Log.d("OngoingChallenge", "자동 갱신 (10초 주기)")
                 }
             }
         }
@@ -82,7 +86,7 @@ fun OngoingChallengeScreen(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
             autoRefreshJob.cancel()
-            android.util.Log.d("OngoingChallenge", "🛑 자동 갱신 중단")
+            android.util.Log.d("OngoingChallenge", "자동 갱신 중단")
         }
     }
 
