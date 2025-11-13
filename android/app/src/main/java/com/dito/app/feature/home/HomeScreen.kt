@@ -197,6 +197,7 @@ fun HomeContent(
     val coinScale by animateFloatAsState(if (isCoinPressed) 0.8f else 1f, label = "coin_scale")
     val lemonRotation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    var wiggleImageOverride by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     var animationKey by remember { mutableStateOf(0) }
@@ -414,40 +415,42 @@ fun HomeContent(
                     WiggleClickable(
                         modifier = Modifier.size(110.dp),
                         onClick = {
-                            playWiggleSound(context)
-                            android.util.Log.d("HomeScreen", "Character clicked!")
+                            if (!wiggleImageOverride) {
+                                scope.launch {
+                                    playWiggleSound(context)
+                                    wiggleImageOverride = true
+                                    delay(375) // Animation duration
+                                    wiggleImageOverride = false
+                                }
+                            }
                         }
                     ) {
-                        // 캐릭터 이미지
-                        if (homeData.costumeUrl.isNotEmpty()) {
-                            AsyncImage(
-                                model = homeData.costumeUrl,
-                                contentDescription = "Character",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit,
-                                onError = { error ->
-                                    android.util.Log.e(
-                                        "HomeScreen", "이미지 로딩 실패: ${homeData.costumeUrl}",
-                                        error.result.throwable
-                                    )
-                                },
-                                onSuccess = {
-                                    android.util.Log.d(
-                                        "HomeScreen",
-                                        "이미지 로딩 성공: ${homeData.costumeUrl}"
-                                    )
-                                }
-                            )
-
+                        val imageModel = if (wiggleImageOverride) {
+                            R.drawable.lemon_wiggle
+                        } else if (homeData.costumeUrl.isNotEmpty()) {
+                            homeData.costumeUrl
                         } else {
-                            // fallback 이미지
-                            Image(
-                                painter = painterResource(id = R.drawable.dito),
-                                contentDescription = "Character",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
+                            R.drawable.dito
                         }
+                        // 캐릭터 이미지
+                        AsyncImage(
+                            model = imageModel,
+                            contentDescription = "Character",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            onError = { error ->
+                                android.util.Log.e(
+                                    "HomeScreen", "이미지 로딩 실패: $imageModel",
+                                    error.result.throwable
+                                )
+                            },
+                            onSuccess = {
+                                android.util.Log.d(
+                                    "HomeScreen",
+                                    "이미지 로딩 성공: $imageModel"
+                                )
+                            }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp)) // Original space
