@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.groups.controller;
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.GroupParticipantReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
+import com.ssafy.Dito.domain.groups.dto.request.PokeReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupDetailRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
@@ -334,5 +335,45 @@ public class GroupChallengeController {
     public ResponseEntity<SingleResult<GroupDetailRes>> getGroupDetail() {
         GroupDetailRes res = groupChallengeService.getGroupDetail();
         return ApiResponse.ok(res);
+    }
+
+    @Operation(
+        summary = "콕콕찌르기",
+        description = "그룹 챌린지 참여자를 콕콕 찌릅니다. 대상 사용자에게 FCM 푸시 알림이 전송됩니다.\n\n" +
+            "- 그룹 랭킹 화면에서 상대방 캐릭터 클릭 시 호출\n" +
+            "- FCM 푸시 알림으로 \"[닉네임]님이 콕 찌르기를 보냈습니다!\" 메시지 전송"
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "콕콕찌르기 성공"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 (자기 자신을 찌르기 등)"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "그룹 또는 사용자를 찾을 수 없음"
+        )
+    })
+    @PostMapping("/{group_id}/poke")
+    public ResponseEntity<CommonResult> pokeParticipant(
+        @io.swagger.v3.oas.annotations.Parameter(
+            description = "그룹 챌린지 ID",
+            required = true,
+            example = "1"
+        )
+        @PathVariable("group_id") long groupId,
+
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "콕콕찌르기 요청",
+            required = true,
+            content = @Content(schema = @Schema(implementation = PokeReq.class))
+        )
+        @Valid @RequestBody PokeReq request
+    ) {
+        groupChallengeService.pokeParticipant(groupId, request);
+        return ApiResponse.of(HttpStatus.OK, "콕콕찌르기 성공");
     }
 }

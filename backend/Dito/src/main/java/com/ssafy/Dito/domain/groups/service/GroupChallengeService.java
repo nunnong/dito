@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.groups.service;
 import com.ssafy.Dito.domain.groups.dto.request.CreateGroupChallengeReq;
 import com.ssafy.Dito.domain.groups.dto.request.GroupParticipantReq;
 import com.ssafy.Dito.domain.groups.dto.request.JoinGroupReq;
+import com.ssafy.Dito.domain.groups.dto.request.PokeReq;
 import com.ssafy.Dito.domain.groups.dto.response.GroupChallengeRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupDetailRes;
 import com.ssafy.Dito.domain.groups.dto.response.GroupParticipantsRes;
@@ -21,12 +22,17 @@ import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantQueryRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.groups.util.InviteCodeGenerator;
+import com.ssafy.Dito.domain.fcm.dto.FcmNotificationRequest;
+import com.ssafy.Dito.domain.fcm.service.FcmService;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +43,7 @@ public class GroupChallengeService {
     private final GroupChallengeQueryRepository groupChallengeQueryRepository;
     private final GroupParticipantQueryRepository groupParticipantQueryRepository;
     private final UserRepository userRepository;
+    private final FcmService fcmService;
     private static final int MAX_INVITE_CODE_ATTEMPTS = 10;
 
     @Transactional
@@ -189,5 +196,48 @@ public class GroupChallengeService {
 
         return groupChallengeQueryRepository.getGroupDetail(userId);
 
+    }
+
+    /**
+     * 콕콕찌르기 - 그룹 참여자를 찌릅니다 (FCM 푸시 알림 전송)
+     *
+     * @param groupId       그룹 챌린지 ID
+     * @param request       찌를 대상 사용자 ID
+     */
+    @Transactional
+    public void pokeParticipant(Long groupId, PokeReq request) {
+        long userId = JwtAuthentication.getUserId();
+
+        GroupChallenge groupChallenge = groupChallengeRepository.getById(groupId);
+        User sender = userRepository.getById(userId);
+        User targetUser = userRepository.getById(request.targetUserId());
+
+        if (userId == request.targetUserId()) {
+            throw new IllegalArgumentException("자기 자신을 찌를 수 없습니다");
+        }
+
+        boolean senderIsParticipant = groupParticipantRepository.existsByIdUserAndIdGroup(sender, groupChallenge);
+        boolean targetIsParticipant = groupParticipantRepository.existsByIdUserAndIdGroup(targetUser, groupChallenge);
+
+        if (!senderIsParticipant) throw new RuntimeException("그룹에 참여하지 않은 사용자입니다");
+        if (!targetIsParticipant) throw new RuntimeException("대상 사용자가 그룹에 참여하지 않았습니다");
+
+
+        String title = "콕콕찌르기";
+        String body = String.format("%s님이 정신차리라고 찌르기를 보냈습니다!", sender.getNickname());
+
+        Map<String, String> data = new HashMap<>();
+        data.put("type", "POKE");
+        data.put("groupId", groupId.toString());
+        data.put("senderId", String.valueOf(userId));
+        data.put("senderNickname", sender.getNickname());
+
+        FcmNotificationRequest fcmRequest = new FcmNotificationRequest(
+            title,
+            body,
+            data
+        );
+
+        fcmService.sendNotificationToUser(targetUser.getId(), fcmRequest);
     }
 }
