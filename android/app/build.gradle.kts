@@ -24,8 +24,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -44,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

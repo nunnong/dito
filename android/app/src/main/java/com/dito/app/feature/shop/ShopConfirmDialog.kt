@@ -28,8 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.dito.app.R
+import com.dito.app.core.ui.util.SoundPlayer
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlin.math.cos
@@ -60,6 +62,7 @@ private fun ShopConfirmDialogContent(
     onDismiss: () -> Unit
 ) {
     var showLemonExplosion by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     // 애니메이션이 끝나면 onConfirm 호출
     LaunchedEffect(showLemonExplosion) {
@@ -112,6 +115,7 @@ private fun ShopConfirmDialogContent(
                 text = "구매",
                 onClick = {
                     showLemonExplosion = true
+                    SoundPlayer.playSound(context, R.raw.purchase)
                 }
             )
 
@@ -174,7 +178,7 @@ private fun LemonExplosion() {
 @Composable
 private fun LemonParticle(angle: Float, sizeMultiplier: Float) {
     // 거리에도 랜덤성 추가
-    val targetDistance = 350f + Random.nextFloat() * 150f
+    val targetDistance = 450f + Random.nextFloat() * 200f
     // 애니메이션 시간에도 랜덤성 추가 (700 ~ 900ms)
     val duration = (700 + Random.nextInt(200)).toInt()
     // 회전 방향 랜덤 (시계/반시계)
@@ -239,7 +243,7 @@ private fun LemonParticle(angle: Float, sizeMultiplier: Float) {
             painter = painterResource(id = R.drawable.lemon),
             contentDescription = "Lemon Particle",
             modifier = Modifier
-                .size((32 * sizeMultiplier).dp)
+                .size((45 * sizeMultiplier).dp)
                 .graphicsLayer {
                     translationX = offsetX
                     translationY = offsetY
@@ -258,7 +262,7 @@ private fun LemonParticle(angle: Float, sizeMultiplier: Float) {
 @Composable
 private fun SquareParticle(angle: Float, sizeMultiplier: Float) {
     // 거리에 랜덤성 추가 (200 ~ 450)
-    val targetDistance = 200f + Random.nextFloat() * 250f
+    val targetDistance = 400f + Random.nextFloat() * 250f
     // 애니메이션 시간에 랜덤성 추가 (600 ~ 1000ms)
     val duration = (600 + Random.nextInt(400)).toInt()
     // 회전 각도 랜덤

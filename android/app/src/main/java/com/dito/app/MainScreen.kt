@@ -1,7 +1,6 @@
 package com.dito.app
 
 import android.util.Log
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -60,7 +59,8 @@ fun MainScreen(
                 val hasAccessibility = PermissionHelper.isAccessibilityPermissionGranted(context)
                 val hasUsageStats = PermissionHelper.isUsageStatsPermissionGranted(context)
                 val hasNotification = PermissionHelper.isNotificationPermissionGranted(context)
-                val hasNotificationListener = PermissionHelper.isNotificationListenerPermissionGranted(context)
+                val hasNotificationListener =
+                    PermissionHelper.isNotificationListenerPermissionGranted(context)
 
                 if (!hasAccessibility || !hasUsageStats || !hasNotification || !hasNotificationListener) {
                     isCheckingPermissions = true
@@ -118,15 +118,19 @@ fun MainScreen(
                 selectedTab = selectedTab,
                 onTabSelected = {
                     selectedTab = it
-                    if (it == BottomTab.HOME) innerNavController.navigate("home") {
+                    if (it == BottomTab.HOME) innerNavController.navigate(Route.Home.path) {
                         launchSingleTop = true; popUpTo("home") { inclusive = false }
                     }
                     if (it == BottomTab.GROUP) innerNavController.navigate(Route.GroupRoot.path) {
                         launchSingleTop = true
                     }
-                    if (it == BottomTab.SETTINGS) innerNavController.navigate(Route.SettingRoot.path) {
+                    if (it == BottomTab.MISSION) innerNavController.navigate(Route.MissionNotification.path) {
                         launchSingleTop = true
                     }
+//                    if (it == BottomTab.REPORT) innerNavController.navigate(Route.Report.path) {
+//                        launchSingleTop = true
+//                    }
+
                 }
             )
         }
@@ -141,9 +145,9 @@ fun MainScreen(
             composable("home") {
                 HomeScreen(
                     onLogout = onLogout,
-                    onCartClick  = { innerNavController.navigate("shop") },
-                    onClosetClick = { innerNavController.navigate("closet") },
-                    onNotificationClick = { innerNavController.navigate("mission_notification")}
+                    onCartClick = { innerNavController.navigate(Route.Shop.path) },
+                    onClosetClick = { innerNavController.navigate(Route.Closet.path) },
+                    onSettingsClick = { innerNavController.navigate(Route.SettingRoot.path) }
                 )
             }
             composable("shop") {
@@ -152,7 +156,7 @@ fun MainScreen(
             composable("closet") {
                 ClosetScreen(onBackClick = { innerNavController.popBackStack() })
             }
-            composable("mission_notification"){
+            composable("mission_notification") {
                 MissionNotificationScreen(onBackClick = { innerNavController.popBackStack() })
             }
             composable(Route.GroupRoot.path) {
