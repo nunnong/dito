@@ -55,7 +55,7 @@ fun GroupMemberScreen(
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Image(
-            painter = painterResource(id = R.drawable.waitingroom),
+            painter = painterResource(id = R.drawable.race4),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit,

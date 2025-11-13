@@ -10,7 +10,6 @@ import com.dito.app.core.storage.GroupManager
 import com.dito.app.core.storage.GroupPreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import android.content.Context
-import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -53,6 +52,7 @@ data class GroupChallengeUiState(
     val joinedGroupPeriod: Int = 0,
     val challengeStatus: ChallengeStatus = ChallengeStatus.NO_CHALLENGE,
     val participants: List<Participant> = emptyList(),
+    val groupInfo: GroupInfo? = null,
     val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null
 )
@@ -177,7 +177,7 @@ class GroupChallengeViewModel @Inject constructor(
 
                         // 진행 중이면 자동 갱신 시작
                         if (status == ChallengeStatus.IN_PROGRESS) {
-//                            startAutoRefresh()
+                            startAutoRefresh()
                             loadRanking()
                         }
                     } else {
@@ -351,7 +351,7 @@ class GroupChallengeViewModel @Inject constructor(
                         )
 
                         // 챌린지 시작 시 자동 갱신 시작
-//                        startAutoRefresh()
+                        startAutoRefresh()
                         // 최초 순위 조회
                         loadRanking()
                     }
@@ -380,6 +380,7 @@ class GroupChallengeViewModel @Inject constructor(
             startDate = "",
             endDate = "",
             participants = emptyList(),
+            groupInfo = null,
             rankings = emptyList()
         )
     }
@@ -457,6 +458,15 @@ class GroupChallengeViewModel @Inject constructor(
 
             groupRepository.enterGroup(groupId, betCoin).fold(
                 onSuccess = { response ->
+                    // 서버에서 받은 status를 ChallengeStatus로 변환
+                    val status = when (response.status) {
+                        "pending" -> ChallengeStatus.PENDING
+                        "in_progress" -> ChallengeStatus.IN_PROGRESS
+                        "completed" -> ChallengeStatus.COMPLETED
+                        "cancelled" -> ChallengeStatus.CANCELLED
+                        else -> ChallengeStatus.PENDING
+                    }
+
                     // GroupManager에 저장
                     groupManager.saveGroupInfo(
                         groupId = groupId,
@@ -466,9 +476,18 @@ class GroupChallengeViewModel @Inject constructor(
                         period = _uiState.value.joinedGroupPeriod,
                         bet = betCoin,
                         entryCode = "",
-                        startDate = "",
-                        endDate = "",
+                        startDate = response.startDate,
+                        endDate = response.endDate,
                         isLeader = false
+                    )
+                    groupManager.saveChallengeStatus(
+                        when (status) {
+                            ChallengeStatus.PENDING -> GroupManager.STATUS_PENDING
+                            ChallengeStatus.IN_PROGRESS -> GroupManager.STATUS_IN_PROGRESS
+                            ChallengeStatus.COMPLETED -> GroupManager.STATUS_COMPLETED
+                            ChallengeStatus.CANCELLED -> GroupManager.STATUS_CANCELLED
+                            else -> GroupManager.STATUS_NO_CHALLENGE
+                        }
                     )
 
                     // 스크린타임 동기화를 위해 active_group_id 저장
@@ -480,14 +499,25 @@ class GroupChallengeViewModel @Inject constructor(
                         showJoinDialog = false,
                         showCreateDialog = false,
                         showChallengeDialog = false,
-                        challengeStatus = ChallengeStatus.PENDING,
+                        challengeStatus = status,
                         groupName = _uiState.value.joinedGroupName,
                         goal = _uiState.value.joinedGroupGoal,
                         penalty = _uiState.value.joinedGroupPenalty,
                         period = _uiState.value.joinedGroupPeriod,
                         bet = betCoin,
+                        startDate = response.startDate,
+                        endDate = response.endDate,
                         isLeader = false
                     )
+
+                    // 진행 중인 챌린지에 입장한 경우 자동 갱신 시작 및 순위/참여자 조회
+                    if (status == ChallengeStatus.IN_PROGRESS) {
+                        startAutoRefresh()
+                        loadRanking()
+                    } else if (status == ChallengeStatus.PENDING) {
+                        // 대기 중인 경우 참여자 목록만 조회
+                        loadParticipants(groupId)
+                    }
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
@@ -502,16 +532,16 @@ class GroupChallengeViewModel @Inject constructor(
     /**
      * 5분마다 순위 자동 갱신 시작
      */
-//    private fun startAutoRefresh() {
-//        stopAutoRefresh() // 기존 작업이 있으면 중단
-//
-//        updateRankingJob = viewModelScope.launch {
-//            while (true) {
-//                loadRanking() // 1분마다 순위 조회
-//                delay(1 * 60 * 1000L) // 1분 대기
-//            }
-//        }
-//    }
+    private fun startAutoRefresh() {
+        stopAutoRefresh() // 기존 작업이 있으면 중단
+
+        updateRankingJob = viewModelScope.launch {
+            while (true) {
+                loadRanking() // 5분마다 순위 조회
+                delay(5 * 60 * 1000L) // 5분 대기
+            }
+        }
+    }
 
     /**
      * 자동 갱신 중단
@@ -522,41 +552,28 @@ class GroupChallengeViewModel @Inject constructor(
     }
 
     /**
-     * 순위 조회
+     * 순위 조회 (참여자 정보도 함께 로드)
      */
     fun loadRanking() {
+        val groupId = groupManager.getGroupId()
+        if (groupId == 0L) return
+
         viewModelScope.launch {
-            try {
-                // GroupManager에서 groupId 가져오기
-                val groupId = groupManager.getGroupId()
-
-                if (groupId == 0L) {
-                    Log.w("GroupViewModel", "⚠️ groupId가 없어 랭킹 조회 스킵")
-                    return@launch
+            groupRepository.getRanking(groupId).fold(
+                onSuccess = { response ->
+                    _uiState.value = _uiState.value.copy(
+                        groupInfo = response.groupInfo,
+                        rankings = response.rankings
+                    )
+                    // 순위 조회 후 참여자 정보도 함께 로드 (장착 아이템 정보 포함)
+                    loadParticipants(groupId)
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message
+                    )
                 }
-
-                Log.d("GroupViewModel", "📊 랭킹 조회 시작 - groupId: $groupId")
-
-                val response = groupRepository.getRanking(groupId)
-
-                response.fold(
-                    onSuccess = { rankingRes ->
-                        _uiState.value = _uiState.value.copy(
-                            rankings = rankingRes.rankings
-                        )
-                        Log.d("GroupViewModel", "✅ 랭킹 조회 성공 - ${rankingRes.rankings.size}명")
-
-                        rankingRes.rankings.forEach { rank ->
-                            Log.d("GroupViewModel", "  ${rank.rank}위: ${rank.nickname} - ${rank.totalScreenTimeFormatted}")
-                        }
-                    },
-                    onFailure = { error ->
-                        Log.e("GroupViewModel", "❌ 랭킹 조회 실패: ${error.message}", error)
-                    }
-                )
-            } catch (e: Exception) {
-                Log.e("GroupViewModel", "❌ 랭킹 조회 예외", e)
-            }
+            )
         }
     }
 }
