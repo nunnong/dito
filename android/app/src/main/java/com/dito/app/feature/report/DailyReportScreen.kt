@@ -89,16 +89,14 @@ fun DailyReportContent(
 ) {
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Background),
-        contentPadding = PaddingValues(Spacing.m)
+            .fillMaxSize(),
+        contentPadding = PaddingValues(0.dp)
     ) {
         // 헤더 섹션
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFFAFDFF))
                     .padding(Spacing.l)
             ) {
                 Row(
@@ -121,7 +119,7 @@ fun DailyReportContent(
                             painter = painterResource(id = R.drawable.ic_launcher_foreground),
                             contentDescription = "Profile",
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(80.dp)
                                 .clip(CircleShape)
                         )
                     }
@@ -130,7 +128,7 @@ fun DailyReportContent(
                         text = "Daily Report",
                         style = DitoTypography.headlineLarge,
                         color = OnSurface,
-                        fontSize = 40.sp
+                        fontSize = 38.sp
                     )
                 }
 
@@ -141,61 +139,66 @@ fun DailyReportContent(
             }
         }
 
-        // 현재 상태 섹션
+        // 현재 상태 섹션 + 비교 분석 섹션 (하나의 카드로)
         item {
-            Column(
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFFAFDFF))
-                    .padding(horizontal = Spacing.l, vertical = Spacing.m)
+                    .padding(horizontal = Spacing.l)
+                    .hardShadow(
+                        offsetX = 4.dp,
+                        offsetY = 4.dp,
+                        cornerRadius = 32.dp,
+                        color = Color.Black
+                    )
             ) {
-                Text(
-                    text = "현재 $userName 님은",
-                    style = DitoTypography.titleLarge,
-                    color = OnSurface,
-                    fontSize = 22.sp
-                )
-                Spacer(modifier = Modifier.height(Spacing.m))
-
-                predictions.forEach { prediction ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Spacing.l)
+                ) {
+                    // 현재 상태 섹션
                     Text(
-                        text = prediction,
-                        style = DitoTypography.bodyLarge,
+                        text = "현재 $userName 님은",
+                        style = DitoTypography.titleLarge,
                         color = OnSurface,
-                        lineHeight = 24.sp,
+                        fontSize = 22.sp
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.s))
+
+                    predictions.forEach { prediction ->
+                        Text(
+                            text = prediction,
+                            style = DitoTypography.bodyLarge,
+                            color = OnSurface,
+                            lineHeight = 24.sp,
+                            modifier = Modifier.padding(bottom = Spacing.s)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(Spacing.l))
+
+                    // 비교 분석 섹션
+                    Text(
+                        text = "이전과 비교했을 때...",
+                        style = DitoTypography.titleLarge,
+                        color = OnSurface,
+                        fontSize = 22.sp,
                         modifier = Modifier.padding(bottom = Spacing.s)
                     )
+
+                    // 비교 항목들
+                    comparisons.forEach { comparison ->
+                        ComparisonItemCard(
+                            comparisonItem = comparison,
+                            modifier = Modifier.padding(vertical = Spacing.xs)
+                        )
+                    }
                 }
             }
-        }
-
-        // 비교 분석 섹션
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFFAFDFF))
-                    .padding(horizontal = Spacing.l, vertical = Spacing.m)
-            ) {
-                Text(
-                    text = "이전과 비교했을 때...",
-                    style = DitoTypography.titleLarge,
-                    color = OnSurface,
-                    fontSize = 22.sp,
-                    modifier = Modifier.padding(bottom = Spacing.m)
-                )
-            }
-        }
-
-        // 비교 항목들
-        items(comparisons) { comparison ->
-            ComparisonItemCard(
-                comparisonItem = comparison,
-                modifier = Modifier.padding(
-                    horizontal = Spacing.l,
-                    vertical = Spacing.xs
-                )
-            )
         }
 
         // 하단 여백
@@ -224,7 +227,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Spacing.l)
+                .padding(Spacing.m)
         ) {
             Column {
                 Row(
@@ -232,7 +235,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
                     modifier = Modifier.padding(bottom = Spacing.s)
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                        painter = painterResource(id = R.drawable.check),
                         contentDescription = "Mission Icon",
                         modifier = Modifier.size(22.dp)
                     )
@@ -279,7 +282,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = Spacing.m)
+                    .padding(end = Spacing.xs)
             )
         }
     }
@@ -310,7 +313,7 @@ fun ComparisonItemCard(
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
         modifier = modifier
             .fillMaxWidth()
