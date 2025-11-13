@@ -24,14 +24,18 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
+import com.dito.app.R.*
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.OnSurfaceVariant
 
 enum class BottomTab(val iconRes: Int, val label: String) {
-    GROUP(R.drawable.group, "그룹"),
-    HOME(R.drawable.home, "홈"),
-    SETTINGS(R.drawable.settings, "설정")
+    HOME(drawable.home, "홈"),
+    GROUP(drawable.group, "그룹"),
+
+    REPORT(R.drawable.report, "레포트"),
+
+    MISSION(R.drawable.mission, "미션알림")
 }
 
 @Composable
@@ -59,7 +63,7 @@ fun DitoBottomAppBar(
                         strokeWidth = strokeWidth
                     )
                 }
-                .padding(horizontal = 32.dp),
+                .padding(horizontal = 30.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
