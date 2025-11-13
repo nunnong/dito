@@ -78,12 +78,9 @@ fun playWiggleSound(context: Context) {
 }
 
 
-
 @Composable
 fun WiggleClickable(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-    content: @Composable () -> Unit
+    modifier: Modifier = Modifier, onClick: () -> Unit, content: @Composable () -> Unit
 ) {
     val rotation = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -105,9 +102,7 @@ fun WiggleClickable(
                         rotation.animateTo(targetValue = 0f, animationSpec = tween(75))
                     }
                     onClick()
-                }
-            ),
-        contentAlignment = Alignment.Center
+                }), contentAlignment = Alignment.Center
     ) {
         content()
     }
@@ -120,7 +115,7 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onCartClick: () -> Unit,
     onClosetClick: () -> Unit,
-    onNotificationClick: () -> Unit
+    onSettingsClick: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -158,7 +153,7 @@ fun HomeScreen(
                     homeData = homeData,
                     onCartClick = onCartClick,
                     onClosetClick = onClosetClick,
-                    onNotificationClick = onNotificationClick
+                    onSettingsClick = onSettingsClick
                 )
             }
         }
@@ -170,7 +165,7 @@ fun HomeContent(
     homeData: HomeData,
     onCartClick: () -> Unit,
     onClosetClick: () -> Unit,
-    onNotificationClick: () -> Unit
+    onSettingsClick: () -> Unit
 ) {
     val context = LocalContext.current
     var showDitoFaceDialog by remember { mutableStateOf(false) }
@@ -208,9 +203,7 @@ fun HomeContent(
             .height(589.dp)
             .hardShadow(
                 DitoHardShadow.Modal.copy(
-                    cornerRadius = 0.dp,
-                    offsetX = 6.dp,
-                    offsetY = 6.dp
+                    cornerRadius = 0.dp, offsetX = 6.dp, offsetY = 6.dp
                 )
             )
             .background(Primary, RectangleShape)
@@ -224,8 +217,7 @@ fun HomeContent(
                 .width(327.dp)
                 .height(477.dp)
                 .background(Color.White)
-                .border(2.dp, Color.Black),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .border(2.dp, Color.Black), horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 상단 블랙 바 (Frame 165)
             Row(
@@ -249,8 +241,7 @@ fun HomeContent(
                         onClick = {
                             playPopSound(context)
                             onCartClick()
-                        },
-                        modifier = Modifier.size(24.dp)
+                        }, modifier = Modifier.size(24.dp)
                     ) { isPressed ->
                         Image(
                             painter = painterResource(id = R.drawable.cart),
@@ -264,8 +255,7 @@ fun HomeContent(
                         onClick = {
                             playPopSound(context)
                             onClosetClick()
-                        },
-                        modifier = Modifier.size(20.dp)
+                        }, modifier = Modifier.size(20.dp)
                     ) { isPressed ->
                         Image(
                             painter = painterResource(id = R.drawable.closet),
@@ -278,14 +268,22 @@ fun HomeContent(
                 }
 
                 // 오른쪽 아이콘 1개
-                Image(
-                    painter = painterResource(id = R.drawable.mail_home),
-                    contentDescription = "missionNotification",
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { onNotificationClick() },
-                    contentScale = ContentScale.Fit
-                )
+                BounceClickable(
+                    onClick = {
+                        playPopSound(context)
+                        onSettingsClick()
+                    }, modifier = Modifier.size(24.dp)
+                ) { isPressed ->
+                    Image(
+                        painter = painterResource(id = R.drawable.settings),
+                        contentDescription = "settings",
+                        modifier = Modifier.fillMaxSize(),
+                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(
+                            Color.White
+                        ),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
 
             // Frame 162 - 내부 컨텐츠
@@ -299,9 +297,9 @@ fun HomeContent(
                     AsyncImage(
                         model = homeData.backgroundUrl,
                         contentDescription = "Background",
-                                                    modifier = Modifier
-                                                        .fillMaxSize(),
-                                                    contentScale = ContentScale.Crop,                        onError = { error ->
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onError = { error ->
                             android.util.Log.e(
                                 "HomeScreen",
                                 "배경 이미지 로딩 실패: ${homeData.backgroundUrl}",
@@ -310,11 +308,9 @@ fun HomeContent(
                         },
                         onSuccess = {
                             android.util.Log.d(
-                                "HomeScreen",
-                                "배경 이미지 로딩 성공: ${homeData.backgroundUrl}"
+                                "HomeScreen", "배경 이미지 로딩 성공: ${homeData.backgroundUrl}"
                             )
-                        }
-                    )
+                        })
                 }
                 Column(
                     modifier = Modifier
@@ -343,8 +339,7 @@ fun HomeContent(
                                     .fillMaxSize()
                                     .graphicsLayer {
                                         alpha = speechBubbleAlpha
-                                    },
-                                contentAlignment = Alignment.Center
+                                    }, contentAlignment = Alignment.Center
                             ) {
                                 Image(
                                     painter = painterResource(id = R.drawable.speech_bubble),
@@ -357,8 +352,11 @@ fun HomeContent(
                                     style = DitoCustomTextStyles.titleDSmall,
                                     color = Color.Black,
                                     textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
+                                    modifier = Modifier.padding(
+                                        start = 24.dp,
+                                        end = 24.dp,
+                                        bottom = 16.dp
+                                    )
                                 )
                             }
                         }
@@ -368,21 +366,19 @@ fun HomeContent(
 
                     // 캐릭터 이미지 + 배경
                     WiggleClickable(
-                        modifier = Modifier.size(110.dp),
-                        onClick = {
+                        modifier = Modifier.size(110.dp), onClick = {
                             if (!wiggleImageOverride) {
                                 scope.launch {
                                     playWiggleSound(context)
                                     showSpeechBubble = true
                                     wiggleImageOverride = true
-                                    delay(500) // Animation duration
+                                    delay(400) // Animation duration
                                     wiggleImageOverride = false
                                     delay(1000) // 말풍선 추가로 보이는 시간
                                     showSpeechBubble = false
                                 }
                             }
-                        }
-                    ) {
+                        }) {
                         // 캐릭터 이미지
                         if (wiggleImageOverride) {
                             Image(
@@ -403,17 +399,14 @@ fun HomeContent(
                                 contentScale = ContentScale.Fit,
                                 onError = { error ->
                                     android.util.Log.e(
-                                        "HomeScreen", "이미지 로딩 실패",
-                                        error.result.throwable
+                                        "HomeScreen", "이미지 로딩 실패", error.result.throwable
                                     )
                                 },
                                 onSuccess = {
                                     android.util.Log.d(
-                                        "HomeScreen",
-                                        "이미지 로딩 성공"
+                                        "HomeScreen", "이미지 로딩 성공"
                                     )
-                                }
-                            )
+                                })
                         }
                     }
                 }
@@ -440,16 +433,21 @@ fun HomeContent(
                                 onClick = {
                                     scope.launch {
                                         for (i in 0..1) {
-                                            lemonRotation.animateTo(targetValue = -15f, animationSpec = tween(75))
-                                            lemonRotation.animateTo(targetValue = 15f, animationSpec = tween(75))
+                                            lemonRotation.animateTo(
+                                                targetValue = -15f, animationSpec = tween(75)
+                                            )
+                                            lemonRotation.animateTo(
+                                                targetValue = 15f, animationSpec = tween(75)
+                                            )
                                         }
-                                        lemonRotation.animateTo(targetValue = 0f, animationSpec = tween(75))
+                                        lemonRotation.animateTo(
+                                            targetValue = 0f, animationSpec = tween(75)
+                                        )
                                     }
-                                }
-                            )
+                                })
                             .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
                             .widthIn(min = 97.dp) // 최소 너비 설정
-                            .height(36.dp)
+                        .height(36.dp)
                             .background(Color.White, RoundedCornerShape(48.dp))
                             .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
                             .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -500,9 +498,21 @@ fun HomeContent(
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        ProgressBarItem(label = "자기관리", progress = homeData.selfCareStatus / 100.0f, animationKey = animationKey)
-                        ProgressBarItem(label = "집중", progress = homeData.focusStatus / 100.0f, animationKey = animationKey)
-                        ProgressBarItem(label = "수면", progress = homeData.sleepStatus / 100.0f, animationKey = animationKey)
+                        ProgressBarItem(
+                            label = "자기관리",
+                            progress = homeData.selfCareStatus / 100.0f,
+                            animationKey = animationKey
+                        )
+                        ProgressBarItem(
+                            label = "집중",
+                            progress = homeData.focusStatus / 100.0f,
+                            animationKey = animationKey
+                        )
+                        ProgressBarItem(
+                            label = "수면",
+                            progress = homeData.sleepStatus / 100.0f,
+                            animationKey = animationKey
+                        )
                     }
                 }
             }
@@ -527,8 +537,7 @@ fun HomeContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = homeData.nickname,
-                    style = DitoTypography.headlineMedium, // 28sp
+                    text = homeData.nickname, style = DitoTypography.headlineMedium, // 28sp
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -546,8 +555,7 @@ fun HomeContent(
                 onClick = {
                     playPopSound(context)
                     showDitoFaceDialog = true
-                },
-                modifier = Modifier.size(60.dp)
+                }, modifier = Modifier.size(60.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.face_dialog_btn),
@@ -592,29 +600,27 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
                 .background(Color.Black)
                 .padding(horizontal = 16.dp)
                 .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            try {
-                                awaitRelease()
-                            } finally {
-                                isPressed = false
-                            }
-                        },
-                        onTap = {
-                            scope.launch {
-                                animatedProgress.stop()
-                                animatedProgress.snapTo(0f)
-                                animatedProgress.animateTo(
-                                    targetValue = progress,
-                                    animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing)
-                                )
-                                showValue = true
-                                delay(500)
-                                showValue = false
-                            }
+                    detectTapGestures(onPress = {
+                        isPressed = true
+                        try {
+                            awaitRelease()
+                        } finally {
+                            isPressed = false
                         }
-                    )
+                    }, onTap = {
+                        scope.launch {
+                            animatedProgress.stop()
+                            animatedProgress.snapTo(0f)
+                            animatedProgress.animateTo(
+                                targetValue = progress, animationSpec = tween(
+                                    durationMillis = 800, easing = FastOutSlowInEasing
+                                )
+                            )
+                            showValue = true
+                            delay(500)
+                            showValue = false
+                        }
+                    })
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -629,8 +635,7 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = label,
-                    style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
+                    text = label, style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
                     color = Color.White
                 )
             }
@@ -674,8 +679,12 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .offset(y = 6.dp, x = (-10).dp),
-            enter = fadeIn(animationSpec = tween(100)) + scaleIn(animationSpec = tween(100), initialScale = 0.8f),
-            exit = fadeOut(animationSpec = tween(100)) + scaleOut(animationSpec = tween(100), targetScale = 0.8f)
+            enter = fadeIn(animationSpec = tween(100)) + scaleIn(
+                animationSpec = tween(100), initialScale = 0.8f
+            ),
+            exit = fadeOut(animationSpec = tween(100)) + scaleOut(
+                animationSpec = tween(100), targetScale = 0.8f
+            )
         ) {
             Box(
                 modifier = Modifier
@@ -708,10 +717,5 @@ fun HomeScreenPreview() {
         focusStatus = 50,
         sleepStatus = 90
     )
-    HomeContent(
-        homeData = fakeHomeData,
-        onCartClick = {},
-        onClosetClick = {},
-        onNotificationClick = {}
-    )
+    HomeContent(homeData = fakeHomeData, onCartClick = {}, onClosetClick = {}, onSettingsClick = {})
 }
