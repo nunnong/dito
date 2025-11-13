@@ -220,7 +220,7 @@ class GroupRepository @Inject constructor(
                         )
                     Log.d(
                         TAG,
-                        "랭킹 조회 성공: groupName=${ranking.groupInfo.groupName}, rankings=${ranking.rankings.size}개"
+                        "랭킹 조회 성공: rankings=${ranking.rankings.size}개"
                     )
                     Result.success(ranking)
                 } else {

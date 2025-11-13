@@ -10,7 +10,8 @@ import java.time.LocalDate
 data class ScreenTimeUpdateRequest(
     val groupId: Long,
     val date: String,  // "2025-01-07" 형식
-    val totalMinutes: Int
+    val totalMinutes: Int,
+    val youtubeMinutes: Int? = null
 )
 
 /**
@@ -29,6 +30,7 @@ data class ScreenTimeUpdateData(
     val userId: Long,
     val date: String,
     val totalMinutes: Int,
+    val youtubeMinutes: Int?,
     val status: String  // "created" or "updated"
 )
 
@@ -76,4 +78,14 @@ data class ParticipantRank(
     val betCoins: Int,
     val potentialPrize: Int,
     val isMe: Boolean
+)
+
+/**
+ * 현재 사용 중인 앱 정보 전송 요청
+ */
+@Serializable
+data class UpdateCurrentAppRequest(
+    val groupId: Long,
+    val appPackage: String,
+    val appName: String
 )

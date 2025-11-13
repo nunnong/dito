@@ -24,6 +24,7 @@ import com.dito.app.core.data.missionNotification.MissionNotificationResponse
 import com.dito.app.core.data.screentime.GroupRankingResponse
 import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
+import com.dito.app.core.data.screentime.UpdateCurrentAppRequest
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -128,6 +129,12 @@ interface ApiService {
         @Body request: ScreenTimeUpdateRequest,
         @Header("Authorization") token: String
     ): Response<ScreenTimeUpdateResponse>
+
+    @POST("/screen-time/current-app")
+    suspend fun updateCurrentApp(
+        @Header("Authorization") token: String,
+        @Body request: UpdateCurrentAppRequest
+    ): Response<ApiResponse<Unit>>
 
     @GET("/challenges/groups/{groupId}/ranking")
     suspend fun getGroupRanking(

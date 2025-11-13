@@ -7,6 +7,8 @@ import androidx.work.Configuration
 import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.data.RealmConfig
+import com.dito.app.core.di.ServiceLocator
+import com.dito.app.core.network.ApiService
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -22,10 +24,17 @@ class DitoApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var apiService: ApiService
+
     override fun onCreate() {
         super.onCreate()
 
         Log.i(TAG, "DitoApplication 시작")
+
+        // 0. ServiceLocator 초기화 (AccessibilityService에서 ApiService 사용 가능하도록)
+        ServiceLocator.apiService = apiService
+        Log.i(TAG, "✅ ServiceLocator 초기화 완료")
 
         // 1. Realm 초기화
         RealmConfig.init()

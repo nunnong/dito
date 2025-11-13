@@ -5,8 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GetRankingResponse(
-    @SerialName("groupInfo")
-    val groupInfo: GroupInfo,
     @SerialName("rankings")
     val rankings: List<RankingItem>
 )
@@ -60,5 +58,9 @@ data class RankingItem(
     @SerialName("potentialPrize")
     val potentialPrize: Int,
     @SerialName("isMe")
-    val isMe: Boolean
+    val isMe: Boolean,
+    @SerialName("currentAppPackage")
+    val currentAppPackage: String? = null,
+    @SerialName("currentAppName")
+    val currentAppName: String? = null
 )

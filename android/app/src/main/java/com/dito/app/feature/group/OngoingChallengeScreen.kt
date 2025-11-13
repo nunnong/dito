@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -44,22 +45,47 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.hardShadow
 import com.dito.app.core.ui.util.rememberLifecycleEvent
+import kotlinx.coroutines.launch
 
 @Composable
 fun OngoingChallengeScreen(
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 화면이 다시 활성화될 때마다 순위 조회
-    val lifecycleEvent = rememberLifecycleEvent()
-    LaunchedEffect(lifecycleEvent) {
-        if (lifecycleEvent == Lifecycle.Event.ON_RESUME) {
-            viewModel.loadRanking()
+    // 화면 활성화 시 즉시 조회 + 10초마다 자동 갱신
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val lifecycleObserver = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 화면 진입 시 즉시 한 번 조회
+                viewModel.loadRanking()
+                android.util.Log.d("OngoingChallenge", "🎬 화면 진입 - 즉시 랭킹 조회")
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+
+        // 10초마다 자동 갱신
+        val autoRefreshJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+            while (true) {
+                kotlinx.coroutines.delay(10 * 1000L)
+
+                // 화면이 활성화 상태일 때만 갱신
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    viewModel.loadRanking()
+                    android.util.Log.d("OngoingChallenge", "🔄 자동 갱신 (10초 주기)")
+                }
+            }
+        }
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
+            autoRefreshJob.cancel()
+            android.util.Log.d("OngoingChallenge", "🛑 자동 갱신 중단")
         }
     }
 
-    val groupInfo = uiState.groupInfo
     val rankings = uiState.rankings
 
     Box(
@@ -85,7 +111,7 @@ fun OngoingChallengeScreen(
 
             // 챌린지 제목
             Text(
-                text = groupInfo?.groupName ?: uiState.groupName,
+                text = uiState.groupName,
                 style = DitoTypography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
@@ -101,8 +127,8 @@ fun OngoingChallengeScreen(
                     .padding(horizontal = 40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val daysElapsed = groupInfo?.daysElapsed ?: 0
-                val daysTotal = groupInfo?.daysTotal ?: uiState.period
+                val daysElapsed = 0 // TODO: 챌린지 시작일부터 계산
+                val daysTotal = uiState.period
 
                 Box(
                     modifier = Modifier
@@ -136,7 +162,7 @@ fun OngoingChallengeScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val totalBet = groupInfo?.totalBetCoins ?: uiState.bet
+                val totalBet = uiState.bet
                 Text(
                     text = "Betting : $totalBet",
                     style = DitoCustomTextStyles.titleDLarge,
@@ -196,7 +222,8 @@ fun OngoingChallengeScreen(
                             backgroundImgUrl = backgroundImgUrl,
                             costumeImgUrl = costumeImgUrl,
                             isFirst = isFirst,
-                            isLast = isLast
+                            isLast = isLast,
+                            currentAppPackage = rankingItem.currentAppPackage
                         )
                     }
                 }
@@ -211,10 +238,10 @@ fun OngoingChallengeScreen(
                     .padding(horizontal = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val startDate = groupInfo?.startDate ?: uiState.startDate
-                val endDate = groupInfo?.endDate ?: uiState.endDate
-                val penalty = groupInfo?.penaltyDescription ?: uiState.penalty
-                val goal = groupInfo?.goalDescription ?: uiState.goal
+                val startDate = uiState.startDate
+                val endDate = uiState.endDate
+                val penalty = uiState.penalty
+                val goal = uiState.goal
 
                 // Period
                 InfoCard(
@@ -230,6 +257,19 @@ fun OngoingChallengeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+/**
+ * 앱 패키지 이름에 따라 커스텀 아이콘 리소스를 반환
+ */
+fun getAppIconResource(packageName: String?): Int {
+    return when (packageName) {
+        "com.google.android.youtube" -> R.drawable.ic_youtube
+        "com.instagram.android" -> R.drawable.ic_instagram
+        "com.android.chrome" -> R.drawable.ic_chrome
+        "com.twitter.android" -> R.drawable.ic_twitter
+        else -> R.drawable.ic_default_app
     }
 }
 
@@ -274,7 +314,8 @@ fun RankCard(
     backgroundImgUrl: String?,
     costumeImgUrl: String?,
     isFirst: Boolean,
-    isLast: Boolean
+    isLast: Boolean,
+    currentAppPackage: String? = null
 ) {
     Box(contentAlignment = Alignment.Center) {
         Column(
@@ -303,33 +344,51 @@ fun RankCard(
                 color = Color.Black
             )
 
-            // 캐릭터 이미지
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
-                    .background(Color.White, RoundedCornerShape(24.dp))
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
+            // 캐릭터 이미지 + 현재 앱 아이콘
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 배경 이미지 (먼저 그려짐)
-                if (backgroundImgUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = backgroundImgUrl,
-                        contentDescription = "$name background",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
+                // 캐릭터 이미지
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
+                        .background(Color.White, RoundedCornerShape(24.dp))
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // 배경 이미지 (먼저 그려짐)
+                    if (backgroundImgUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = backgroundImgUrl,
+                            contentDescription = "$name background",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+
+                    // 의상 이미지 (배경 위에 그려짐)
+                    if (costumeImgUrl != null) {
+                        coil.compose.AsyncImage(
+                            model = costumeImgUrl,
+                            contentDescription = "$name costume",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
                 }
 
-                // 의상 이미지 (배경 위에 그려짐)
-                if (costumeImgUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = costumeImgUrl,
-                        contentDescription = "$name costume",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                // 현재 사용 중인 앱 아이콘 (캐릭터 옆에 표시)
+                if (currentAppPackage != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Image(
+                        painter = painterResource(id = getAppIconResource(currentAppPackage)),
+                        contentDescription = "Current App",
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
                     )
                 }
             }
