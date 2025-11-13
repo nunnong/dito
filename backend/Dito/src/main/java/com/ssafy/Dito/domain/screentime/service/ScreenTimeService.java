@@ -5,12 +5,14 @@ import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
+import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
 import com.ssafy.Dito.domain.screentime.dto.request.ScreenTimeUpdateReq;
 import com.ssafy.Dito.domain.screentime.dto.request.UpdateCurrentAppReq;
 import com.ssafy.Dito.domain.screentime.dto.response.GroupRankingRes;
 import com.ssafy.Dito.domain.screentime.dto.response.ScreenTimeUpdateRes;
+import com.ssafy.Dito.domain.screentime.repository.CurrentAppUsageRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeDailySummaryRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeSnapshotRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,16 +43,14 @@ public class ScreenTimeService {
 
     private final ScreenTimeDailySummaryRepository summaryRepository;
     private final ScreenTimeSnapshotRepository snapshotRepository;
+    private final CurrentAppUsageRepository currentAppUsageRepository;  // ✅ 추가
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
 
     private static final int MAX_PARTICIPANTS = 6;
 
-    /**
-     * 사용자별 현재 사용 중인 앱 정보 저장
-     * Key: userId, Value: CurrentAppInfo
-     */
-    private final Map<Long, CurrentAppInfo> currentAppCache = new ConcurrentHashMap<>();
+    // ❌ 삭제: 메모리 캐시 사용 안 함
+    // private final Map<Long, CurrentAppInfo> currentAppCache = new ConcurrentHashMap<>();
 
     /**
      * 스크린타임 갱신 (5분마다 호출)
@@ -105,8 +105,8 @@ public class ScreenTimeService {
         );
         snapshotRepository.save(snapshot);
 
-        log.info("스크린타임 갱신 완료 - userId: {}, groupId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {},status: {}",
-            userId, request.groupId(), request.date(), request.totalMinutes(), request.youtubeMinutes(),status);
+        log.info("스크린타임 갱신 완료 - userId: {}, groupId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {}, status: {}",
+            userId, request.groupId(), request.date(), request.totalMinutes(), request.youtubeMinutes(), status);
 
         return ScreenTimeUpdateRes.of(
             request.groupId(),
@@ -120,48 +120,49 @@ public class ScreenTimeService {
 
     /**
      * 현재 사용 중인 앱 정보 갱신
+     * MongoDB current_app_usage 컬렉션에 저장 (upsert)
      * 안드로이드 앱에서 포그라운드 앱이 변경될 때마다 호출
      */
+    @Transactional
     public void updateCurrentApp(Long userId, UpdateCurrentAppReq request) {
-        log.info("📱 현재 앱 정보 갱신 - userId: {}, appPackage: {}, appName: {}",
-            userId, request.appPackage(), request.appName());
+        log.info("📱 현재 앱 정보 갱신 - userId: {}, groupId: {}, appPackage: {}, appName: {}",
+            userId, request.groupId(), request.appPackage(), request.appName());
 
-        currentAppCache.put(userId, new CurrentAppInfo(
-            request.appPackage(),
-            request.appName(),
-            System.currentTimeMillis()
-        ));
+        // ✅ MongoDB에 저장 (upsert)
+        CurrentAppUsage existing = currentAppUsageRepository
+            .findByGroupIdAndUserId(request.groupId(), userId)
+            .orElse(null);
+
+        if (existing == null) {
+            // 신규 생성
+            CurrentAppUsage newAppUsage = CurrentAppUsage.create(
+                request.groupId(),
+                userId,
+                request.appPackage(),
+                request.appName()
+            );
+            currentAppUsageRepository.save(newAppUsage);
+            log.info("  ✅ 현재 앱 정보 생성 완료 - userId: {}, appName: {}", userId, request.appName());
+        } else {
+            // 기존 데이터 업데이트
+            existing.update(request.appPackage(), request.appName());
+            currentAppUsageRepository.save(existing);
+            log.info("  ✅ 현재 앱 정보 업데이트 완료 - userId: {}, appName: {}", userId, request.appName());
+        }
     }
 
-    /**
-     * 현재 사용 중인 앱 정보 조회
-     * 5분 이상 지난 정보는 null 반환 (앱 사용 중이 아닌 것으로 간주)
-     */
-    private CurrentAppInfo getCurrentApp(Long userId) {
-        CurrentAppInfo info = currentAppCache.get(userId);
-
-        if (info == null) {
-            return null;
-        }
-
-        // 5분(300초) 이상 지난 정보는 무효 처리
-        long elapsedSeconds = (System.currentTimeMillis() - info.timestamp) / 1000;
-        if (elapsedSeconds > 300) {
-            currentAppCache.remove(userId);
-            return null;
-        }
-
-        return info;
-    }
+    // ❌ 삭제: getCurrentApp() 메서드 삭제 (메모리 캐시 사용 안 함)
 
     /**
      * 그룹 챌린지 랭킹 조회
-     * - 유튜브 사용시간이 적은 순으로 정렬
+     * - YouTube 사용시간이 적은 순으로 정렬
      * - 그룹 정보 + 참여자 상세 정보 포함
-     * - 현재 사용 중인 앱 정보 포함
+     * - 현재 사용 중인 앱 정보 포함 (실시간 업데이트)
      */
     @Transactional(readOnly = true)
     public GroupRankingRes getGroupRanking(Long groupId, Long currentUserId) {
+        log.info("📊 랭킹 조회 시작 - groupId: {}, currentUserId: {}", groupId, currentUserId);
+
         // 그룹 정보 조회
         GroupChallenge group = groupChallengeRepository.findById(groupId)
             .orElseThrow(GroupNotFoundException::new);
@@ -211,6 +212,7 @@ public class ScreenTimeService {
 
         // 챌린지가 시작하지 않았으면 빈 랭킹 반환
         if (startDate == null || endDate == null) {
+            log.info("  ⚠️ 챌린지 미시작 - 빈 랭킹 반환");
             return GroupRankingRes.of(groupInfo, List.of());
         }
 
@@ -224,6 +226,17 @@ public class ScreenTimeService {
         for (ScreenTimeDailySummary s : summaries) {
             log.info("  - userId: {}, date: {}, totalMinutes: {}, youtubeMinutes: {}",
                 s.getUserId(), s.getDate(), s.getTotalMinutes(), s.getYoutubeMinutes());
+        }
+
+        // ✅ MongoDB에서 현재 앱 정보 조회 (실시간 업데이트)
+        List<CurrentAppUsage> currentApps = currentAppUsageRepository.findAllByGroupId(groupId);
+        Map<Long, CurrentAppUsage> currentAppMap = currentApps.stream()
+            .collect(Collectors.toMap(CurrentAppUsage::getUserId, app -> app));
+
+        log.info("📱 현재 앱 정보 조회 결과 - count: {}", currentApps.size());
+        for (CurrentAppUsage app : currentApps) {
+            log.info("  - userId: {}, appName: {}, appPackage: {}, lastUpdated: {}",
+                app.getUserId(), app.getAppName(), app.getAppPackage(), app.getLastUpdatedAt());
         }
 
         // 사용자별 총 스크린타임 집계
@@ -249,7 +262,7 @@ public class ScreenTimeService {
         }
 
         log.info("📊 집계된 사용자별 총 스크린타임: {}", userTotalTime);
-        log.info("📊 집계된 사용자별 유튜브 시간: {}", userYoutubeTime);
+        log.info("📊 집계된 사용자별 YouTube 시간: {}", userYoutubeTime);
 
         // 참여자별 베팅 코인 정보
         Map<Long, Integer> userBetCoins = participants.stream()
@@ -258,7 +271,7 @@ public class ScreenTimeService {
                 GroupParticipant::getBetCoins
             ));
 
-        // 랭킹 계산 (유튜브 사용시간 적은 순)
+        // 랭킹 계산 (YouTube 사용시간 적은 순)
         final int finalDaysElapsed = daysElapsed;
         AtomicInteger rankCounter = new AtomicInteger(1);
         List<GroupRankingRes.ParticipantRank> rankings = participants.stream()
@@ -271,7 +284,7 @@ public class ScreenTimeService {
 
                 return Map.entry(uid, new RankingData(nickname, totalMinutes, youtubeMinutes, betCoins));
             })
-            .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (유튜브 시간 기준)
+            .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (YouTube 시간 기준)
             .map(entry -> {
                 Long uid = entry.getKey();
                 RankingData data = entry.getValue();
@@ -283,31 +296,31 @@ public class ScreenTimeService {
                 // 1등은 총 베팅 코인을 모두 가져감
                 Integer potentialPrize = (rank == 1) ? group.getTotalBetCoins() : 0;
 
-                // 현재 사용 중인 앱 정보 조회
-                CurrentAppInfo currentApp = getCurrentApp(uid);
-                String currentAppPackage = currentApp != null ? currentApp.appPackage : null;
-                String currentAppName = currentApp != null ? currentApp.appName : null;
+                // ✅ MongoDB에서 현재 앱 정보 조회 (실시간)
+                CurrentAppUsage currentApp = currentAppMap.get(uid);
+                String currentAppPackage = currentApp != null ? currentApp.getAppPackage() : null;
+                String currentAppName = currentApp != null ? currentApp.getAppName() : null;
 
-                log.info("  - 랭킹 {}위: userId={}, nickname={}, youtubeMinutes={}, currentApp={}",
-                    rank, uid, data.nickname, data.youtubeMinutes, currentAppName);
+                log.info("  - 랭킹 {}위: userId={}, nickname={}, youtubeMinutes={}, avgYoutubeMinutes={}m, currentApp={}",
+                    rank, uid, data.nickname, data.youtubeMinutes, (int)avgYoutubeMinutes, currentAppName);
 
                 return GroupRankingRes.ParticipantRank.of(
                     rank,
                     uid,
                     data.nickname,
                     null, // 프로필 이미지 (User 엔티티에 없음)
-                    formatTime(data.youtubeMinutes), // 유튜브 총 시간
-                    formatTime((int) avgYoutubeMinutes), // 유튜브 평균 시간
+                    formatTime(data.youtubeMinutes),        // ✅ YouTube 총 시간
+                    formatTime((int) avgYoutubeMinutes),    // ✅ YouTube 일평균 시간
                     data.betCoins,
                     potentialPrize,
                     uid.equals(currentUserId),
-                    currentAppPackage,  // 현재 앱 패키지명
-                    currentAppName      // 현재 앱 이름
+                    currentAppPackage,  // ✅ 실시간 현재 앱 패키지
+                    currentAppName      // ✅ 실시간 현재 앱 이름
                 );
             })
             .collect(Collectors.toList());
 
-        log.info("📊 최종 랭킹 (유튜브 시간 기준): {}", rankings);
+        log.info("📊 최종 랭킹 (YouTube 시간 기준): {}", rankings);
 
         return GroupRankingRes.of(groupInfo, rankings);
     }
@@ -330,17 +343,17 @@ public class ScreenTimeService {
 
     /**
      * 랭킹 정렬을 위한 내부 데이터 클래스
-     * 유튜브 사용시간 기준으로 정렬
+     * YouTube 사용시간 기준으로 정렬
      */
     private record RankingData(String nickname, int totalMinutes, int youtubeMinutes, int betCoins)
         implements Comparable<RankingData> {
 
         @Override
         public int compareTo(RankingData other) {
-            // 유튜브 사용시간 적은 순으로 정렬
+            // YouTube 사용시간 적은 순으로 정렬
             int youtubeCompare = Integer.compare(this.youtubeMinutes, other.youtubeMinutes);
 
-            // 유튜브 시간이 같으면 총 스크린타임으로 비교
+            // YouTube 시간이 같으면 총 스크린타임으로 비교
             if (youtubeCompare == 0) {
                 return Integer.compare(this.totalMinutes, other.totalMinutes);
             }
@@ -349,14 +362,7 @@ public class ScreenTimeService {
         }
     }
 
-    /**
-     * 현재 앱 정보 저장 클래스
-     */
-    private record CurrentAppInfo(
-        String appPackage,
-        String appName,
-        long timestamp
-    ) {}
+    // ❌ 삭제: CurrentAppInfo 레코드 삭제 (MongoDB 사용)
 
     /**
      * 특정 사용자의 특정 기간 스크린타임 조회
