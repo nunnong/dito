@@ -22,6 +22,7 @@ import com.dito.app.feature.closet.ClosetScreen
 import com.dito.app.feature.group.GroupScreen
 import com.dito.app.feature.home.HomeScreen
 import com.dito.app.feature.missionNotification.MissionNotificationScreen
+import com.dito.app.feature.report.DailyReportScreen
 import com.dito.app.feature.settings.SettingScreen
 import com.dito.app.feature.settings.EditNotiCount
 import com.dito.app.feature.settings.ChangeNickName
@@ -127,9 +128,9 @@ fun MainScreen(
                     if (it == BottomTab.MISSION) innerNavController.navigate(Route.MissionNotification.path) {
                         launchSingleTop = true
                     }
-//                    if (it == BottomTab.REPORT) innerNavController.navigate(Route.Report.path) {
-//                        launchSingleTop = true
-//                    }
+                    if (it == BottomTab.REPORT) innerNavController.navigate(Route.Report.path) {
+                        launchSingleTop = true
+                    }
 
                 }
             )
@@ -161,6 +162,9 @@ fun MainScreen(
             }
             composable(Route.GroupRoot.path) {
                 GroupScreen(navController = innerNavController)
+            }
+            composable(Route.Report.path) {
+                DailyReportScreen()
             }
             composable(Route.SettingRoot.path) {
                 SettingScreen(
