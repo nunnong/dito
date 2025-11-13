@@ -71,10 +71,10 @@ class SignUpProfileViewModel @Inject constructor() : ViewModel() {
 
     private fun validateNickname(nickname: String): String {
         // 1~7자의 영문 또는 한글만 허용
-        val pattern = Regex("^[a-zA-Z가-힣]{1,7}$")
+        val pattern = Regex("^[a-zA-Z가-힣0-9]{1,7}$")
         return when {
             nickname.isEmpty() -> ""
-            !pattern.matches(nickname) -> "닉네임은 1~7자의 영문, 한글입니다."
+            !pattern.matches(nickname) -> "닉네임은 1~7자의 영문, 한글, 숫자입니다."
             else -> ""
         }
     }
