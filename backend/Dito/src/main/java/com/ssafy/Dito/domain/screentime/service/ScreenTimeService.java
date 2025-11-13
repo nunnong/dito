@@ -194,28 +194,6 @@ public class ScreenTimeService {
         List<GroupParticipant> participants = groupParticipantRepository.findAllByIdGroup(group);
         long participantCount = participants.size();
 
-        GroupRankingRes.GroupInfo groupInfo = GroupRankingRes.GroupInfo.of(
-            group.getId(),
-            group.getGroupName(),
-            startDate,
-            endDate,
-            group.getGoalDescription(),
-            group.getPenaltyDescription(),
-            group.getTotalBetCoins(),
-            group.getStatus(),
-            daysElapsed,
-            daysTotal,
-            Math.round(progressPercentage * 10.0) / 10.0, // 소수점 1자리
-            (int) participantCount,
-            MAX_PARTICIPANTS
-        );
-
-        // 챌린지가 시작하지 않았으면 빈 랭킹 반환
-        if (startDate == null || endDate == null) {
-            log.info("  ⚠️ 챌린지 미시작 - 빈 랭킹 반환");
-            return GroupRankingRes.of(groupInfo, List.of());
-        }
-
         // Summary 데이터 조회 (챌린지 기간 내)
         List<ScreenTimeDailySummary> summaries = summaryRepository
             .findByGroupIdAndDateBetween(groupId, startDate.toString(), endDate.toString());
@@ -322,7 +300,7 @@ public class ScreenTimeService {
 
         log.info("📊 최종 랭킹 (YouTube 시간 기준): {}", rankings);
 
-        return GroupRankingRes.of(groupInfo, rankings);
+        return GroupRankingRes.of(rankings);
     }
 
     /**
