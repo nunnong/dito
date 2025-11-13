@@ -86,7 +86,6 @@ fun OngoingChallengeScreen(
         }
     }
 
-    val groupInfo = uiState.groupInfo
     val rankings = uiState.rankings
 
     Box(
@@ -112,7 +111,7 @@ fun OngoingChallengeScreen(
 
             // 챌린지 제목
             Text(
-                text = groupInfo?.groupName ?: uiState.groupName,
+                text = uiState.groupName,
                 style = DitoTypography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
@@ -128,8 +127,8 @@ fun OngoingChallengeScreen(
                     .padding(horizontal = 40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                val daysElapsed = groupInfo?.daysElapsed ?: 0
-                val daysTotal = groupInfo?.daysTotal ?: uiState.period
+                val daysElapsed = 0 // TODO: 챌린지 시작일부터 계산
+                val daysTotal = uiState.period
 
                 Box(
                     modifier = Modifier
@@ -163,7 +162,7 @@ fun OngoingChallengeScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val totalBet = groupInfo?.totalBetCoins ?: uiState.bet
+                val totalBet = uiState.bet
                 Text(
                     text = "Betting : $totalBet",
                     style = DitoCustomTextStyles.titleDLarge,
@@ -239,10 +238,10 @@ fun OngoingChallengeScreen(
                     .padding(horizontal = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val startDate = groupInfo?.startDate ?: uiState.startDate
-                val endDate = groupInfo?.endDate ?: uiState.endDate
-                val penalty = groupInfo?.penaltyDescription ?: uiState.penalty
-                val goal = groupInfo?.goalDescription ?: uiState.goal
+                val startDate = uiState.startDate
+                val endDate = uiState.endDate
+                val penalty = uiState.penalty
+                val goal = uiState.goal
 
                 // Period
                 InfoCard(

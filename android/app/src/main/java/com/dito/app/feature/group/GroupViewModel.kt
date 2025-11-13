@@ -53,7 +53,6 @@ data class GroupChallengeUiState(
     val joinedGroupPeriod: Int = 0,
     val challengeStatus: ChallengeStatus = ChallengeStatus.NO_CHALLENGE,
     val participants: List<Participant> = emptyList(),
-    val groupInfo: GroupInfo? = null,
     val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null
 )
@@ -381,7 +380,6 @@ class GroupChallengeViewModel @Inject constructor(
             startDate = "",
             endDate = "",
             participants = emptyList(),
-            groupInfo = null,
             rankings = emptyList()
         )
     }
@@ -529,9 +527,8 @@ class GroupChallengeViewModel @Inject constructor(
     fun loadRanking() {
         viewModelScope.launch {
             try {
-                // groupInfo 외에도 GroupManager에서 groupId 가져오기
-                val groupId = _uiState.value.groupInfo?.groupId
-                    ?: groupManager.getGroupId()
+                // GroupManager에서 groupId 가져오기
+                val groupId = groupManager.getGroupId()
 
                 if (groupId == 0L) {
                     Log.w("GroupViewModel", "⚠️ groupId가 없어 랭킹 조회 스킵")
@@ -545,11 +542,9 @@ class GroupChallengeViewModel @Inject constructor(
                 response.fold(
                     onSuccess = { rankingRes ->
                         _uiState.value = _uiState.value.copy(
-                            rankings = rankingRes.rankings,
-                            groupInfo = rankingRes.groupInfo
+                            rankings = rankingRes.rankings
                         )
                         Log.d("GroupViewModel", "✅ 랭킹 조회 성공 - ${rankingRes.rankings.size}명")
-
 
                         rankingRes.rankings.forEach { rank ->
                             Log.d("GroupViewModel", "  ${rank.rank}위: ${rank.nickname} - ${rank.totalScreenTimeFormatted}")

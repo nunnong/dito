@@ -5,8 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class GetRankingResponse(
-    @SerialName("groupInfo")
-    val groupInfo: GroupInfo,
     @SerialName("rankings")
     val rankings: List<RankingItem>
 )

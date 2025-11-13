@@ -23,7 +23,6 @@ import javax.inject.Inject
 
 data class ChallengeResultUiState(
     val isLoading: Boolean = false,
-    val groupInfo: GroupInfo? = null,
     val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null
 )
@@ -61,7 +60,6 @@ class ChallengeResultViewModel @Inject constructor(
                 onSuccess = { ranking ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        groupInfo = ranking.groupInfo,
                         rankings = ranking.rankings,
                         errorMessage = null
                     )

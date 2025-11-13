@@ -103,10 +103,9 @@ fun ChallengeResultScreen(
         return
     }
 
-    val groupInfo = uiState.groupInfo
     val rankings = uiState.rankings
 
-    if (groupInfo == null) {
+    if (rankings.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -175,7 +174,7 @@ fun ChallengeResultScreen(
                     .padding(horizontal = l)
             ) {
                 ChallengeResultContent(
-                    groupInfo = groupInfo,
+                    groupInfo = null,  // TODO: 그룹 정보를 별도 API에서 가져오거나 로컬에 저장 필요
                     rankings = rankings,
                     onClose = onClose,
                     onSave = onSaveClick
@@ -202,7 +201,7 @@ fun ChallengeResultScreen(
                                     .padding(horizontal = 24.dp)
                             ) {
                                 ChallengeResultContent(
-                                    groupInfo = groupInfo,
+                                    groupInfo = null,
                                     rankings = rankings,
                                     onClose = {},
                                     onSave = {},
@@ -222,7 +221,7 @@ fun ChallengeResultScreen(
 
 @Composable
 fun ChallengeResultContent(
-    groupInfo: com.dito.app.core.data.group.GroupInfo,
+    groupInfo: com.dito.app.core.data.group.GroupInfo?,
     rankings: List<com.dito.app.core.data.group.RankingItem>,
     onClose: () -> Unit,
     onSave: () -> Unit,
@@ -246,7 +245,7 @@ fun ChallengeResultContent(
 
             // 제목
             Text(
-                text = "${groupInfo.groupName}의\n챌린지가 종료되었습니다.",
+                text = "${groupInfo?.groupName ?: "그룹"}의\n챌린지가 종료되었습니다.",
                 style = DitoCustomTextStyles.titleKLarge,
                 color = OnSurface,
                 modifier = Modifier.fillMaxWidth(),
@@ -257,7 +256,11 @@ fun ChallengeResultContent(
 
             // 기간
             Text(
-                text = formatDateRange(groupInfo.startDate, groupInfo.endDate),
+                text = if (groupInfo != null) {
+                    formatDateRange(groupInfo.startDate, groupInfo.endDate)
+                } else {
+                    ""
+                },
                 style = DitoCustomTextStyles.titleKSmall,
                 color = OnSurfaceVariant,
                 modifier = Modifier.fillMaxWidth(),
@@ -273,7 +276,7 @@ fun ChallengeResultContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Betting : ${groupInfo.totalBetCoins}",
+                    text = "Betting : ${groupInfo?.totalBetCoins ?: 0}",
                     style = DitoCustomTextStyles.titleDLarge,
                     color = OnSurface
                 )
@@ -344,7 +347,7 @@ fun ChallengeResultContent(
             if (lastPlace != null) {
                 PenaltyCardSection(
                     penaltyRecipient = lastPlace.nickname,
-                    penaltyDescription = groupInfo.penaltyDescription
+                    penaltyDescription = groupInfo?.penaltyDescription ?: "벌칙 없음"
                 )
             }
 
