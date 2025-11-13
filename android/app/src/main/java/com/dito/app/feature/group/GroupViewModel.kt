@@ -2,7 +2,6 @@ package com.dito.app.feature.group
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dito.app.core.data.group.GroupInfo
 import com.dito.app.core.data.group.Participant
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
@@ -17,8 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 enum class ChallengeStatus {

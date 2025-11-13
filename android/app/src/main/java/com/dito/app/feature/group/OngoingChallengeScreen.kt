@@ -92,73 +92,69 @@ fun OngoingChallengeScreen(
 
     val rankings = uiState.rankings
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFD9D9D9))
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
     ) {
-        // 배경 이미지
+        // 상단 레몬나무 배경 이미지
         Image(
-            painter = painterResource(id = R.drawable.race),
+            painter = painterResource(id = R.drawable.lemontree),
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alpha = 0.8f
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(615.dp),
+            contentScale = ContentScale.Crop
         )
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 참여자 4명 리스트 (랭킹 API에서 가져온 데이터)
+        if (rankings.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                rankings.take(4).forEach { rankingItem ->
+                    val participant =
+                        uiState.participants.find { it.userId == rankingItem.userId }
+
+                    ParticipantCard(
+                        rank = rankingItem.rank,
+                        nickname = rankingItem.nickname,
+                        profileImage = rankingItem.profileImage,
+                        totalScreenTime = rankingItem.totalScreenTimeFormatted,
+                        avgDailyScreenTime = rankingItem.avgDailyScreenTimeFormatted,
+                        currentAppName = rankingItem.currentAppName,
+                        currentAppPackage = rankingItem.currentAppPackage,
+                        isMe = rankingItem.isMe
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 그룹 정보 섹션
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-
             // 챌린지 제목
             Text(
                 text = uiState.groupName,
                 style = DitoTypography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = Color.Black
             )
 
             Spacer(Modifier.height(16.dp))
-
-            // 진행 상황 바
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val daysElapsed = 0 // TODO: 챌린지 시작일부터 계산
-                val daysTotal = uiState.period
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(if (daysTotal > 0) daysElapsed.toFloat() / daysTotal.toFloat() else 0f)
-                            .fillMaxHeight()
-                            .background(Color.Black)
-                    )
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = "${daysElapsed}일 / ${daysTotal}일",
-                    style = DitoCustomTextStyles.titleKSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
 
             // Betting 정보
             Row(
@@ -166,11 +162,11 @@ fun OngoingChallengeScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val totalBet = uiState.bet
                 Text(
-                    text = "Betting : $totalBet",
+                    text = "Total Betting : ${uiState.bet}",
                     style = DitoCustomTextStyles.titleDLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -182,84 +178,153 @@ fun OngoingChallengeScreen(
                 )
             }
 
+            Spacer(Modifier.height(24.dp))
+
+            // 챌린지 정보 카드들
+            InfoCard(
+                icon = R.drawable.period,
+                title = "PERIOD",
+                value = "${uiState.startDate} - ${uiState.endDate}"
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            InfoCard(
+                icon = R.drawable.goal,
+                title = "GOAL",
+                value = uiState.goal
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            InfoCard(
+                icon = R.drawable.penalty,
+                title = "PENALTY",
+                value = uiState.penalty
+            )
+
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
 
-            // 랭킹 카드들 (동적으로 생성)
-            if (rankings.isNotEmpty()) {
-                Row(
+@Composable
+fun ParticipantCard(
+    rank: Int,
+    nickname: String,
+    profileImage: String?,
+    totalScreenTime: String,
+    avgDailyScreenTime: String,
+    currentAppName: String?,
+    currentAppPackage: String?,
+    isMe: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .width(80.dp)
+            .border(
+                width = if (isMe) 3.dp else 2.dp,
+                color = if (isMe) Color(0xFFFDD835) else Color.Black,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .background(Color.White, RoundedCornerShape(12.dp))
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // 순위 배지
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .background(
+                    when (rank) {
+                        1 -> Color(0xFFFDD835) // 금색
+                        2 -> Color(0xFFC0C0C0) // 은색
+                        3 -> Color(0xFFCD7F32) // 동색
+                        else -> Color(0xFFFF5722) // 빨간색
+                    },
+                    RoundedCornerShape(12.dp)
+                )
+                .border(1.dp, Color.Black, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$rank",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        }
+
+        // 프로필 이미지
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
+                .background(Color(0xFFE0E0E0), RoundedCornerShape(24.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (profileImage != null) {
+                coil.compose.AsyncImage(
+                    model = profileImage,
+                    contentDescription = "$nickname profile",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else {
+                // 기본 프로필 아이콘
+                Text(
+                    text = nickname.take(1).uppercase(),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        // 닉네임
+        Text(
+            text = nickname,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+
+        // 누적 시간
+        Text(
+            text = totalScreenTime,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Normal,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+
+        // 현재 사용 중인 앱 아이콘
+        if (currentAppPackage != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    painter = painterResource(id = getAppIconResource(currentAppPackage)),
+                    contentDescription = "Current App",
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    rankings.take(4).forEach { rankingItem ->
-                        val participant =
-                            uiState.participants.find { it.userId == rankingItem.userId }
-                        val backgroundImgUrl =
-                            participant?.equipedItems?.find { it.type == "background" }?.imgUrl
-                        val costumeImgUrl =
-                            participant?.equipedItems?.find { it.type == "costume" }?.imgUrl
-
-                        val backgroundColor = when (rankingItem.rank) {
-                            1 -> Color(0xFFFDD835) // 1등: 노란색
-                            2, 3 -> Color.White // 2, 3등: 흰색
-                            else -> Color(0xFFFF5722) // 4등 이상: 빨간색
-                        }
-                        val height = when (rankingItem.rank) {
-                            1 -> 200.dp
-                            2 -> 180.dp
-                            3 -> 160.dp
-                            else -> 140.dp
-                        }
-
-                        val isFirst = rankingItem.rank == 1
-                        val isLast =
-                            rankingItem.rank == uiState.participants.size && uiState.participants.size > 1
-
-                        RankCard(
-                            rank = rankingItem.rank.toString(),
-                            name = rankingItem.nickname,
-                            time = rankingItem.totalScreenTimeFormatted,
-                            backgroundColor = backgroundColor,
-                            height = height,
-                            backgroundImgUrl = backgroundImgUrl,
-                            costumeImgUrl = costumeImgUrl,
-                            isFirst = isFirst,
-                            isLast = isLast,
-                            currentAppPackage = rankingItem.currentAppPackage
-                        )
-                    }
+                        .size(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                )
+                if (currentAppName != null) {
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = currentAppName,
+                        fontSize = 8.sp,
+                        color = Color.Gray,
+                        maxLines = 1
+                    )
                 }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // RACE INFO
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val startDate = uiState.startDate
-                val endDate = uiState.endDate
-                val penalty = uiState.penalty
-                val goal = uiState.goal
-
-                // Period
-                InfoCard(
-                    icon = R.drawable.period,
-                    title = "PERIOD",
-                    value = "$startDate - $endDate"
-                )
-                // Penalty
-                InfoCard(icon = R.drawable.penalty, title = "PENALTY", value = penalty)
-                // Goal
-                InfoCard(icon = R.drawable.goal, title = "GOAL", value = goal)
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
@@ -308,126 +373,3 @@ fun InfoCard(icon: Int, title: String, value: String) {
     }
 }
 
-@Composable
-fun RankCard(
-    rank: String,
-    name: String,
-    time: String,
-    backgroundColor: Color,
-    height: Dp,
-    backgroundImgUrl: String?,
-    costumeImgUrl: String?,
-    isFirst: Boolean,
-    isLast: Boolean,
-    currentAppPackage: String? = null
-) {
-    Box(contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier
-                .width(80.dp)
-                .height(height)
-                .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                .background(backgroundColor, RoundedCornerShape(12.dp))
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // 누적 시간
-            Text(
-                text = time,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
-            // 순위
-            Text(
-                text = rank,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
-            // 캐릭터 이미지 + 현재 앱 아이콘
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 캐릭터 이미지
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
-                        .background(Color.White, RoundedCornerShape(24.dp))
-                        .padding(4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // 배경 이미지 (먼저 그려짐)
-                    if (backgroundImgUrl != null) {
-                        coil.compose.AsyncImage(
-                            model = backgroundImgUrl,
-                            contentDescription = "$name background",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                    }
-
-                    // 의상 이미지 (배경 위에 그려짐)
-                    if (costumeImgUrl != null) {
-                        coil.compose.AsyncImage(
-                            model = costumeImgUrl,
-                            contentDescription = "$name costume",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                        )
-                    }
-                }
-
-                // 현재 사용 중인 앱 아이콘 (캐릭터 옆에 표시)
-                if (currentAppPackage != null) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Image(
-                        painter = painterResource(id = getAppIconResource(currentAppPackage)),
-                        contentDescription = "Current App",
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                }
-            }
-
-            // 이름
-            Text(
-                text = name,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        if (isFirst) {
-            Image(
-                painter = painterResource(id = R.drawable.crown),
-                contentDescription = "Crown",
-                modifier = Modifier
-                    .size(40.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-20).dp)
-            )
-        }
-
-        if (isLast) {
-            Image(
-                painter = painterResource(id = R.drawable.hammer),
-                contentDescription = "Hammer",
-                modifier = Modifier
-                    .size(60.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = 10.dp, y = 20.dp)
-                    .rotate(-30f)
-            )
-        }
-    }
-}
