@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidNickname {
 
-    String message() default "닉네임은 1~7자의 영문 또는 한글만 가능합니다.";
+    String message() default "닉네임은 1~7자의 영문, 숫자, 한글만 가능합니다.";
 
     Class<?>[] groups() default {};
 
