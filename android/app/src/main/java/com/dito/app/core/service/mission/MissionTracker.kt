@@ -2,9 +2,11 @@ package com.dito.app.core.service.mission
 
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -27,6 +29,7 @@ class MissionTracker @Inject constructor(
 ){
     companion object{
         private const val TAG = "MissionTracker"
+        private const val START_DELAY_SECONDS = 20
 
         @Volatile
         private var currentMissionId: String? = null
@@ -48,8 +51,6 @@ class MissionTracker @Inject constructor(
     private var startTrackingRunnable: Runnable? = null
 
     fun startTracking(missionData: MissionData){
-        val DELAY_SECONDS = 20L
-
         if (currentMissionId == missionData.missionId) {
             Log.w(TAG, "⚠️ 이미 추적 중인 미션: ${missionData.missionId}")
             return
@@ -64,15 +65,16 @@ class MissionTracker @Inject constructor(
         }
 
         Log.i(TAG, "🎯 미션 수신: ${missionData.missionId}")
-        Log.d(TAG, "   ⏳ ${DELAY_SECONDS}초 후 추적 시작 예정")
         Log.d(TAG, "   타입: ${missionData.missionType}")
         Log.d(TAG, "   지시: ${missionData.instruction}")
+        Log.d(TAG, "   ${START_DELAY_SECONDS}초 후 시작 예정")
 
-        // 20초 후에 실제 추적 시작
+        // 20초 후 추적 시작 (Progress 알림 표시)
         startTrackingRunnable = Runnable {
+            Log.i(TAG, "⏰ ${START_DELAY_SECONDS}초 대기 완료 - 미션 시작")
             actualStartTracking(missionData)
         }
-        handler.postDelayed(startTrackingRunnable!!, DELAY_SECONDS * 1000L)
+        handler.postDelayed(startTrackingRunnable!!, START_DELAY_SECONDS * 1000L)
     }
 
     private fun actualStartTracking(missionData: MissionData) {
@@ -95,11 +97,25 @@ class MissionTracker @Inject constructor(
         Log.d(TAG, "   시작 시간: ${Checker.formatTimestamp(actualStartTime)}")
         Log.d(TAG, "   종료 예정: ${Checker.formatTimestamp(actualStartTime + missionData.durationSeconds * 1000L)}")
 
+        // MissionProgressService 시작 (Progress 알림 표시)
+        val serviceIntent = Intent(context, MissionProgressService::class.java).apply {
+            putExtra("mission_id", missionData.missionId)
+            putExtra("mission_type", missionData.missionType)
+            putExtra("instruction", missionData.instruction)
+            putExtra("duration_seconds", missionData.durationSeconds)
+            putExtra("coin_reward", missionData.coinReward)
+            putExtra("deep_link", missionData.deepLink)
+            putExtra("start_time_ms", actualStartTime)
+            putExtra("delay_seconds", START_DELAY_SECONDS)
+        }
+        ContextCompat.startForegroundService(context, serviceIntent)
+        Log.d(TAG, "🔔 MissionProgressService 시작")
+
         // 미션 시작 시 현재 사용 중인 앱 기록
         recordCurrentApp()
 
-        // 미션 시간만큼 후에 평가 예약
-        scheduleEvaluation(missionData, 0L)
+        // 미션 시간 + 딜레이 후에 평가 예약
+        scheduleEvaluation(missionData, START_DELAY_SECONDS.toLong())
     }
 
     // 미션 시작 시 현재 앱 기록
@@ -295,6 +311,15 @@ class MissionTracker @Inject constructor(
 
     fun stopTracking(){
         Log.i(TAG, "미션 추적 종료: $currentMissionId")
+
+        // MissionProgressService 중지
+        try {
+            context.stopService(Intent(context, MissionProgressService::class.java))
+            Log.d(TAG, "🔔 MissionProgressService 중지")
+        } catch (e: Exception) {
+            Log.e(TAG, "MissionProgressService 중지 실패", e)
+        }
+
         startTrackingRunnable?.let { handler.removeCallbacks(it) }
         startTrackingRunnable = null
         currentMissionId = null

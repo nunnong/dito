@@ -207,7 +207,8 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 instruction = instruction,
                 durationSeconds = duration,
                 targetApps = targetApps,
-                coinReward = coinReward.toIntOrNull() ?: 10
+                coinReward = coinReward.toIntOrNull() ?: 10,
+                deepLink = deepLink
             )
         )
 

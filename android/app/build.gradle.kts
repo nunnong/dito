@@ -25,7 +25,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "true")
         }
         release {
             isMinifyEnabled = false
