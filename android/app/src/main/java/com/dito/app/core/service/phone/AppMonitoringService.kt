@@ -201,8 +201,8 @@ class AppMonitoringService : AccessibilityService() {
 
                     Log.d(TAG, "📤 YouTube 사용 중 - 스크린타임 전송 완료")
 
-                    // 30초 대기
-                    delay(30 * 1000L)
+                    // 20초 대기
+                    delay(20 * 1000L)
 
                 } catch (e: Exception) {
                     Log.e(TAG, "❌ YouTube 주기적 전송 오류", e)

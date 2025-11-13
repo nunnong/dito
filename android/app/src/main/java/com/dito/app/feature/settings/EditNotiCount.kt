@@ -38,7 +38,7 @@ fun EditNotiCount(
     val initialOption = remember {
         when (savedFrequency) {
             "LOW" -> 0
-            "MEDIUM" -> 1
+            "NORMAL" -> 1
             "HIGH" -> 2
             else -> 1
         }
@@ -47,12 +47,15 @@ fun EditNotiCount(
     var selectedOption by remember { mutableStateOf(initialOption) }
     val uiState by viewModel.uiState.collectAsState()
 
+    // 옵션이 변경되었는지 확인 (초기값과 비교)
+    val hasChanged = selectedOption != initialOption
+
     fun getFrequencyString(option: Int): String {
         return when (option) {
             0 -> "LOW"
-            1 -> "MEDIUM"
+            1 -> "NORMAL"
             2 -> "HIGH"
-            else -> "MEDIUM"
+            else -> "NORMAL"
         }
     }
 
@@ -130,9 +133,9 @@ fun EditNotiCount(
                 // 카운터 컨트롤 Row
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.l),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.m),
+                        .fillMaxWidth(0.7f)
+                        .align(Alignment.CenterHorizontally),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Minus Button
@@ -144,7 +147,9 @@ fun EditNotiCount(
                                 if (selectedOption == 0) Primary else Color.White,  // 선택 시 노란색
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { selectedOption = 0}
+                            .clickable {
+                                selectedOption = 0
+                            }
                             .padding(vertical = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -163,7 +168,9 @@ fun EditNotiCount(
                                 if (selectedOption == 1) Primary else Color.White,  // 선택 시 노란색
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { selectedOption = 1 }
+                            .clickable {
+                                selectedOption = 1
+                            }
                             .padding(vertical = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -183,7 +190,9 @@ fun EditNotiCount(
                                 if (selectedOption == 2) Primary else Color.White,  // 선택 시 노란색
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { selectedOption = 2}
+                            .clickable {
+                                selectedOption = 2
+                            }
                             .padding(vertical = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -195,12 +204,12 @@ fun EditNotiCount(
                     }
                 }
 
-                Spacer(Modifier.height(Spacing.l))
+                Spacer(Modifier.height(Spacing.m))
 
                 // 확인 버튼
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
+                        .fillMaxWidth(0.7f)
                         .hardShadow(
                             offsetX = 4.dp,
                             offsetY = 4.dp,
@@ -209,10 +218,14 @@ fun EditNotiCount(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Primary)
+                        .background(if (hasChanged) Primary else Color.White)
                         .clickable {
-                            val frequency = getFrequencyString(selectedOption)
-                            viewModel.updateFrequency(frequency) {
+                            if (hasChanged) {
+                                val frequency = getFrequencyString(selectedOption)
+                                viewModel.updateFrequency(frequency) {
+                                    onDismiss()
+                                }
+                            } else {
                                 onDismiss()
                             }
                         }
@@ -226,7 +239,7 @@ fun EditNotiCount(
                     )
                 }
 
-                Spacer(Modifier.height(Spacing.m))
+                Spacer(Modifier.height(Spacing.l))
             }
         }
     }
