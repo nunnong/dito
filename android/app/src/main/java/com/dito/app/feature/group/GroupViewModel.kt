@@ -2,7 +2,6 @@ package com.dito.app.feature.group
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dito.app.core.data.group.GroupInfo
 import com.dito.app.core.data.group.Participant
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
@@ -69,6 +68,7 @@ class GroupChallengeViewModel @Inject constructor(
     val uiState: StateFlow<GroupChallengeUiState> = _uiState.asStateFlow()
 
     private var updateRankingJob: Job? = null
+    private var participantPollingJob: Job? = null
 
     init {
         // 서버에서 최신 그룹 정보 불러오기
@@ -77,6 +77,7 @@ class GroupChallengeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
+        stopParticipantPolling()
     }
 
     private fun loadChallengeState() {
@@ -531,11 +532,11 @@ class GroupChallengeViewModel @Inject constructor(
                 val groupId = groupManager.getGroupId()
 
                 if (groupId == 0L) {
-                    Log.w("GroupViewModel", "⚠️ groupId가 없어 랭킹 조회 스킵")
+                    Log.w("GroupViewModel", "groupId가 없어 랭킹 조회 스킵")
                     return@launch
                 }
 
-                Log.d("GroupViewModel", "📊 랭킹 조회 시작 - groupId: $groupId")
+                Log.d("GroupViewModel", "랭킹 조회 시작 - groupId: $groupId")
 
                 val response = groupRepository.getRanking(groupId)
 
@@ -544,20 +545,50 @@ class GroupChallengeViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             rankings = rankingRes.rankings
                         )
-                        Log.d("GroupViewModel", "✅ 랭킹 조회 성공 - ${rankingRes.rankings.size}명")
+                        Log.d("GroupViewModel", "랭킹 조회 성공 - ${rankingRes.rankings.size}명")
 
                         rankingRes.rankings.forEach { rank ->
                             Log.d("GroupViewModel", "  ${rank.rank}위: ${rank.nickname} - ${rank.totalScreenTimeFormatted}")
                         }
                     },
                     onFailure = { error ->
-                        Log.e("GroupViewModel", "❌ 랭킹 조회 실패: ${error.message}", error)
+                        Log.e("GroupViewModel", "랭킹 조회 실패: ${error.message}", error)
                     }
                 )
             } catch (e: Exception) {
-                Log.e("GroupViewModel", "❌ 랭킹 조회 예외", e)
+                Log.e("GroupViewModel", "랭킹 조회 예외", e)
             }
         }
+    }
+
+    /**
+     * 참여자 목록 폴링 시작 (1초마다)
+     */
+    fun startParticipantPolling() {
+        stopParticipantPolling() // 기존 폴링이 있으면 중단
+
+        val groupId = groupManager.getGroupId()
+        if (groupId == 0L) {
+            Log.w("GroupViewModel", "groupId가 없어 참여자 폴링 시작 불가")
+            return
+        }
+
+        participantPollingJob = viewModelScope.launch {
+            while (true) {
+                loadParticipants(groupId)
+                delay(1000L) // 1초 대기
+            }
+        }
+        Log.d("GroupViewModel", "참여자 폴링 시작 - groupId: $groupId")
+    }
+
+    /**
+     * 참여자 목록 폴링 중단
+     */
+    fun stopParticipantPolling() {
+        participantPollingJob?.cancel()
+        participantPollingJob = null
+        Log.d("GroupViewModel", "참여자 폴링 중단")
     }
 }
 

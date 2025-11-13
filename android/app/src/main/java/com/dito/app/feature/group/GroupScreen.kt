@@ -60,6 +60,15 @@ fun GroupScreen(
         ScreenTimeSyncWorker.triggerImmediateSync(context)
     }
 
+    // PENDING 상태에서 참여자 목록 폴링 시작/중단
+    LaunchedEffect(key1 = uiState.challengeStatus) {
+        if (uiState.challengeStatus == ChallengeStatus.PENDING) {
+            viewModel.startParticipantPolling()
+        } else {
+            viewModel.stopParticipantPolling()
+        }
+    }
+
     // 스플래시 화면 표시
     if (uiState.showSplash) {
         ChallengeSplashScreen()

@@ -404,14 +404,7 @@ fun RankCard(
         }
 
         if (isFirst) {
-            Image(
-                painter = painterResource(id = R.drawable.crown),
-                contentDescription = "Crown",
-                modifier = Modifier
-                    .size(40.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-20).dp)
-            )
+
         }
 
         if (isLast) {

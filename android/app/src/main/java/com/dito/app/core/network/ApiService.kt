@@ -142,9 +142,10 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<GroupRankingResponse>
 
+
     // Group
 
-    // 그룹 상세 정보
+    // 내가 속한 그룹 상세 정보
     @GET("/challenges/groups/detail")
     suspend fun getGroupDetail(
         @Header("Authorization") token: String
