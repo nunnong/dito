@@ -32,7 +32,9 @@ class InterventionState(TypedDict):
 
     # Optional - 워크플로우 중 생성되는 필드
     video_type: NotRequired[str]  # 유튜브 영상 타입 (youtube_analyze_node에서 생성)
-    keywords: NotRequired[list[str]]  # 유튜브 영상 키워드 (youtube_analyze_node에서 생성)
+    keywords: NotRequired[
+        list[str]
+    ]  # 유튜브 영상 키워드 (youtube_analyze_node에서 생성)
 
     behavior_pattern: NotRequired[str]  # LLM 분석 결과
     trigger_event: NotRequired[str]  # 트리거된 이벤트 타입
@@ -216,3 +218,13 @@ class VideoType(BaseModel):
         min_items=1,
         description="The main topics or subjects covered in the video (multiple selections allowed)",
     )
+
+
+class DebugState(TypedDict):
+    """debug 용 상태"""
+
+    user_id: int  # 사용자 db_id
+    mission_info: dict
+    nudge_message: str
+    mission_id: NotRequired[int]
+    fcm_sent: NotRequired[bool]  # FCM 전송 성공 여부
