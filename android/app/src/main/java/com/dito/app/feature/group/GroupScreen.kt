@@ -24,13 +24,10 @@ import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,6 +39,7 @@ import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnPrimary
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.PrimaryContainer
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
@@ -92,7 +90,9 @@ fun GroupScreen(
                     penalty = uiState.penalty,
                     participants = uiState.participants,
                     isStarted = false,
-                    onStartChallenge = { viewModel.onChallengeStarted() }
+                    onStartChallenge = { viewModel.onChallengeStarted() },
+                    onStartPolling = { viewModel.startParticipantsPolling() },
+                    onStopPolling = { viewModel.stopParticipantsPolling() }
                 )
             } else {
                 // 참가자 화면
@@ -102,7 +102,9 @@ fun GroupScreen(
                     period = uiState.period,
                     goal = uiState.goal,
                     penalty = uiState.penalty,
-                    participants = uiState.participants
+                    participants = uiState.participants,
+                    onStartPolling = { viewModel.startParticipantsPolling() },
+                    onStopPolling = { viewModel.stopParticipantsPolling() }
                 )
             }
             return
@@ -118,15 +120,8 @@ fun GroupScreen(
 
     Box(
         modifier = Modifier.fillMaxSize()
-    ) {
-        // 배경 이미지
-        Image(
-            painter = painterResource(id = R.drawable.groupscreen),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
 
+    ) {
         // 메인 컨텐츠
         Column(
             modifier = Modifier
@@ -137,24 +132,27 @@ fun GroupScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-
+            Row(
+                modifier = Modifier.padding(bottom = Spacing.m),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.group_main_img),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(300.dp)
+                )
+            }
 
             Row(
                 modifier = Modifier.padding(bottom = Spacing.m),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.dito),
+                    painter = painterResource(id = R.drawable.group_main_img),
                     contentDescription = null,
                     modifier = Modifier
-                        .size(135.dp)
-                )
-
-                Image(
-                    painter = painterResource(id = R.drawable.melon),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(135.dp)
+                        .size(300.dp)
                 )
             }
 
@@ -198,16 +196,10 @@ fun GroupScreen(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
+                        .background(Primary)
                         .clickable { viewModel.onCreateDialogOpen() }
                         .padding(vertical = Spacing.l)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.star),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.s))
                     Text(
                         text = "방 만들기",
                         color = Color.Black,
@@ -227,16 +219,10 @@ fun GroupScreen(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(Color.White)
+                        .background(Primary)
                         .clickable { viewModel.onJoinDialogOpen() }
                         .padding(vertical = Spacing.l)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.mail),
-                        contentDescription = null,
-                        modifier = Modifier.size(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.s))
                     Text(
                         text = "입장하기",
                         color = Color.Black,
