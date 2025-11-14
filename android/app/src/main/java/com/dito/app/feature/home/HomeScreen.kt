@@ -247,7 +247,7 @@ fun HomeContent(
                             painter = painterResource(id = R.drawable.cart),
                             contentDescription = "Cart",
                             modifier = Modifier.fillMaxSize(),
-                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else null,
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
                             contentScale = ContentScale.Fit
                         )
                     }
