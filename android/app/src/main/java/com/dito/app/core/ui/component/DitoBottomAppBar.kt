@@ -32,10 +32,9 @@ import com.dito.app.core.ui.designsystem.OnSurfaceVariant
 enum class BottomTab(val iconRes: Int, val label: String) {
     HOME(drawable.home, "홈"),
     GROUP(drawable.group, "그룹"),
+    MISSION(R.drawable.mission, "미션알림"),
+    REPORT(R.drawable.report, "레포트")
 
-    REPORT(R.drawable.report, "레포트"),
-
-    MISSION(R.drawable.mission, "미션알림")
 }
 
 @Composable

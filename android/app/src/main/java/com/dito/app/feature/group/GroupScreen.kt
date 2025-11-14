@@ -58,15 +58,6 @@ fun GroupScreen(
         ScreenTimeSyncWorker.triggerImmediateSync(context)
     }
 
-    // PENDING 상태에서 참여자 목록 폴링 시작/중단
-    LaunchedEffect(key1 = uiState.challengeStatus) {
-        if (uiState.challengeStatus == ChallengeStatus.PENDING) {
-            viewModel.startParticipantsPolling()
-        } else {
-            viewModel.stopParticipantsPolling()
-        }
-    }
-
     // 스플래시 화면 표시
     if (uiState.showSplash) {
         ChallengeSplashScreen()
@@ -80,33 +71,8 @@ fun GroupScreen(
             return
         }
         ChallengeStatus.PENDING -> {
-            if (uiState.isLeader) {
-                // 방장 화면
-                GroupLeaderScreen(
-                    groupName = uiState.groupName,
-                    entryCode = uiState.entryCode,
-                    period = uiState.period,
-                    goal = uiState.goal,
-                    penalty = uiState.penalty,
-                    participants = uiState.participants,
-                    isStarted = false,
-                    onStartChallenge = { viewModel.onChallengeStarted() },
-                    onStartPolling = { viewModel.startParticipantsPolling() },
-                    onStopPolling = { viewModel.stopParticipantsPolling() }
-                )
-            } else {
-                // 참가자 화면
-                GroupMemberScreen(
-                    groupName = uiState.groupName,
-                    entryCode = uiState.entryCode,
-                    period = uiState.period,
-                    goal = uiState.goal,
-                    penalty = uiState.penalty,
-                    participants = uiState.participants,
-                    onStartPolling = { viewModel.startParticipantsPolling() },
-                    onStopPolling = { viewModel.stopParticipantsPolling() }
-                )
-            }
+            // 대기 중 (방장/참가자 모두 GroupWaitingScreen으로 통합)
+            GroupWaitingScreen(viewModel = viewModel)
             return
         }
         ChallengeStatus.COMPLETED, ChallengeStatus.CANCELLED -> {
@@ -131,18 +97,6 @@ fun GroupScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
-            Row(
-                modifier = Modifier.padding(bottom = Spacing.m),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.group_main_img),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(300.dp)
-                )
-            }
 
             Row(
                 modifier = Modifier.padding(bottom = Spacing.m),

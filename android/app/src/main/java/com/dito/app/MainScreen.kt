@@ -20,6 +20,7 @@ import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.util.PermissionHelper
 import com.dito.app.feature.closet.ClosetScreen
 import com.dito.app.feature.group.GroupScreen
+import com.dito.app.feature.group.GroupWaitingScreen
 import com.dito.app.feature.home.HomeScreen
 import com.dito.app.feature.missionNotification.MissionNotificationScreen
 import com.dito.app.feature.report.DailyReportScreen
