@@ -20,4 +20,10 @@ public interface MissionRepository extends JpaRepository<Mission, Long>{
     Optional<Mission> findByUser_IdAndStatus(Long userId, Status status);
 
     Optional<Mission> findFirstByUser_IdAndStatusOrderByTriggerTimeDesc(Long userId, Status status);
+
+    Optional<Mission> findByIdAndUserId(long missionId, long userId);
+
+    default Mission getByIdAndUserId(long missionId, long userId){
+        return findByIdAndUserId(missionId, userId).orElseThrow(NotFoundMissionException::new);
+    }
 }

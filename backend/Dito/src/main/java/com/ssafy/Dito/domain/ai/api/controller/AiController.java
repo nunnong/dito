@@ -3,6 +3,7 @@ package com.ssafy.Dito.domain.ai.api.controller;
 import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
+import com.ssafy.Dito.domain.mission.dto.request.MissionTextUpdateReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.MissionCreateRes;
 import com.ssafy.Dito.domain.mission.service.MissionService;
@@ -25,6 +26,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -60,6 +62,15 @@ public class AiController {
     ) {
         List<AiMissionRes> res = missionService.getMissionForAi(missionId);
         return ApiResponse.ok(res);
+    }
+
+    @Operation(summary = "mission_text 수정")
+    @PatchMapping()
+    public ResponseEntity<CommonResult> updateMissionText(
+        @RequestBody MissionTextUpdateReq req
+    ) {
+        missionService.updateMissionText(req);
+        return ApiResponse.ok();
     }
 
     @Operation(summary = "미션 결과 반영")
