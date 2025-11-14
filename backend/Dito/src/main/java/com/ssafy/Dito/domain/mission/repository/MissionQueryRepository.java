@@ -45,7 +45,10 @@ public class MissionQueryRepository {
                         missionResult.result,
                         mission.triggerTime,
                         mission.durationSeconds,
-                        missionResult.feedback
+                        missionResult.feedback,
+                        mission.statChangeSelfCare,
+                        mission.statChangeFocus,
+                        mission.statChangeSleep
                 ))
                 .from(mission)
                 .leftJoin(missionResult).on(missionResult.mission.eq(mission))

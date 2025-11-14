@@ -14,8 +14,10 @@ public record MissionRes (
         Result result,
         Timestamp triggerTime,
         int duration,
-        String feedback
-
+        String feedback,
+        int statChangeSelfCare,
+        int statChangeFocus,
+        int statChangeSleep
 ) {
     @QueryProjection
     public MissionRes {
