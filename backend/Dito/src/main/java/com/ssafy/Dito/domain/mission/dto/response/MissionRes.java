@@ -8,11 +8,13 @@ import java.sql.Timestamp;
 public record MissionRes (
         long id,
         String missionType,
-        String missionText,
+        String title,
         int coinReward,
         Status status,
         Result result,
-        Timestamp triggerTime
+        Timestamp triggerTime,
+        int duration,
+        String feedback
 
 ) {
     @QueryProjection
