@@ -238,6 +238,7 @@ fun StatusBadge(type: NotificationType) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
+
         Text(
             text = type.label,
             color = Color.Black,
