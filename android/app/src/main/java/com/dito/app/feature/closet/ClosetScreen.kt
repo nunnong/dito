@@ -1,6 +1,5 @@
 package com.dito.app.feature.closet
 
-import android.media.MediaPlayer
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -40,14 +39,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.platform.LocalContext
-
-fun playPopSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.pop)
-    mediaPlayer?.start()
-    mediaPlayer?.setOnCompletionListener { mp ->
-        mp.release()
-    }
-}
 
 /** 옷장 화면 */
 @OptIn(ExperimentalMaterial3Api::class)
