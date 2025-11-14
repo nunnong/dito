@@ -89,7 +89,8 @@ fun DailyReportContent(
 ) {
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .background(Color(0xFFFFFDF8)),
         contentPadding = PaddingValues(0.dp)
     ) {
         // 헤더 섹션
@@ -109,9 +110,7 @@ fun DailyReportContent(
                             contentDescription = "Profile",
                             modifier = Modifier
                                 .size(72.dp)
-                                .clip(CircleShape)
-//                                .background(Primary),
-                                    ,
+                                .clip(CircleShape),
                             contentScale = ContentScale.Crop
                         )
                     } else {
@@ -142,7 +141,7 @@ fun DailyReportContent(
         // 현재 상태 섹션 + 비교 분석 섹션 (하나의 카드로)
         item {
             Surface(
-                shape = RoundedCornerShape(32.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = Color.White,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black),
                 modifier = Modifier
@@ -151,7 +150,7 @@ fun DailyReportContent(
                     .hardShadow(
                         offsetX = 4.dp,
                         offsetY = 4.dp,
-                        cornerRadius = 32.dp,
+                        cornerRadius = 20.dp,
                         color = Color.Black
                     )
             ) {
@@ -211,7 +210,7 @@ fun DailyReportContent(
 @Composable
 fun MissionCompletionCard(missionCompletionRate: Int) {
     Surface(
-        shape = RoundedCornerShape(32.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Color.White,
         border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black),
         modifier = Modifier
@@ -220,7 +219,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
             .hardShadow(
                 offsetX = 4.dp,
                 offsetY = 4.dp,
-                cornerRadius = 32.dp,
+                cornerRadius = 20.dp,
                 color = Color.Black
             )
     ) {
@@ -274,16 +273,31 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
             }
 
             // 퍼센트 표시
-            Text(
-                text = "$missionCompletionRate%",
-                style = DitoTypography.displayLarge,
-                color = OnSurface,
-                fontSize = 60.sp,
-                fontWeight = FontWeight.Bold,
+            Row(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = Spacing.xs)
-            )
+                    .padding(end = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$missionCompletionRate",
+                    style = DitoTypography.displayLarge,
+                    color = Color.Black,
+                    fontSize = 60.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                StrokeText(
+                    text = "%",
+                    style = DitoTypography.displayLarge.copy(
+                        fontSize = 60.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    fillColor = Primary,
+                    strokeColor = Color.Black,
+                    strokeWidth = 2.dp
+                )
+            }
         }
     }
 }
@@ -330,7 +344,7 @@ fun ComparisonItemCard(
                 contentDescription = null,
                 modifier = Modifier
                     .size(32.dp)
-                    .padding(end = Spacing.s)
+                    .padding(end = Spacing.m)
             )
 
             Text(
