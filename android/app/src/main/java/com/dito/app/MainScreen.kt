@@ -19,7 +19,6 @@ import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.util.PermissionHelper
 import com.dito.app.feature.closet.ClosetScreen
-import com.dito.app.feature.group.GroupMember
 import com.dito.app.feature.group.GroupScreen
 import com.dito.app.feature.group.GroupWaitingScreen
 import com.dito.app.feature.home.HomeScreen
@@ -124,7 +123,7 @@ fun MainScreen(
                     if (it == BottomTab.HOME) innerNavController.navigate(Route.Home.path) {
                         launchSingleTop = true; popUpTo("home") { inclusive = false }
                     }
-                    if (it == BottomTab.GROUP) innerNavController.navigate(Route.TempGroupWaiting.path) {
+                    if (it == BottomTab.GROUP) innerNavController.navigate(Route.GroupRoot.path) {
                         launchSingleTop = true
                     }
                     if (it == BottomTab.MISSION) innerNavController.navigate(Route.MissionNotification.path) {
@@ -164,16 +163,6 @@ fun MainScreen(
             }
             composable(Route.GroupRoot.path) {
                 GroupScreen(navController = innerNavController)
-            }
-            composable(Route.TempGroupWaiting.path) {
-                GroupWaitingScreen(
-                    groupName = "눈농포케콕콕콕프렌즈",
-                    inviteCode = "PREV",
-                    members = listOf(
-                        GroupMember("위아리얼디토예", characterUrl = null, isWaiting = false),
-                        GroupMember("테스트2", characterUrl = null, isWaiting = false)
-                    )
-                )
             }
             composable(Route.Report.path) {
                 DailyReportScreen()

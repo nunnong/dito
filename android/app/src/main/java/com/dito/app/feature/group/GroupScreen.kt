@@ -73,29 +73,8 @@ fun GroupScreen(
             return
         }
         ChallengeStatus.PENDING -> {
-            if (uiState.isLeader) {
-                // 방장 화면
-                GroupLeaderScreen(
-                    groupName = uiState.groupName,
-                    entryCode = uiState.entryCode,
-                    period = uiState.period,
-                    goal = uiState.goal,
-                    penalty = uiState.penalty,
-                    participants = uiState.participants,
-                    isStarted = false,
-                    onStartChallenge = { viewModel.onChallengeStarted() }
-                )
-            } else {
-                // 참가자 화면
-                GroupMemberScreen(
-                    groupName = uiState.groupName,
-                    entryCode = uiState.entryCode,
-                    period = uiState.period,
-                    goal = uiState.goal,
-                    penalty = uiState.penalty,
-                    participants = uiState.participants
-                )
-            }
+            // 대기 중 (방장/참가자 모두 GroupWaitingScreen으로 통합)
+            GroupWaitingScreen(viewModel = viewModel)
             return
         }
         ChallengeStatus.COMPLETED, ChallengeStatus.CANCELLED -> {
