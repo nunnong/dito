@@ -1,13 +1,11 @@
 package com.dito.app.feature.home
 
-import android.media.MediaPlayer
-import android.content.Context
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,7 +27,6 @@ import com.dito.app.core.ui.designsystem.*
 import coil.compose.AsyncImage
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.Animatable
@@ -38,15 +35,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -59,54 +53,10 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.dito.app.core.ui.designsystem.BounceClickable
+import com.dito.app.core.ui.designsystem.WiggleClickable
+import com.dito.app.core.ui.designsystem.playPopSound
+import com.dito.app.core.ui.designsystem.playWiggleSound
 
-fun playPopSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.pop)
-    mediaPlayer?.start()
-    mediaPlayer?.setOnCompletionListener { mp ->
-        mp.release()
-    }
-}
-
-fun playWiggleSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.wiggle)
-    mediaPlayer?.setVolume(0.2f, 0.2f) // Reduce volume to 50%
-    mediaPlayer?.start()
-    mediaPlayer?.setOnCompletionListener { mp ->
-        mp.release()
-    }
-}
-
-
-@Composable
-fun WiggleClickable(
-    modifier: Modifier = Modifier, onClick: () -> Unit, content: @Composable () -> Unit
-) {
-    val rotation = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                rotationZ = rotation.value
-            }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = {
-                    scope.launch {
-                        for (i in 0..1) {
-                            rotation.animateTo(targetValue = -15f, animationSpec = tween(75))
-                            rotation.animateTo(targetValue = 15f, animationSpec = tween(75))
-                        }
-                        rotation.animateTo(targetValue = 0f, animationSpec = tween(75))
-                    }
-                    onClick()
-                }), contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,7 +197,7 @@ fun HomeContent(
                             painter = painterResource(id = R.drawable.cart),
                             contentDescription = "Cart",
                             modifier = Modifier.fillMaxSize(),
-                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else null,
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -705,8 +655,6 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    // Preview에서는 ViewModel을 직접 주입할 수 없으므로,
-    // 실제 데이터가 있는 HomeContent를 직접 호출하거나 가짜 데이터를 만듭니다.
     val fakeHomeData = HomeData(
         nickname = "낙동강오리알",
         costumeUrl = "",

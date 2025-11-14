@@ -3,15 +3,11 @@ package com.dito.app.feature.group
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.media.MediaPlayer
 import android.widget.Toast
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -20,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -34,36 +29,6 @@ import com.dito.app.R
 import com.dito.app.core.data.group.Participant
 import com.dito.app.core.ui.designsystem.*
 import kotlinx.coroutines.delay
-
-@Composable
-fun BounceClickable(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable (Boolean) -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        label = "bounce_scale"
-    )
-
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        content(isPressed)
-    }
-}
 
 @Composable
 fun GroupWaitingScreen(
@@ -381,15 +346,5 @@ private fun MemberSlot(
                 )
             }
         }
-    }
-}
-
-
-// 효과음 재생
-fun playPopSound(context: Context) {
-    val mediaPlayer = MediaPlayer.create(context, R.raw.pop)
-    mediaPlayer?.start()
-    mediaPlayer?.setOnCompletionListener { mp ->
-        mp.release()
     }
 }
