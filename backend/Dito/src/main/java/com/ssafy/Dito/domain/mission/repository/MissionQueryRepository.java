@@ -3,7 +3,6 @@ package com.ssafy.Dito.domain.mission.repository;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.ssafy.Dito.domain.ai.api.dto.AiReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.MissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.QMissionRes;
@@ -44,7 +43,9 @@ public class MissionQueryRepository {
                         mission.coinReward,
                         mission.status,
                         missionResult.result,
-                        mission.triggerTime
+                        mission.triggerTime,
+                        mission.durationSeconds,
+                        missionResult.feedback
                 ))
                 .from(mission)
                 .leftJoin(missionResult).on(missionResult.mission.eq(mission))
