@@ -10,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -34,37 +33,6 @@ data class GroupMember(
     val characterUrl: String? = null,
     val isWaiting: Boolean = false
 )
-
-@Composable
-fun BounceClickable(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable (Boolean) -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        label = "bounce_scale"
-    )
-
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        content(isPressed)
-    }
-}
-
 @Composable
 fun GroupWaitingScreen(
     groupName: String = "눈농포케콕콕콕프렌즈",
@@ -130,7 +98,7 @@ fun GroupWaitingScreen(
                         style = DitoTypography.headlineMedium,
                         fillColor = Color.White,
                         strokeColor = Color.Black,
-                        strokeWidth = 3.dp,
+                        strokeWidth = 1 .dp,
                         modifier = Modifier
                             .width(180.dp)             // ← 박스의 가로 폭을 고정!
                             .align(Alignment.Center)
@@ -266,9 +234,9 @@ private fun MemberSlot(
             // 캐릭터
             if (!member.isWaiting) {
                 val characterModifier = Modifier
-                    .size(110.dp)                 // 🔥 큼직하게
+                    .size(110.dp)
                     .align(Alignment.BottomCenter)
-                    .offset(y = (-50).dp)          // 발이 의자에 살짝 박히는 느낌으로
+                    .offset(y = (-50).dp)
 
                 if (!member.characterUrl.isNullOrEmpty()) {
                     AsyncImage(
@@ -288,7 +256,7 @@ private fun MemberSlot(
             }
         }
 
-        // 닉네임 박스 – 아래에서 위로 조금 끌어올려서 의자에 딱 붙게
+        // 닉네임 박스
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -304,11 +272,11 @@ private fun MemberSlot(
             contentAlignment = Alignment.Center
         ) {
             if (member.isWaiting) {
-                // 🔥 waiting 상태 → loading 이미지 표시
+                // waiting 상태 -> loading 이미지 표시
                 Image(
                     painter = painterResource(id = R.drawable.loading),
                     contentDescription = "Waiting",
-                    modifier = Modifier.fillMaxWidth(),   // 필요하면 20dp 등으로 조정 가능
+                    modifier = Modifier.fillMaxWidth(),
                     contentScale = ContentScale.Fit
                 )
             } else {

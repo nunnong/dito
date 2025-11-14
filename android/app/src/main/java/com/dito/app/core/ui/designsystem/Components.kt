@@ -29,7 +29,7 @@ fun BounceClickable(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.8f else 1f,
-        animationSpec = tween(durationMillis = 500), // Adjusted duration
+        animationSpec = tween(durationMillis = 150),
         label = "scale"
     )
 
@@ -57,7 +57,7 @@ fun StrokeText(
     style: androidx.compose.ui.text.TextStyle,
     fillColor: Color,
     strokeColor: Color,
-    strokeWidth: Dp,
+    strokeWidth: Dp = 1.dp,      // 기본 1dp 정도로
     modifier: Modifier = Modifier,
     textAlign: TextAlign = TextAlign.Start,
     maxLines: Int = Int.MAX_VALUE
@@ -66,41 +66,29 @@ fun StrokeText(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        // 바깥쪽 4방향 외곽선 텍스트
-        Text(
-            text = text,
-            style = style,
-            color = strokeColor,
-            textAlign = textAlign,
-            maxLines = maxLines,
-            modifier = Modifier.offset(x = (-1).dp, y = (-1).dp)
-        )
-        Text(
-            text = text,
-            style = style,
-            color = strokeColor,
-            textAlign = textAlign,
-            maxLines = maxLines,
-            modifier = Modifier.offset(x = (1).dp, y = (-1).dp)
-        )
-        Text(
-            text = text,
-            style = style,
-            color = strokeColor,
-            textAlign = textAlign,
-            maxLines = maxLines,
-            modifier = Modifier.offset(x = (-1).dp, y = (1).dp)
-        )
-        Text(
-            text = text,
-            style = style,
-            color = strokeColor,
-            textAlign = textAlign,
-            maxLines = maxLines,
-            modifier = Modifier.offset(x = (1).dp, y = (1).dp)
+        // 🔥 얇게 둘러줄 오프셋
+        val o = strokeWidth
+
+        // 대각선 4방향만 사용
+        val offsets = listOf(
+            -o to -o,   // 왼쪽 위
+            o to -o,    // 오른쪽 위
+            -o to o,    // 왼쪽 아래
+            o to o      // 오른쪽 아래
         )
 
-        // 안쪽 실제 글자
+        offsets.forEach { (dx, dy) ->
+            Text(
+                text = text,
+                style = style,
+                color = strokeColor,
+                textAlign = textAlign,
+                maxLines = maxLines,
+                modifier = Modifier.offset(dx, dy)
+            )
+        }
+
+        // 가운데 실제 글자
         Text(
             text = text,
             style = style,
