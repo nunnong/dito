@@ -1,6 +1,12 @@
 package com.dito.app.feature.group
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,7 +15,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,17 +41,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.times
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import com.dito.app.R
-import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
-import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.hardShadow
-import kotlinx.coroutines.launch
 
 @Composable
 fun OngoingChallengeScreen(
@@ -57,14 +61,13 @@ fun OngoingChallengeScreen(
     // 화면 진입 시 즉시 조회
     androidx.compose.runtime.LaunchedEffect(Unit) {
         android.util.Log.d("OngoingChallenge", "OngoingChallengeScreen LaunchedEffect 시작")
-        viewModel.refreshGroupInfo()
-        viewModel.loadRanking()
+        viewModel.refreshGroupInfo() // 그룹정보 호출 1번
+        viewModel.loadRanking() // 그룹 랭킹 정보
         android.util.Log.d("OngoingChallenge", "초기 데이터 로드 완료")
     }
 
-    // 10초마다 자동 갱신
+    // 10초마다 갱신
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        android.util.Log.d("OngoingChallenge", "자동 갱신 폴링 LaunchedEffect 시작")
         while (true) {
             kotlinx.coroutines.delay(10 * 1000L)
             android.util.Log.d("OngoingChallenge", "폴링 시도 - 현재 상태: ${lifecycleOwner.lifecycle.currentState}")
@@ -88,19 +91,45 @@ fun OngoingChallengeScreen(
             .verticalScroll(rememberScrollState())
     ) {
         // 상단 레몬나무 배경 이미지
-        Image(
-            painter = painterResource(id = R.drawable.lemontree),
-            contentDescription = null,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(510.dp),
-            contentScale = ContentScale.Crop
-        )
+                .height(510.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.lemontree),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
 
+            if (rankings.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .offset(y = (-80).dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    rankings.take(4).forEach { rankingItem ->
+                        val participant =
+                            uiState.participants.find { it.userId == rankingItem.userId }
+                        val characterName = getCharacterName(participant)
+
+                        CharacterView(
+                            characterName = characterName,
+                            rank = rankingItem.rank,
+                            maxRank = rankings.size.coerceAtMost(4),
+                            currentAppPackage = rankingItem.currentAppPackage
+                        )
+                    }
+                }
+            }
+        }
         Spacer(modifier = Modifier.width(8.dp))
 
-
-        // 참여자 4명 리스트 (랭킹 API에서 가져온 데이터)
+        // 참여자 4명 리스트
         if (rankings.isNotEmpty()) {
             Row(
                 modifier = Modifier
@@ -173,7 +202,6 @@ fun OngoingChallengeScreen(
             // 챌린지 정보 카드들
             InfoCard(
                 icon = R.drawable.period,
-                title = "PERIOD",
                 value = "${uiState.startDate} - ${uiState.endDate}"
             )
 
@@ -181,7 +209,6 @@ fun OngoingChallengeScreen(
 
             InfoCard(
                 icon = R.drawable.goal,
-                title = "GOAL",
                 value = uiState.goal
             )
 
@@ -189,7 +216,6 @@ fun OngoingChallengeScreen(
 
             InfoCard(
                 icon = R.drawable.penalty,
-                title = "PENALTY",
                 value = uiState.penalty
             )
 
@@ -335,7 +361,7 @@ fun getAppIconResource(packageName: String?): Int {
 }
 
 @Composable
-fun InfoCard(icon: Int, title: String, value: String) {
+fun InfoCard(icon: Int, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -352,15 +378,179 @@ fun InfoCard(icon: Int, title: String, value: String) {
     ) {
         Image(
             painter = painterResource(id = icon),
-            contentDescription = title,
+            contentDescription = null,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = "$title : $value",
+            text = value,
             style = DitoTypography.bodyLarge,
             color = Color.Black
         )
     }
 }
+
+/**
+ * 참가자의 장착 아이템에서 캐릭터 이름 추출
+ */
+fun getCharacterName(participant: com.dito.app.core.data.group.Participant?): String {
+    if (participant == null) {
+        android.util.Log.d("CharacterDebug", "participant is null")
+        return "lemon" // 기본값
+    }
+
+    android.util.Log.d("CharacterDebug", "participant: ${participant.nickname}, equipedItems: ${participant.equipedItems.size}")
+
+    // equipedItems에서 type이 "COSTUME"인 아이템 찾기
+    val costumeItem = participant.equipedItems.find { it.type == "COSTUME" }
+    if (costumeItem != null) {
+        android.util.Log.d("CharacterDebug", "costumeItem found: name=${costumeItem.name}, type=${costumeItem.type}")
+
+        val koreanName = costumeItem.name.split(" ").firstOrNull()?.trim() ?: ""
+        android.util.Log.d("CharacterDebug", "extracted koreanName: $koreanName")
+
+        val englishName = mapKoreanToEnglish(koreanName)
+        android.util.Log.d("CharacterDebug", "mapped englishName: $englishName")
+
+        return englishName
+    } else {
+        android.util.Log.d("CharacterDebug", "No COSTUME item found, available types: ${participant.equipedItems.map { it.type }}")
+    }
+
+    return "lemon" // 기본값
+}
+
+/**
+ * 한글 캐릭터 이름을 영어로 매핑
+ */
+fun mapKoreanToEnglish(koreanName: String): String {
+    return when (koreanName) {
+        "레몬" -> "lemon"
+        "포도" -> "grape"
+        "메론" -> "melon"
+        "토마토" -> "tomato"
+        else -> "lemon" // 기본값
+    }
+}
+
+@Composable
+fun CharacterView(
+    characterName: String,
+    rank: Int,
+    maxRank: Int,
+    currentAppPackage: String?
+) {
+    // 순위에 따른 높이 계산 (1등이 가장 높음)
+    // 1등: 120dp, 2등: 100dp, 3등: 80dp, 4등: 60dp
+    val baseHeight = 120.dp
+    val heightReduction = (rank - 1) * 20.dp
+    val characterHeight = baseHeight - heightReduction
+
+    // 이전 순위 저장
+    val previousRank = remember { mutableStateOf(rank) }
+
+    // 애니메이션 상태
+    val isAnimating = remember { mutableStateOf(false) }
+    val animationProgress = remember { Animatable(0f) }
+
+    // 지속적인 부드러운 움직임 애니메이션 (항상 실행)
+    val infiniteTransition = rememberInfiniteTransition(label = "character_idle")
+    val idleAnimation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "idle_animation"
+    )
+
+    // 순위 변동 감지
+    androidx.compose.runtime.LaunchedEffect(rank) {
+        if (previousRank.value != rank) {
+            android.util.Log.d("CharacterAnim", "Rank changed: ${previousRank.value} -> $rank")
+            isAnimating.value = true
+
+            // 애니메이션 실행 (1초 동안 6번 꿈틀)
+            animationProgress.snapTo(0f)
+            animationProgress.animateTo(
+                targetValue = 6f,
+                animationSpec = tween(durationMillis = 1500, easing = LinearEasing)
+            )
+
+            isAnimating.value = false
+            previousRank.value = rank
+        }
+    }
+
+    // 애니메이션 중일 때만 이미지 변경
+    val animPhase = if (isAnimating.value) {
+        (animationProgress.value % 1f)
+    } else {
+        0f
+    }
+
+    val showRight = isAnimating.value && animPhase >= 0.5f
+
+    val characterDrawable = when (characterName) {
+        "lemon" -> if (showRight) R.drawable.lemon_right else R.drawable.lemon_left
+        "grape" -> if (showRight) R.drawable.grape_right else R.drawable.grape_left
+        "melon" -> if (showRight) R.drawable.melon_right else R.drawable.melon_left
+        "tomato" -> if (showRight) R.drawable.tomato_right else R.drawable.tomato_left
+        else -> if (showRight) R.drawable.lemon_right else R.drawable.lemon_left
+    }
+
+    // 위아래로 움직이는 애니메이션
+    val verticalOffset = if (isAnimating.value) {
+        // 순위 변경 시 큰 움직임
+        val bounce = kotlin.math.sin(animPhase * Math.PI).toFloat()
+        bounce * 12.dp
+    } else {
+        // 평상시 부드러운 움직임
+        val idleBounce = kotlin.math.sin(idleAnimation * 2 * Math.PI).toFloat()
+        idleBounce * 5.dp
+    }
+
+    Column(
+        modifier = Modifier.width(60.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 캐릭터
+        Box(
+            modifier = Modifier
+                .width(120.dp)
+                .height(characterHeight + 20.dp), // 애니메이션 공간 확보
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Image(
+                painter = painterResource(id = characterDrawable),
+                contentDescription = "$characterName character",
+                modifier = Modifier
+                    .size(60.dp)
+                    .offset(y = -verticalOffset),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        // 사용중인 앱 아이콘 (캐릭터와 겹치도록 위로 올림)
+        if (currentAppPackage != null) {
+            Image(
+                painter = painterResource(id = getAppIconResource(currentAppPackage)),
+                contentDescription = "Current app",
+                modifier = Modifier
+                    .size(28.dp)
+                    .offset(y = (-10).dp) // 캐릭터와 겹치도록 위로 10dp 올림
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.White)
+                    .border(1.dp, Color.Black, RoundedCornerShape(6.dp))
+                    .padding(2.dp)
+            )
+        } else {
+            // 앱이 없을 때 빈 공간 유지
+            Spacer(modifier = Modifier.height(28.dp))
+        }
+    }
+}
+
+
 
