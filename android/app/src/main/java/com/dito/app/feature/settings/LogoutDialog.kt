@@ -19,6 +19,7 @@ import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.ErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.Surface
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
@@ -38,7 +39,7 @@ fun LogoutDialog(
             backgroundColor = Color.White,
             borderColor = Color.Black,
             shadowColor = Color.Black,
-            contentPadding = PaddingValues(vertical = Spacing.l, horizontal = Spacing.l)
+            contentPadding = PaddingValues(vertical = Spacing.m, horizontal = Spacing.m)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -94,7 +95,7 @@ fun LogoutDialog(
                             )
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
-                            .background(ErrorContainer)
+                            .background(Surface)
                             .clickable { onConfirm() }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
