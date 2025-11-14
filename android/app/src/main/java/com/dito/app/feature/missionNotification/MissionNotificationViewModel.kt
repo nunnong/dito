@@ -18,7 +18,9 @@ data class MissionNotificationUiState(
     val notifications: List<MissionNotificationData> = emptyList(),
     val error: String? = null,
     val canPaginate: Boolean = false,
-    val currentPage: Int = 0
+    val currentPage: Int = 0,
+    val selectedMission: MissionNotificationData? = null,  // 상세 모달에 표시할 미션
+    val isClaimingReward: Boolean = false  // 레몬 획득 중 로딩 상태
 )
 
 @HiltViewModel
@@ -42,6 +44,35 @@ class MissionNotificationViewModel @Inject constructor(
     fun refresh() {
         _uiState.update { it.copy(notifications = emptyList(), currentPage = 0, canPaginate = false) }
         loadNotifications(isInitialLoad = true)
+    }
+
+    fun onMissionClick(mission: MissionNotificationData) {
+        _uiState.update { it.copy(selectedMission = mission) }
+    }
+
+    fun dismissModal() {
+        _uiState.update { it.copy(selectedMission = null) }
+    }
+
+    fun onRewardConfirm() {
+        // 백엔드에서 이미 자동으로 코인 지급 완료
+        // 여기서는 애니메이션 트리거만 하고 모달 닫기
+        _uiState.update {
+            it.copy(
+                isClaimingReward = true  // 애니메이션 트리거
+            )
+        }
+
+        // 애니메이션 후 모달 닫기
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(800L)  // 애니메이션 시간
+            _uiState.update {
+                it.copy(
+                    selectedMission = null,
+                    isClaimingReward = false
+                )
+            }
+        }
     }
 
     private fun loadNotifications(isInitialLoad: Boolean) {

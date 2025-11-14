@@ -19,10 +19,16 @@ data class MissionNotificationResponse(
 data class MissionNotificationData(
     val id: Long,
     val missionType: String,
-    val missionText: String,
+    val title: String,
     val coinReward: Int,
     val status: MissionStatus,
-    val result: MissionResult? = null
+    val result: MissionResult? = null,
+    val triggerTime: String? = null,  // 미션 트리거 시각 (ISO 8601)
+    val duration: Int? = null,  // 실행되는 시간 (초 단위)
+    val feedback: String? = null,  // AI 피드백
+    val statChangeSelfCare: Int = 0,  // 자기관리 스탯 변화
+    val statChangeFocus: Int = 0,     // 집중 스탯 변화
+    val statChangeSleep: Int = 0      // 수면 스탯 변화
 )
 
 @Serializable
