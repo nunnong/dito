@@ -61,9 +61,9 @@ fun GroupScreen(
     // PENDING 상태에서 참여자 목록 폴링 시작/중단
     LaunchedEffect(key1 = uiState.challengeStatus) {
         if (uiState.challengeStatus == ChallengeStatus.PENDING) {
-            viewModel.startParticipantPolling()
+            viewModel.startParticipantsPolling()
         } else {
-            viewModel.stopParticipantPolling()
+            viewModel.stopParticipantsPolling()
         }
     }
 
@@ -296,13 +296,6 @@ fun ChallengeSplashScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 챌린지 시작 이미지/아이콘
-//            Image(
-//                painter = painterResource(id = R.drawable.star),
-//                contentDescription = null,
-//                modifier = Modifier.size(120.dp)
-//            )
-
             Spacer(modifier = Modifier.height(Spacing.xl))
 
             Text(

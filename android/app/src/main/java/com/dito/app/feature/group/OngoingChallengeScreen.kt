@@ -22,29 +22,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import com.dito.app.R
+import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.hardShadow
-import com.dito.app.core.ui.util.rememberLifecycleEvent
 import kotlinx.coroutines.launch
 
 @Composable
@@ -64,24 +63,25 @@ fun OngoingChallengeScreen(
 
                 // 화면 진입 시 즉시 한 번 랭킹 조회
                 viewModel.loadRanking()
-                android.util.Log.d("OngoingChallenge", "🎬 화면 진입 - 즉시 랭킹 조회")
+                android.util.Log.d("OngoingChallenge", "화면 진입 - 즉시 랭킹 조회")
             }
         }
 
         lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
 
         // 10초마다 자동 갱신
-        val autoRefreshJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-            while (true) {
-                kotlinx.coroutines.delay(10 * 1000L)
+        val autoRefreshJob =
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                while (true) {
+                    kotlinx.coroutines.delay(10 * 1000L)
 
-                // 화면이 활성화 상태일 때만 갱신
-                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                    viewModel.loadRanking()
-                    android.util.Log.d("OngoingChallenge", "자동 갱신 (10초 주기)")
+                    // 화면이 활성화 상태일 때만 갱신
+                    if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        viewModel.loadRanking()
+                        android.util.Log.d("OngoingChallenge", "자동 갱신 (10초 주기)")
+                    }
                 }
             }
-        }
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
@@ -104,11 +104,12 @@ fun OngoingChallengeScreen(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(615.dp),
+                .height(540.dp),
             contentScale = ContentScale.Crop
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+
 
         // 참여자 4명 리스트 (랭킹 API에서 가져온 데이터)
         if (rankings.isNotEmpty()) {
@@ -163,7 +164,7 @@ fun OngoingChallengeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Total Betting : ${uiState.bet}",
+                    text = "총 배팅 : ${uiState.bet}",
                     style = DitoCustomTextStyles.titleDLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -224,45 +225,39 @@ fun ParticipantCard(
             .width(80.dp)
             .border(
                 width = if (isMe) 3.dp else 2.dp,
-                color = if (isMe) Color(0xFFFDD835) else Color.Black,
+                color = if (isMe) Primary else Color.Black,
                 shape = RoundedCornerShape(12.dp)
             )
-            .background(Color.White, RoundedCornerShape(12.dp))
+            .background(Color.White, DitoShapes.extraSmall)
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // 순위 배지
         Box(
             modifier = Modifier
-                .size(24.dp)
-                .background(
-                    when (rank) {
-                        1 -> Color(0xFFFDD835) // 금색
-                        2 -> Color(0xFFC0C0C0) // 은색
-                        3 -> Color(0xFFCD7F32) // 동색
-                        else -> Color(0xFFFF5722) // 빨간색
-                    },
-                    RoundedCornerShape(12.dp)
-                )
-                .border(1.dp, Color.Black, RoundedCornerShape(12.dp)),
+                .width(90.dp)
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
+                .padding(vertical = 6.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "$rank",
-                fontSize = 12.sp,
+                text = totalScreenTime,
+                style = DitoTypography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
 
-        // 프로필 이미지
+        // === 2) 캐릭터 / 프로필 이미지 영역 ===
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
-                .background(Color(0xFFE0E0E0), RoundedCornerShape(24.dp)),
+                .size(70.dp) // 캐릭터 실제 크기
+                .clip(RoundedCornerShape(8.dp))
+                .border(0.dp, Color.Transparent)
+                .background(Color.Transparent),
             contentAlignment = Alignment.Center
         ) {
             if (profileImage != null) {
@@ -270,62 +265,50 @@ fun ParticipantCard(
                     model = profileImage,
                     contentDescription = "$nickname profile",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    contentScale = ContentScale.FillBounds
                 )
             } else {
-                // 기본 프로필 아이콘
                 Text(
                     text = nickname.take(1).uppercase(),
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray
                 )
             }
         }
 
-        // 닉네임
-        Text(
-            text = nickname,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            textAlign = TextAlign.Center,
-            maxLines = 1
-        )
-
-        // 누적 시간
-        Text(
-            text = totalScreenTime,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Normal,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-
-        // 현재 사용 중인 앱 아이콘
-        if (currentAppPackage != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = painterResource(id = getAppIconResource(currentAppPackage)),
-                    contentDescription = "Current App",
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                )
-                if (currentAppName != null) {
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = currentAppName,
-                        fontSize = 8.sp,
-                        color = Color.Gray,
-                        maxLines = 1
-                    )
-                }
-            }
+        // === 3) 하단 흰 박스 (닉네임) ===
+        Box(
+            modifier = Modifier
+                .width(110.dp)
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
+                .padding(vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = nickname,
+                style = DitoTypography.labelLarge,
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
         }
+        // 현재 사용 중인 앱 아이콘
+//        if (currentAppPackage != null) {
+//            Row(
+//                verticalAlignment = Alignment.CenterVertically,
+//                horizontalArrangement = Arrangement.Center
+//            ) {
+//                Image(
+//                    painter = painterResource(id = getAppIconResource(currentAppPackage)),
+//                    contentDescription = "Current App",
+//                    modifier = Modifier
+//                        .size(16.dp)
+//                        .clip(DitoShapes.extraSmall)
+//                )
+//            }
+//        }
     }
 }
 
@@ -338,7 +321,7 @@ fun getAppIconResource(packageName: String?): Int {
         "com.instagram.android" -> R.drawable.ic_instagram
         "com.android.chrome" -> R.drawable.ic_chrome
         "com.twitter.android" -> R.drawable.ic_twitter
-        else -> R.drawable.ic_default_app
+        else -> R.drawable.dito
     }
 }
 
