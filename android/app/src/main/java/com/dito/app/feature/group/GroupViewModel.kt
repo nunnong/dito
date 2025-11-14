@@ -67,10 +67,6 @@ class GroupChallengeViewModel @Inject constructor(
     private var updateRankingJob: Job? = null
     private var participantsPollingJob: Job? = null
 
-    init {
-        // 서버에서 최신 그룹 정보 불러오기
-    }
-
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
@@ -535,7 +531,7 @@ class GroupChallengeViewModel @Inject constructor(
         updateRankingJob = viewModelScope.launch {
             while (true) {
                 loadRanking() // 5분마다 순위 조회
-                delay(5 * 60 * 1000L) // 5분 대기
+                delay(5 * 1000L) // 5초 대기
             }
         }
     }

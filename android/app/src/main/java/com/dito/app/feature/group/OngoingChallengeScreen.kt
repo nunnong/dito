@@ -52,41 +52,30 @@ fun OngoingChallengeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    // 화면 활성화 시 즉시 조회 + 10초마다 자동 갱신
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val lifecycleObserver = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                // 화면 진입 시 그룹 상세 정보 조회 (GroupManager에 저장)
-                viewModel.refreshGroupInfo()
-                android.util.Log.d("OngoingChallenge", "그룹 상세 정보 조회")
+    // 화면 진입 시 즉시 조회
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        android.util.Log.d("OngoingChallenge", "OngoingChallengeScreen LaunchedEffect 시작")
+        viewModel.refreshGroupInfo()
+        viewModel.loadRanking()
+        android.util.Log.d("OngoingChallenge", "초기 데이터 로드 완료")
+    }
 
-                // 화면 진입 시 즉시 한 번 랭킹 조회
+    // 10초마다 자동 갱신
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        android.util.Log.d("OngoingChallenge", "자동 갱신 폴링 LaunchedEffect 시작")
+        while (true) {
+            kotlinx.coroutines.delay(10 * 1000L)
+            android.util.Log.d("OngoingChallenge", "폴링 시도 - 현재 상태: ${lifecycleOwner.lifecycle.currentState}")
+
+            // 화면이 활성화 상태일 때만 갱신
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
                 viewModel.loadRanking()
-                android.util.Log.d("OngoingChallenge", "화면 진입 - 즉시 랭킹 조회")
+                android.util.Log.d("OngoingChallenge", "자동 갱신 실행 (10초 주기)")
+            } else {
+                android.util.Log.d("OngoingChallenge", "화면 비활성화 상태 - 갱신 스킵")
             }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
-
-        // 10초마다 자동 갱신
-        val autoRefreshJob =
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-                while (true) {
-                    kotlinx.coroutines.delay(10 * 1000L)
-
-                    // 화면이 활성화 상태일 때만 갱신
-                    if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                        viewModel.loadRanking()
-                        android.util.Log.d("OngoingChallenge", "자동 갱신 (10초 주기)")
-                    }
-                }
-            }
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
-            autoRefreshJob.cancel()
-            android.util.Log.d("OngoingChallenge", "자동 갱신 중단")
         }
     }
 
@@ -104,7 +93,7 @@ fun OngoingChallengeScreen(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(540.dp),
+                .height(510.dp),
             contentScale = ContentScale.Crop
         )
 
@@ -220,95 +209,115 @@ fun ParticipantCard(
     currentAppPackage: String?,
     isMe: Boolean
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .width(80.dp)
+            .height(140.dp)
+            .hardShadow(
+                offsetX = 4.dp,
+                offsetY = 4.dp,
+                cornerRadius = 8.dp,
+                color = Color.Black
+            )
+            .background(
+                color = Color.White,
+                shape = RoundedCornerShape(8.dp)
+            )
             .border(
-                width = if (isMe) 3.dp else 2.dp,
+                width = 2.dp,
                 color = if (isMe) Primary else Color.Black,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(8.dp)
             )
-            .background(Color.White, DitoShapes.extraSmall)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .width(90.dp)
-                .background(Color.White, RoundedCornerShape(12.dp))
-                .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                .padding(vertical = 6.dp),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = totalScreenTime,
-                style = DitoTypography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-        }
-
-        // === 2) 캐릭터 / 프로필 이미지 영역 ===
-        Box(
-            modifier = Modifier
-                .size(70.dp) // 캐릭터 실제 크기
-                .clip(RoundedCornerShape(8.dp))
-                .border(0.dp, Color.Transparent)
-                .background(Color.Transparent),
-            contentAlignment = Alignment.Center
-        ) {
-            if (profileImage != null) {
-                coil.compose.AsyncImage(
-                    model = profileImage,
-                    contentDescription = "$nickname profile",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.FillBounds
+            // 상단 노란색 헤더
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = Primary,
+                        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                    )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "#$rank",
+                        style = DitoTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.5.dp)
+                        .background(Color.Black)
                 )
-            } else {
+            }
+
+            // 캐릭터 및 정보
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // 프로필 이미지
+                Box(
+                    modifier = Modifier
+                        .size(55.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (profileImage != null) {
+                        coil.compose.AsyncImage(
+                            model = profileImage,
+                            contentDescription = "$nickname profile",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    } else {
+                        Text(
+                            text = nickname.take(1).uppercase(),
+                            style= DitoTypography.labelLarge,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 닉네임
                 Text(
-                    text = nickname.take(1).uppercase(),
-                    fontSize = 22.sp,
+                    text = nickname,
+                    style = DitoTypography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Gray
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // 스크린타임
+                Text(
+                    text = totalScreenTime,
+                    style = DitoTypography.labelSmall,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
         }
-
-        // === 3) 하단 흰 박스 (닉네임) ===
-        Box(
-            modifier = Modifier
-                .width(110.dp)
-                .background(Color.White, RoundedCornerShape(12.dp))
-                .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                .padding(vertical = 6.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = nickname,
-                style = DitoTypography.labelLarge,
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-        }
-        // 현재 사용 중인 앱 아이콘
-//        if (currentAppPackage != null) {
-//            Row(
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.Center
-//            ) {
-//                Image(
-//                    painter = painterResource(id = getAppIconResource(currentAppPackage)),
-//                    contentDescription = "Current App",
-//                    modifier = Modifier
-//                        .size(16.dp)
-//                        .clip(DitoShapes.extraSmall)
-//                )
-//            }
-//        }
     }
 }
 
@@ -350,7 +359,6 @@ fun InfoCard(icon: Int, title: String, value: String) {
         Text(
             text = "$title : $value",
             style = DitoTypography.bodyLarge,
-            fontWeight = FontWeight.Bold,
             color = Color.Black
         )
     }
