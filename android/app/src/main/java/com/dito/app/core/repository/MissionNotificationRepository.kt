@@ -1,6 +1,7 @@
 package com.dito.app.core.repository
 
 import android.util.Log
+import com.dito.app.core.data.ApiResponse
 import com.dito.app.core.data.missionNotification.MissionNotificationResponse
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
@@ -42,7 +43,7 @@ class MissionNotificationRepository @Inject constructor(
                     Log.d("MissionNotification", "--- 알림 #$index ---")
                     Log.d("MissionNotification", "  id: ${notification.id}")
                     Log.d("MissionNotification", "  missionType: ${notification.missionType}")
-                    Log.d("MissionNotification", "  missionText: ${notification.missionText}")
+                    Log.d("MissionNotification", "  title: ${notification.title}")
                     Log.d("MissionNotification", "  coinReward: ${notification.coinReward}")
                     Log.d("MissionNotification", "  status: ${notification.status}")
                     Log.d("MissionNotification", "  result: ${notification.result}")
@@ -65,6 +66,37 @@ class MissionNotificationRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e("MissionNotification", "예외 발생: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun claimMissionReward(missionId: Long): Result<ApiResponse<Unit>> = withContext(Dispatchers.IO) {
+        try {
+            val accessToken = authTokenManager.getAccessToken()
+                ?: return@withContext Result.failure(Exception("로그인이 필요합니다"))
+
+            Log.d("MissionNotification", "=== 레몬 획득 API 요청 ===")
+            Log.d("MissionNotification", "미션 ID: $missionId")
+
+            val response = apiService.claimMissionReward(
+                missionId = missionId,
+                token = "Bearer $accessToken"
+            )
+
+            Log.d("MissionNotification", "응답 코드: ${response.code()}")
+            Log.d("MissionNotification", "응답 성공 여부: ${response.isSuccessful}")
+
+            if (response.isSuccessful && response.body() != null) {
+                val body = response.body()!!
+                Log.d("MissionNotification", "레몬 획득 성공")
+                Result.success(body)
+            } else {
+                val errorMessage = "레몬 획득 실패 (code: ${response.code()})"
+                Log.e("MissionNotification", errorMessage)
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e("MissionNotification", "레몬 획득 예외 발생: ${e.message}", e)
             Result.failure(e)
         }
     }

@@ -6,5 +6,6 @@ data class MissionData(
     val instruction: String,
     val durationSeconds: Int,
     val targetApps: List<String>,
-    val coinReward: Int = 10
+    val coinReward: Int = 10,
+    val deepLink: String? = null
 )

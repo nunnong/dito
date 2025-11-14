@@ -34,6 +34,7 @@ class MediaSessionListenerService : NotificationListenerService() {
     override fun onCreate() {
         super.onCreate()
         sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
+        SessionStateManager.setInstance(sessionManager)
         Log.d(TAG, "SessionStateManager 초기화 완료")
     }
 

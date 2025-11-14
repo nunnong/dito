@@ -109,6 +109,11 @@ interface ApiService {
         @Query("page_number") pageNumber: Int,
     ): Response<MissionNotificationResponse>
 
+    @POST("/mission/{missionId}/claim-reward")
+    suspend fun claimMissionReward(
+        @Path("missionId") missionId: Long,
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<Unit>>
 
     // ========== Events ==========
     @POST("/event/app-usage")
