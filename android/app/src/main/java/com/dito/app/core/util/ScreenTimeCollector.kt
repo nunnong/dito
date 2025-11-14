@@ -4,6 +4,9 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.util.Log
+import com.dito.app.core.data.phone.MediaSessionEvent
+import io.realm.kotlin.Realm
+import io.realm.kotlin.ext.query
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
@@ -34,43 +37,50 @@ class ScreenTimeCollector(private val context: Context) {
 
     fun getYouTubeUsageMinutes(): Int {
         try {
-            val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE)
-                    as UsageStatsManager
+            // Realm에서 오늘 하루의 YouTube 세션 데이터를 조회
+            val today = getTodayDateString()
 
-            val endTime = System.currentTimeMillis()
-            val startTime = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }.timeInMillis
-
-            val stats = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                startTime,
-                endTime
-            )
-
-            if (stats == null || stats.isEmpty()) {
-                Log.w("ScreenTimeCollector", "⚠️ UsageStats 데이터가 비어있습니다 (권한 확인 필요)")
+            val realm = try {
+                com.dito.app.core.data.RealmConfig.getInstance()
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Realm 초기화 실패", e)
                 return 0
             }
 
-            val youtubePackage = "com.google.android.youtube"
-            val youtubeStats = stats.firstOrNull {
-                it.packageName == youtubePackage
+            val sessions = realm.query<MediaSessionEvent>(
+                "date == $0 AND appPackage == $1",
+                today,
+                "com.google.android.youtube"
+            ).find()
+
+            val savedWatchTimeMillis = sessions.sumOf { it.watchTime }
+
+
+
+            val currentSessionTime = try {
+                com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
+            } catch (e: Exception) {
+                Log.w(TAG, "현재 세션 조회 실패", e)
+                0L
             }
 
-            val totalMillis = youtubeStats?.totalTimeInForeground ?: 0L
-            val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalMillis).toInt()
+            val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
+            val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
 
-            Log.d("ScreenTimeCollector", "YouTube 사용시간: ${totalMinutes}분 (${totalMillis}ms)")
+            Log.d("ScreenTimeCollector", "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
+
+
 
             return totalMinutes
         } catch (e: Exception) {
             Log.e("ScreenTimeCollector", "❌ YouTube 사용시간 조회 실패", e)
             return 0
         }
+    }
+
+    private fun getTodayDateString(): String {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date())
     }
 
     /**
