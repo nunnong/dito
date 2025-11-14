@@ -33,6 +33,7 @@ import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.Surface
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
@@ -162,7 +163,7 @@ fun ChangeNickName(
                     Spacer(Modifier.height(Spacing.s))
                     Text(
                         text = errorMessage,
-                        color = Error,
+                        color = OnSurface,
                         style = DitoTypography.bodySmall,
                         modifier = Modifier.padding(horizontal = Spacing.m)
                     )
@@ -192,7 +193,7 @@ fun ChangeNickName(
                 ) {
                     Text(
                         text = if (uiState.isLoading) "변경 중..." else "변경하기",
-                        color = if (isValid) Color.Black else Color.Black,
+                        color = Color.Black,
                         style = DitoCustomTextStyles.titleKMedium
                     )
                 }
