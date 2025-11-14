@@ -33,6 +33,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -200,7 +202,6 @@ public class GroupChallengeService {
 
     /**
      * 콕콕찌르기 - 그룹 참여자를 찌릅니다 (FCM 푸시 알림 전송)
-     *
      * @param groupId       그룹 챌린지 ID
      * @param request       찌를 대상 사용자 ID
      */
@@ -222,9 +223,20 @@ public class GroupChallengeService {
         if (!senderIsParticipant) throw new RuntimeException("그룹에 참여하지 않은 사용자입니다");
         if (!targetIsParticipant) throw new RuntimeException("대상 사용자가 그룹에 참여하지 않았습니다");
 
+        List<String> messages = List.of(
+            "%s님이 시간 빌게이츠냐고 물어보시네요~ ⏰",
+            "지금 하버드에서는 책장이... 📚",
+            "%s님이 핸드폰 내려놓으라고 콕콕 찔렀습니다! 📵",
+            "%s님이 집중하라며 찌르기 시전! ⚡",
+            "%s님이 잊지 말라며 톡톡 찔렀어요 💪",
+            "%s님이 미션 생각났냐고 찔렀습니다 😜"
+        );
+
+        Random random = new Random();
+        String selectedMessage = messages.get(random.nextInt(messages.size()));
 
         String title = "콕콕찌르기";
-        String body = String.format("%s님이 정신차리라고 찌르기를 보냈습니다!", sender.getNickname());
+        String body = String.format(selectedMessage, sender.getNickname());
 
         Map<String, String> data = new HashMap<>();
         data.put("type", "POKE");
