@@ -2,6 +2,7 @@ package com.ssafy.Dito.domain.mission.entity;
 
 import com.ssafy.Dito.domain._common.IdentifiableEntity;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
+import com.ssafy.Dito.domain.mission.dto.request.MissionTextUpdateReq;
 import com.ssafy.Dito.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -108,5 +109,9 @@ public class Mission extends IdentifiableEntity {
 
     public void updateStatus() {
         this.status = Status.COMPLETED;
+    }
+
+    public void updateMissionText(MissionTextUpdateReq req) {
+        this.missionText = req.missionText();
     }
 }
