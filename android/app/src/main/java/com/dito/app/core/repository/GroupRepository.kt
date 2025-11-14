@@ -220,7 +220,7 @@ class GroupRepository @Inject constructor(
                         )
                     Log.d(
                         TAG,
-                        "랭킹 조회 성공: groupName=${ranking.groupInfo.groupName}, rankings=${ranking.rankings.size}개"
+                        "랭킹 조회 성공: rankings=${ranking.rankings.size}개"
                     )
                     Result.success(ranking)
                 } else {
@@ -281,7 +281,7 @@ class GroupRepository @Inject constructor(
 
                 Log.d(TAG, "참여자 목록 조회 시도: groupId=$groupId")
 
-                val response = apiService.getGroupParticipants(groupId, "Beare* $token")
+                val response = apiService.getGroupParticipants(groupId, "Bearer $token")
 
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
@@ -304,51 +304,5 @@ class GroupRepository @Inject constructor(
                 Result.failure(e)
             }
         }
-
-    // 그룹 챌린지 스크린 타임 갱신
-//    suspend fun updateScreenTime(
-//        groupId: Int,
-//        date: String,
-//        totalMinutes: Int
-//    ): Result<UpdateScreenTimeResponse> = withContext(Dispatchers.IO) {
-//        try {
-//            val token = authTokenManager.getAccessToken()
-//            if (token.isNullOrEmpty()) {
-//                Log.e(TAG, "스크린 타임 갱신 실패: 토큰 없음")
-//                return@withContext Result.failure(Exception("로그인이 필요합니다"))
-//            }
-//
-//            val request = UpdateScreenTimeRequest(
-//                groupId = groupId,
-//                date = date,
-//                totalMinutes = totalMinutes
-//            )
-//
-//            Log.d(TAG, "스크린 타임 갱신 시도: groupId=$groupId, date=$date, totalMinutes=$totalMinutes")
-//
-//            val response = apiService.updateScreenTime(request, "Bearer $token")
-//
-//            Log.d(TAG, "응답 코드: ${response.code()}")
-//            Log.d(TAG, "응답 성공 여부: ${response.isSuccessful}")
-//
-//            if (response.isSuccessful && response.body() != null) {
-//                val apiResponse = response.body()!!
-//                val screenTimeData = apiResponse.data
-//                    ?: return@withContext Result.failure(
-//                        Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
-//                    )
-//                Log.d(TAG, "스크린 타임 갱신 성공: status=${screenTimeData.status}")
-//                Result.success(screenTimeData)
-//            } else {
-//                val errorBody = response.errorBody()?.string()
-//                val errorMessage = "스크린 타임 갱신 실패: $errorBody"
-//                Log.e(TAG, "스크린 타임 갱신 실패: code=${response.code()}, errorBody=$errorBody")
-//                Result.failure(Exception(errorMessage))
-//            }
-//        } catch (e: Exception) {
-//            Log.e(TAG, "스크린 타임 갱신 예외", e)
-//            Result.failure(e)
-//        }
-//    }
 
 }

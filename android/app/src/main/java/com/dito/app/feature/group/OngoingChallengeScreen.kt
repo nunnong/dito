@@ -22,113 +22,129 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import com.dito.app.R
+import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.hardShadow
-import com.dito.app.core.ui.util.rememberLifecycleEvent
+import kotlinx.coroutines.launch
 
 @Composable
 fun OngoingChallengeScreen(
     viewModel: GroupChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    // 화면이 다시 활성화될 때마다 순위 조회
-    val lifecycleEvent = rememberLifecycleEvent()
-    LaunchedEffect(lifecycleEvent) {
-        if (lifecycleEvent == Lifecycle.Event.ON_RESUME) {
-            viewModel.loadRanking()
+    // 화면 진입 시 즉시 조회
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        android.util.Log.d("OngoingChallenge", "OngoingChallengeScreen LaunchedEffect 시작")
+        viewModel.refreshGroupInfo()
+        viewModel.loadRanking()
+        android.util.Log.d("OngoingChallenge", "초기 데이터 로드 완료")
+    }
+
+    // 10초마다 자동 갱신
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        android.util.Log.d("OngoingChallenge", "자동 갱신 폴링 LaunchedEffect 시작")
+        while (true) {
+            kotlinx.coroutines.delay(10 * 1000L)
+            android.util.Log.d("OngoingChallenge", "폴링 시도 - 현재 상태: ${lifecycleOwner.lifecycle.currentState}")
+
+            // 화면이 활성화 상태일 때만 갱신
+            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                viewModel.loadRanking()
+                android.util.Log.d("OngoingChallenge", "자동 갱신 실행 (10초 주기)")
+            } else {
+                android.util.Log.d("OngoingChallenge", "화면 비활성화 상태 - 갱신 스킵")
+            }
         }
     }
 
-    val groupInfo = uiState.groupInfo
     val rankings = uiState.rankings
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFD9D9D9))
+            .background(Color.White)
+            .verticalScroll(rememberScrollState())
     ) {
-        // 배경 이미지
+        // 상단 레몬나무 배경 이미지
         Image(
-            painter = painterResource(id = R.drawable.race),
+            painter = painterResource(id = R.drawable.lemontree),
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alpha = 0.8f
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(510.dp),
+            contentScale = ContentScale.Crop
         )
 
+        Spacer(modifier = Modifier.width(8.dp))
+
+
+        // 참여자 4명 리스트 (랭킹 API에서 가져온 데이터)
+        if (rankings.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                rankings.take(4).forEach { rankingItem ->
+                    val participant =
+                        uiState.participants.find { it.userId == rankingItem.userId }
+
+                    ParticipantCard(
+                        rank = rankingItem.rank,
+                        nickname = rankingItem.nickname,
+                        profileImage = rankingItem.profileImage,
+                        totalScreenTime = rankingItem.totalScreenTimeFormatted,
+                        avgDailyScreenTime = rankingItem.avgDailyScreenTimeFormatted,
+                        currentAppName = rankingItem.currentAppName,
+                        currentAppPackage = rankingItem.currentAppPackage,
+                        isMe = rankingItem.isMe
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 그룹 정보 섹션
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-
             // 챌린지 제목
             Text(
-                text = groupInfo?.groupName ?: uiState.groupName,
+                text = uiState.groupName,
                 style = DitoTypography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = Color.Black
             )
 
             Spacer(Modifier.height(16.dp))
-
-            // 진행 상황 바
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val daysElapsed = groupInfo?.daysElapsed ?: 0
-                val daysTotal = groupInfo?.daysTotal ?: uiState.period
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                        .clip(RoundedCornerShape(12.dp))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(if (daysTotal > 0) daysElapsed.toFloat() / daysTotal.toFloat() else 0f)
-                            .fillMaxHeight()
-                            .background(Color.Black)
-                    )
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = "${daysElapsed}일 / ${daysTotal}일",
-                    style = DitoCustomTextStyles.titleKSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
 
             // Betting 정보
             Row(
@@ -136,11 +152,11 @@ fun OngoingChallengeScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val totalBet = groupInfo?.totalBetCoins ?: uiState.bet
                 Text(
-                    text = "Betting : $totalBet",
+                    text = "총 배팅 : ${uiState.bet}",
                     style = DitoCustomTextStyles.titleDLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -152,84 +168,169 @@ fun OngoingChallengeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // 랭킹 카드들 (동적으로 생성)
-            if (rankings.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    rankings.take(4).forEach { rankingItem ->
-                        val participant =
-                            uiState.participants.find { it.userId == rankingItem.userId }
-                        val backgroundImgUrl =
-                            participant?.equipedItems?.find { it.type == "background" }?.imgUrl
-                        val costumeImgUrl =
-                            participant?.equipedItems?.find { it.type == "costume" }?.imgUrl
+            // 챌린지 정보 카드들
+            InfoCard(
+                icon = R.drawable.period,
+                title = "PERIOD",
+                value = "${uiState.startDate} - ${uiState.endDate}"
+            )
 
-                        val backgroundColor = when (rankingItem.rank) {
-                            1 -> Color(0xFFFDD835) // 1등: 노란색
-                            2, 3 -> Color.White // 2, 3등: 흰색
-                            else -> Color(0xFFFF5722) // 4등 이상: 빨간색
-                        }
-                        val height = when (rankingItem.rank) {
-                            1 -> 200.dp
-                            2 -> 180.dp
-                            3 -> 160.dp
-                            else -> 140.dp
-                        }
+            Spacer(Modifier.height(12.dp))
 
-                        val isFirst = rankingItem.rank == 1
-                        val isLast =
-                            rankingItem.rank == uiState.participants.size && uiState.participants.size > 1
+            InfoCard(
+                icon = R.drawable.goal,
+                title = "GOAL",
+                value = uiState.goal
+            )
 
-                        RankCard(
-                            rank = rankingItem.rank.toString(),
-                            name = rankingItem.nickname,
-                            time = rankingItem.totalScreenTimeFormatted,
-                            backgroundColor = backgroundColor,
-                            height = height,
-                            backgroundImgUrl = backgroundImgUrl,
-                            costumeImgUrl = costumeImgUrl,
-                            isFirst = isFirst,
-                            isLast = isLast
-                        )
-                    }
-                }
-            }
+            Spacer(Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // RACE INFO
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                val startDate = groupInfo?.startDate ?: uiState.startDate
-                val endDate = groupInfo?.endDate ?: uiState.endDate
-                val penalty = groupInfo?.penaltyDescription ?: uiState.penalty
-                val goal = groupInfo?.goalDescription ?: uiState.goal
-
-                // Period
-                InfoCard(
-                    icon = R.drawable.period,
-                    title = "PERIOD",
-                    value = "$startDate - $endDate"
-                )
-                // Penalty
-                InfoCard(icon = R.drawable.penalty, title = "PENALTY", value = penalty)
-                // Goal
-                InfoCard(icon = R.drawable.goal, title = "GOAL", value = goal)
-            }
+            InfoCard(
+                icon = R.drawable.penalty,
+                title = "PENALTY",
+                value = uiState.penalty
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+fun ParticipantCard(
+    rank: Int,
+    nickname: String,
+    profileImage: String?,
+    totalScreenTime: String,
+    avgDailyScreenTime: String,
+    currentAppName: String?,
+    currentAppPackage: String?,
+    isMe: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .width(80.dp)
+            .height(140.dp)
+            .hardShadow(
+                offsetX = 4.dp,
+                offsetY = 4.dp,
+                cornerRadius = 8.dp,
+                color = Color.Black
+            )
+            .background(
+                color = Color.White,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .border(
+                width = 2.dp,
+                color = if (isMe) Primary else Color.Black,
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // 상단 노란색 헤더
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = Primary,
+                        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                    )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "#$rank",
+                        style = DitoTypography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.5.dp)
+                        .background(Color.Black)
+                )
+            }
+
+            // 캐릭터 및 정보
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // 프로필 이미지
+                Box(
+                    modifier = Modifier
+                        .size(55.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (profileImage != null) {
+                        coil.compose.AsyncImage(
+                            model = profileImage,
+                            contentDescription = "$nickname profile",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    } else {
+                        Text(
+                            text = nickname.take(1).uppercase(),
+                            style= DitoTypography.labelLarge,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 닉네임
+                Text(
+                    text = nickname,
+                    style = DitoTypography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // 스크린타임
+                Text(
+                    text = totalScreenTime,
+                    style = DitoTypography.labelSmall,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 앱 패키지 이름에 따라 커스텀 아이콘 리소스를 반환
+ */
+fun getAppIconResource(packageName: String?): Int {
+    return when (packageName) {
+        "com.google.android.youtube" -> R.drawable.ic_youtube
+        "com.instagram.android" -> R.drawable.ic_instagram
+        "com.android.chrome" -> R.drawable.ic_chrome
+        "com.twitter.android" -> R.drawable.ic_twitter
+        else -> R.drawable.dito
     }
 }
 
@@ -258,113 +359,8 @@ fun InfoCard(icon: Int, title: String, value: String) {
         Text(
             text = "$title : $value",
             style = DitoTypography.bodyLarge,
-            fontWeight = FontWeight.Bold,
             color = Color.Black
         )
     }
 }
 
-@Composable
-fun RankCard(
-    rank: String,
-    name: String,
-    time: String,
-    backgroundColor: Color,
-    height: Dp,
-    backgroundImgUrl: String?,
-    costumeImgUrl: String?,
-    isFirst: Boolean,
-    isLast: Boolean
-) {
-    Box(contentAlignment = Alignment.Center) {
-        Column(
-            modifier = Modifier
-                .width(80.dp)
-                .height(height)
-                .border(2.dp, Color.Black, RoundedCornerShape(12.dp))
-                .background(backgroundColor, RoundedCornerShape(12.dp))
-                .padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // 누적 시간
-            Text(
-                text = time,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
-            // 순위
-            Text(
-                text = rank,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-
-            // 캐릭터 이미지
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .border(2.dp, Color.Black, RoundedCornerShape(24.dp))
-                    .background(Color.White, RoundedCornerShape(24.dp))
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // 배경 이미지 (먼저 그려짐)
-                if (backgroundImgUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = backgroundImgUrl,
-                        contentDescription = "$name background",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                }
-
-                // 의상 이미지 (배경 위에 그려짐)
-                if (costumeImgUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = costumeImgUrl,
-                        contentDescription = "$name costume",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                }
-            }
-
-            // 이름
-            Text(
-                text = name,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        if (isFirst) {
-            Image(
-                painter = painterResource(id = R.drawable.crown),
-                contentDescription = "Crown",
-                modifier = Modifier
-                    .size(40.dp)
-                    .align(Alignment.TopCenter)
-                    .offset(y = (-20).dp)
-            )
-        }
-
-        if (isLast) {
-            Image(
-                painter = painterResource(id = R.drawable.hammer),
-                contentDescription = "Hammer",
-                modifier = Modifier
-                    .size(60.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = 10.dp, y = 20.dp)
-                    .rotate(-30f)
-            )
-        }
-    }
-}

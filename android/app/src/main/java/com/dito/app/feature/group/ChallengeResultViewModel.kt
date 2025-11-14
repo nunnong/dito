@@ -8,7 +8,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dito.app.core.data.group.GroupInfo
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
@@ -23,8 +22,12 @@ import javax.inject.Inject
 
 data class ChallengeResultUiState(
     val isLoading: Boolean = false,
-    val groupInfo: GroupInfo? = null,
     val rankings: List<RankingItem> = emptyList(),
+    val groupName: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val totalBetCoins: Int = 0,
+    val penaltyDescription: String = "",
     val errorMessage: String? = null
 )
 
@@ -54,6 +57,13 @@ class ChallengeResultViewModel @Inject constructor(
             return
         }
 
+        // GroupManager에서 그룹 정보 가져오기
+        val groupName = groupManager.getGroupName()
+        val startDate = groupManager.getStartDate()
+        val endDate = groupManager.getEndDate()
+        val bet = groupManager.getBet()
+        val penalty = groupManager.getPenalty()
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -61,8 +71,12 @@ class ChallengeResultViewModel @Inject constructor(
                 onSuccess = { ranking ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        groupInfo = ranking.groupInfo,
                         rankings = ranking.rankings,
+                        groupName = groupName,
+                        startDate = startDate,
+                        endDate = endDate,
+                        totalBetCoins = bet,
+                        penaltyDescription = penalty,
                         errorMessage = null
                     )
                 },

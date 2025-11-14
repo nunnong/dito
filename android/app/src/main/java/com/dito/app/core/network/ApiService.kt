@@ -24,6 +24,7 @@ import com.dito.app.core.data.missionNotification.MissionNotificationResponse
 import com.dito.app.core.data.screentime.GroupRankingResponse
 import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
+import com.dito.app.core.data.screentime.UpdateCurrentAppRequest
 import com.dito.app.core.data.settings.UpdateFrequencyRequest
 import com.dito.app.core.data.settings.UpdateFrequencyResponse
 import com.dito.app.core.data.settings.UpdateNicknameRequest
@@ -108,6 +109,11 @@ interface ApiService {
         @Query("page_number") pageNumber: Int,
     ): Response<MissionNotificationResponse>
 
+    @POST("/mission/{missionId}/claim-reward")
+    suspend fun claimMissionReward(
+        @Path("missionId") missionId: Long,
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<Unit>>
 
     // ========== Events ==========
     @POST("/event/app-usage")
@@ -129,15 +135,22 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<ScreenTimeUpdateResponse>
 
+    @POST("/screen-time/current-app")
+    suspend fun updateCurrentApp(
+        @Header("Authorization") token: String,
+        @Body request: UpdateCurrentAppRequest
+    ): Response<ApiResponse<Unit>>
+
     @GET("/challenges/groups/{groupId}/ranking")
     suspend fun getGroupRanking(
         @Path("groupId") groupId: Long,
         @Header("Authorization") token: String
     ): Response<GroupRankingResponse>
 
+
     // Group
 
-    // 그룹 상세 정보
+    // 내가 속한 그룹 상세 정보
     @GET("/challenges/groups/detail")
     suspend fun getGroupDetail(
         @Header("Authorization") token: String

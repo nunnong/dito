@@ -24,8 +24,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -44,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -122,6 +127,8 @@ dependencies {
 
     // ========== Coil (이미지 로딩) ============
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
 
     // ========== Wearable Data Layer (폰-워치 통신) ==========
     implementation("com.google.android.gms:play-services-wearable:18.2.0")

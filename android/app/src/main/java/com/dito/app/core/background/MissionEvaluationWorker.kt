@@ -1,6 +1,7 @@
 package com.dito.app.core.background
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -12,7 +13,9 @@ import com.dito.app.core.network.AIEvaluationResponse
 import com.dito.app.core.network.AIService
 import com.dito.app.core.network.BehaviorLogEntry
 import com.dito.app.core.network.MissionInfo
+import com.dito.app.core.notification.ProgressNotificationHelper
 import com.dito.app.core.service.Checker
+import com.dito.app.core.service.mission.MissionProgressService
 import com.dito.app.core.service.mission.MissionTracker
 import com.dito.app.core.storage.AuthTokenManager
 import dagger.assisted.Assisted
@@ -46,6 +49,14 @@ class MissionEvaluationWorker @AssistedInject constructor(
 
             Log.i(TAG, "📊 미션 평가 시작: $missionId")
             Log.d(TAG, "   타입: $missionType, 시간: ${durationSeconds}초")
+
+            // MissionProgressService 중지 보장 (혹시 모를 경우 대비)
+            try {
+                applicationContext.stopService(Intent(applicationContext, MissionProgressService::class.java))
+                Log.d(TAG, "🔔 MissionProgressService 중지 보장 완료")
+            } catch (e: Exception) {
+                Log.w(TAG, "MissionProgressService 중지 시도 중 에러 (이미 중지되었을 수 있음): ${e.message}")
+            }
 
 //            triggerFinalAppRecord()
 
@@ -107,6 +118,10 @@ class MissionEvaluationWorker @AssistedInject constructor(
 
                 RealmRepository.markMissionLogsSynced(missionId)
                 missionTracker.stopTracking()
+
+                // ProgressStyle 알림 제거
+                ProgressNotificationHelper.cancelNotification(applicationContext)
+
                 Log.i(TAG, "✅ 미션 평가 전송 성공")
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 Result.success()
@@ -130,6 +145,10 @@ class MissionEvaluationWorker @AssistedInject constructor(
                             Log.w(TAG, "중복 미션으로 평가 종료")
                             RealmRepository.markMissionLogsSynced(missionId)
                             missionTracker.stopTracking()
+
+                            // ProgressStyle 알림 제거
+                            ProgressNotificationHelper.cancelNotification(applicationContext)
+
                             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                             return@withContext Result.success()
                         }

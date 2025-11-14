@@ -4,9 +4,13 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.util.Log
+import com.dito.app.core.data.phone.MediaSessionEvent
+import io.realm.kotlin.Realm
+import io.realm.kotlin.ext.query
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 /**
  * 스크린타임 수집 유틸리티
@@ -29,6 +33,54 @@ class ScreenTimeCollector(private val context: Context) {
     fun getTodayScreenTimeMinutes(): Int {
         val (startTime, endTime) = getTodayRange()
         return getScreenTimeMinutes(startTime, endTime)
+    }
+
+    fun getYouTubeUsageMinutes(): Int {
+        try {
+            // Realm에서 오늘 하루의 YouTube 세션 데이터를 조회
+            val today = getTodayDateString()
+
+            val realm = try {
+                com.dito.app.core.data.RealmConfig.getInstance()
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Realm 초기화 실패", e)
+                return 0
+            }
+
+            val sessions = realm.query<MediaSessionEvent>(
+                "date == $0 AND appPackage == $1",
+                today,
+                "com.google.android.youtube"
+            ).find()
+
+            val savedWatchTimeMillis = sessions.sumOf { it.watchTime }
+
+
+
+            val currentSessionTime = try {
+                com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
+            } catch (e: Exception) {
+                Log.w(TAG, "현재 세션 조회 실패", e)
+                0L
+            }
+
+            val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
+            val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
+
+            Log.d("ScreenTimeCollector", "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
+
+
+
+            return totalMinutes
+        } catch (e: Exception) {
+            Log.e("ScreenTimeCollector", "❌ YouTube 사용시간 조회 실패", e)
+            return 0
+        }
+    }
+
+    private fun getTodayDateString(): String {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date())
     }
 
     /**

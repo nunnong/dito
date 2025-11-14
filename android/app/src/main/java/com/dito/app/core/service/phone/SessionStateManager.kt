@@ -33,6 +33,36 @@ class SessionStateManager(
         private const val METADATA_WAIT_DELAY = 1000L // 채널명 대기 시간 (1초)
 
         private const val PKG_YOUTUBE = "com.google.android.youtube"
+
+        @Volatile
+        private var instance: SessionStateManager? = null
+
+        fun setInstance(manager: SessionStateManager) {
+            instance = manager
+        }
+
+        /**
+         * 현재 재생 중인 YouTube 세션의 시청 시간 반환 (밀리초)
+         * 10초마다 호출되는 랭킹 갱신에서 사용
+         */
+        fun getCurrentSessionWatchTime(): Long {
+            val session = instance?.currentSession ?: return 0L
+
+            // YouTube가 아니면 0 반환
+            if (session.appPackage != PKG_YOUTUBE) return 0L
+
+            val currentTime = System.currentTimeMillis()
+            val totalTime = currentTime - session.startTime
+            var watchTime = totalTime - session.totalPauseTime
+
+            // 현재 일시정지 중이면 일시정지 시간도 차감
+            session.lastPauseTime?.let { pauseTime ->
+                val currentPauseDuration = currentTime - pauseTime
+                watchTime -= currentPauseDuration
+            }
+
+            return maxOf(0L, watchTime)
+        }
     }
 
     private var currentSession: ActiveSession? = null
