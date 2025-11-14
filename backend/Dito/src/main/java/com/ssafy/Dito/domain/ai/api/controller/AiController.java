@@ -65,7 +65,7 @@ public class AiController {
     }
 
     @Operation(summary = "mission_text 수정")
-    @PatchMapping()
+    @PatchMapping("/mission")
     public ResponseEntity<CommonResult> updateMissionText(
         @RequestBody MissionTextUpdateReq req
     ) {

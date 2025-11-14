@@ -67,9 +67,8 @@ public class MissionService {
 
     @Transactional
     public void updateMissionText(MissionTextUpdateReq req) {
-        long userId = JwtAuthentication.getUserId();
 
-        Mission mission = missionRepository.getByIdAndUserId(req.missionId(), userId);
+        Mission mission = missionRepository.getByIdAndUserId(req.missionId(), req.userId());
 
         mission.updateMissionText(req);
     }
