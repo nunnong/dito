@@ -16,6 +16,17 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Foreground Service 권한 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"
+        tools:ignore="ForegroundServicesPolicy" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- Exact Alarm 권한 (정확한 타이밍의 AlarmManager 사용) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"
+        tools:ignore="ExactAlarmPolicy" />
+
+
     <!-- Health Connect 권한 -->
     <uses-permission android:name="android.permission.health.READ_STEPS"
         tools:ignore="HealthConnectPolicy" />
@@ -136,6 +147,22 @@
             </intent-filter>
         </service>
 
+        <!-- Mission Progress Service (ProgressStyle 알림) -->
+        <service
+            android:name=".core.service.mission.MissionProgressService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="mission_progress_tracking" />
+        </service>
+
+        <!-- Samsung App Now Bar Support (One UI 7+) -->
+        <meta-data
+            android:name="com.samsung.android.support.ongoing_activity"
+            android:value="true" />
+
+
         <!-- FCM Messaging Service -->
         <service
             android:name=".core.fcm.DitoFirebaseMessagingService"
@@ -163,6 +190,12 @@
                 <action android:name="android.intent.action.SCREEN_OFF" />
             </intent-filter>
         </receiver>
+
+        <!-- Progress Update Receiver (AlarmManager) -->
+        <receiver
+            android:name=".core.service.mission.ProgressUpdateReceiver"
+            android:exported="false" />
+
 
 
     </application>
