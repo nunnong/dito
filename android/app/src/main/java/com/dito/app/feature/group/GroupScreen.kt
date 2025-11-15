@@ -196,7 +196,8 @@ fun GroupScreen(
     if (uiState.showJoinDialog) {
         JoinWithCodeDialog(
             onDismiss = { viewModel.onDialogClose() },
-            onJoinWithCode = { inviteCode -> viewModel.joinGroupWithCode(inviteCode) }
+            onJoinWithCode = { inviteCode -> viewModel.joinGroupWithCode(inviteCode) },
+            errorMessage = uiState.errorMessage
         )
     }
 

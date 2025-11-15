@@ -114,7 +114,13 @@ class GroupRepository @Inject constructor(
                     Result.success(groupData)
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    val errorMessage = "그룹 정보 조회 실패: $errorBody"
+                    val errorMessage = try {
+                        // JSON에서 message 필드 추출
+                        val jsonObject = org.json.JSONObject(errorBody ?: "")
+                        jsonObject.optString("message", "유효하지 않은 초대 코드입니다")
+                    } catch (e: Exception) {
+                        "유효하지 않은 초대 코드입니다"
+                    }
                     Log.e(
                         TAG,
                         "그룹 정보 조회 실패: code=${response.code()}, message=${response.message()}, errorBody=$errorBody"

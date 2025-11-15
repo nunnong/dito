@@ -50,7 +50,8 @@ data class GroupChallengeUiState(
     val challengeStatus: ChallengeStatus = ChallengeStatus.NO_CHALLENGE,
     val participants: List<Participant> = emptyList(),
     val errorMessage: String? = null,
-    val costumeUrl: String? = null
+    val costumeUrl: String? = null,
+    val skipRefresh: Boolean = false  // 방금 입장한 경우 refresh 건너뛰기
 )
 
 @HiltViewModel
@@ -76,6 +77,12 @@ class GroupChallengeViewModel @Inject constructor(
      * 서버에서 최신 그룹 정보 불러오기
      */
     fun refreshGroupInfo() {
+        // 방금 입장한 경우 refresh 건너뛰기
+        if (_uiState.value.skipRefresh) {
+            _uiState.value = _uiState.value.copy(skipRefresh = false)
+            return
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
@@ -167,7 +174,7 @@ class GroupChallengeViewModel @Inject constructor(
     }
 
     fun onJoinDialogOpen() {
-        _uiState.value = _uiState.value.copy(showJoinDialog = true)
+        _uiState.value = _uiState.value.copy(showJoinDialog = true, errorMessage = null)
     }
 
     fun onDialogClose() {
@@ -176,7 +183,8 @@ class GroupChallengeViewModel @Inject constructor(
             showJoinDialog = false,
             showChallengeDialog = false,
             showBetInputDialog = false,
-            groupName = ""
+            groupName = "",
+            errorMessage = null
         )
     }
 
@@ -326,7 +334,7 @@ class GroupChallengeViewModel @Inject constructor(
 
     fun joinGroupWithCode(inviteCode: String) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
 
             groupRepository.getGroupInfo(inviteCode).fold(
                 onSuccess = { response ->
@@ -338,13 +346,15 @@ class GroupChallengeViewModel @Inject constructor(
                         joinedGroupName = response.groupName,
                         joinedGroupGoal = response.goalDescription,
                         joinedGroupPenalty = response.penaltyDescription,
-                        joinedGroupPeriod = response.period
+                        joinedGroupPeriod = response.period,
+                        errorMessage = null
                     )
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "그룹 정보 조회에 실패했습니다"
+                        // 다이얼로그는 열린 상태 유지
+                        errorMessage = error.message ?: "유효하지 않은 초대 코드입니다"
                     )
                 }
             )
@@ -363,14 +373,6 @@ class GroupChallengeViewModel @Inject constructor(
 
             groupRepository.enterGroup(groupId, betCoin).fold(
                 onSuccess = { response ->
-                    val status = when (response.status) {
-                        "pending" -> ChallengeStatus.PENDING
-                        "in_progress" -> ChallengeStatus.IN_PROGRESS
-                        "completed" -> ChallengeStatus.COMPLETED
-                        "cancelled" -> ChallengeStatus.CANCELLED
-                        else -> ChallengeStatus.PENDING
-                    }
-
                     groupManager.saveGroupInfo(
                         groupId = groupId,
                         groupName = _uiState.value.joinedGroupName,
@@ -383,37 +385,34 @@ class GroupChallengeViewModel @Inject constructor(
                         endDate = response.endDate,
                         isLeader = false
                     )
-                    groupManager.saveChallengeStatus(
-                        when (status) {
-                            ChallengeStatus.PENDING -> GroupManager.STATUS_PENDING
-                            ChallengeStatus.IN_PROGRESS -> GroupManager.STATUS_IN_PROGRESS
-                            ChallengeStatus.COMPLETED -> GroupManager.STATUS_COMPLETED
-                            ChallengeStatus.CANCELLED -> GroupManager.STATUS_CANCELLED
-                            else -> GroupManager.STATUS_NO_CHALLENGE
-                        }
-                    )
 
                     GroupPreferenceManager.setActiveGroupId(context, groupId)
 
+                    // 스플래시 화면 표시
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showBetInputDialog = false,
                         showJoinDialog = false,
-                        showCreateDialog = false,
-                        showChallengeDialog = false,
-                        challengeStatus = status,
-                        groupName = _uiState.value.joinedGroupName,
-                        goal = _uiState.value.joinedGroupGoal,
-                        penalty = _uiState.value.joinedGroupPenalty,
-                        period = _uiState.value.joinedGroupPeriod,
-                        bet = betCoin,
-                        startDate = response.startDate,
-                        endDate = response.endDate,
-                        isLeader = false
+                        showSplash = true,
+                        skipRefresh = true  // refresh 건너뛰기
                     )
 
-                    if (status == ChallengeStatus.PENDING) {
-                        startParticipantsPolling()
+                    // 1초 후 OngoingChallengeScreen으로 전환
+                    viewModelScope.launch {
+                        delay(1000L)
+                        groupManager.saveChallengeStatus(GroupManager.STATUS_IN_PROGRESS)
+                        _uiState.value = _uiState.value.copy(
+                            showSplash = false,
+                            challengeStatus = ChallengeStatus.IN_PROGRESS,
+                            groupName = _uiState.value.joinedGroupName,
+                            goal = _uiState.value.joinedGroupGoal,
+                            penalty = _uiState.value.joinedGroupPenalty,
+                            period = _uiState.value.joinedGroupPeriod,
+                            bet = betCoin,
+                            startDate = response.startDate,
+                            endDate = response.endDate,
+                            isLeader = false
+                        )
                     }
                 },
                 onFailure = { error ->

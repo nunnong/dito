@@ -53,11 +53,13 @@ import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.Spacing.m
 import com.dito.app.core.ui.designsystem.hardShadow
 import com.dito.app.core.ui.component.DitoModalContainer
+import com.dito.app.core.ui.designsystem.Error
 
 @Composable
 fun JoinWithCodeDialog(
     onDismiss: () -> Unit,
-    onJoinWithCode: (String) -> Unit
+    onJoinWithCode: (String) -> Unit,
+    errorMessage: String? = null
 ) {
     var code1 by remember { mutableStateOf("") }
     var code2 by remember { mutableStateOf("") }
@@ -74,6 +76,17 @@ fun JoinWithCodeDialog(
 
     LaunchedEffect(Unit) {
         focusRequester1.requestFocus()
+    }
+
+    // 에러가 발생하면 코드 초기화
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            code1 = ""
+            code2 = ""
+            code3 = ""
+            code4 = ""
+            focusRequester1.requestFocus()
+        }
     }
 
     Box(
@@ -174,8 +187,21 @@ fun JoinWithCodeDialog(
                         )
                     }
 
+                    Spacer(Modifier.height(Spacing.m))
 
-                    Spacer(Modifier.height(Spacing.xl))
+                    // 에러 메시지 표시
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage,
+                            color = Error,
+                            style = DitoTypography.bodySmall,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(Spacing.m))
+                    } else {
+                        Spacer(Modifier.height(Spacing.xl))
+                    }
 
                     Box(
                         modifier = Modifier
