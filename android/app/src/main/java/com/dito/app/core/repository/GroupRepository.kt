@@ -212,6 +212,7 @@ class GroupRepository @Inject constructor(
                 Log.d(TAG, "랭킹 조회 시도: groupId=$groupId")
 
                 val response = apiService.getRanking(groupId, "Bearer $token")
+                Log.d(TAG, "AT: ${authTokenManager.getAccessToken()}")
 
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
