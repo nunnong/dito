@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.screentime.service;
 
+import com.ssafy.Dito.domain._common.CostumeUrlUtil;
 import com.ssafy.Dito.domain.groups.entity.GroupChallenge;
 import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
@@ -50,6 +51,7 @@ public class ScreenTimeService {
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
     private final UserItemQueryRepository  userItemQueryRepository;
+    private final CostumeUrlUtil costumeUrlUtil;
     private static final int MAX_PARTICIPANTS = 6;
 
     // 메모리 캐시 사용 안 함
@@ -288,7 +290,8 @@ public class ScreenTimeService {
                 if (equippedCostume != null) {
                     Long itemId = equippedCostume.getId().getItem().getId();
                     costumeItemId = itemId != null ? itemId.intValue() : null;
-                    costumeImageUrl = equippedCostume.getId().getItem().getImgUrl();
+                    String baseImageUrl = equippedCostume.getId().getItem().getImgUrl();
+                    costumeImageUrl = costumeUrlUtil.getCostumeUrl(baseImageUrl, uid, false);
                 }
                 log.info("  - 랭킹 {}위: userId={}, nickname={}, costumeUrl={}, youtubeMinutes={}, avgYoutubeMinutes={}m, currentApp={}",
                     rank, uid, data.nickname, costumeImageUrl,data.youtubeMinutes, (int)avgYoutubeMinutes, currentAppName);
