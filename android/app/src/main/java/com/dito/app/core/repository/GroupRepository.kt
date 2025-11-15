@@ -10,6 +10,7 @@ import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
+import com.dito.app.core.data.group.PokeRequest
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import kotlinx.coroutines.Dispatchers
@@ -256,7 +257,10 @@ class GroupRepository @Inject constructor(
                         Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
                     )
 
-                Log.d(TAG, "그룹 상세 조회 성공: groupId=${groupDetail.groupId}, groupName=${groupDetail.groupName}")
+                Log.d(
+                    TAG,
+                    "그룹 상세 조회 성공: groupId=${groupDetail.groupId}, groupName=${groupDetail.groupName}"
+                )
                 Result.success(groupDetail)
             } else {
                 val errorMessage = "그룹 상세정보 조회 실패: code=${response.code()}"
@@ -305,4 +309,28 @@ class GroupRepository @Inject constructor(
             }
         }
 
+    // 콕콕 찌르기
+    suspend fun pokeMember(groupId: Long, targetUserId: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val token = authTokenManager.getAccessToken()
+            if (token.isNullOrEmpty()) {
+                Log.e(TAG, "찌르기 실패: 토큰 없음")
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
+            
+            val request = PokeRequest(targetUserId = targetUserId)
+
+            val response = apiService.pokeMember(groupId, request, "Bearer $token")
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+
+            } else {
+                val msg = response.errorBody()?.string() ?: "찌르기 실패"
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

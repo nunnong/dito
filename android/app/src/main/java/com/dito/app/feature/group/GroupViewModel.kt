@@ -3,10 +3,10 @@ package com.dito.app.feature.group
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dito.app.core.data.group.Participant
-import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
 import com.dito.app.core.storage.GroupPreferenceManager
+import com.dito.app.core.storage.HomeManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -49,63 +49,31 @@ data class GroupChallengeUiState(
     val joinedGroupPeriod: Int = 0,
     val challengeStatus: ChallengeStatus = ChallengeStatus.NO_CHALLENGE,
     val participants: List<Participant> = emptyList(),
-    val rankings: List<RankingItem> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val costumeUrl: String? = null
 )
 
 @HiltViewModel
 class GroupChallengeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val groupManager: GroupManager,
-    private val groupRepository: GroupRepository
+    private val groupRepository: GroupRepository,
+    private val homeManager: HomeManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GroupChallengeUiState())
 
     val uiState: StateFlow<GroupChallengeUiState> = _uiState.asStateFlow()
 
-    private var updateRankingJob: Job? = null
     private var participantsPollingJob: Job? = null
 
     override fun onCleared() {
         super.onCleared()
-        stopAutoRefresh()
         stopParticipantsPolling()
-    }
-
-    private fun loadChallengeState() {
-        val savedStatus = groupManager.getChallengeStatus()
-        android.util.Log.d("GroupViewModel", "loadChallengeState - savedStatus: $savedStatus")
-        android.util.Log.d("GroupViewModel", "loadChallengeState - groupName: ${groupManager.getGroupName()}")
-        android.util.Log.d("GroupViewModel", "loadChallengeState - isLeader: ${groupManager.isLeader()}")
-
-        val status = when (savedStatus) {
-            GroupManager.STATUS_PENDING -> ChallengeStatus.PENDING
-            GroupManager.STATUS_IN_PROGRESS -> ChallengeStatus.IN_PROGRESS
-            GroupManager.STATUS_COMPLETED -> ChallengeStatus.COMPLETED
-            GroupManager.STATUS_CANCELLED -> ChallengeStatus.CANCELLED
-            else -> ChallengeStatus.NO_CHALLENGE
-        }
-
-        android.util.Log.d("GroupViewModel", "loadChallengeState - final status: $status")
-
-        _uiState.value = _uiState.value.copy(
-            challengeStatus = status,
-            groupName = groupManager.getGroupName(),
-            goal = groupManager.getGoal(),
-            penalty = groupManager.getPenalty(),
-            period = groupManager.getPeriod(),
-            bet = groupManager.getBet(),
-            entryCode = groupManager.getEntryCode(),
-            startDate = groupManager.getStartDate(),
-            endDate = groupManager.getEndDate(),
-            isLeader = groupManager.isLeader()
-        )
     }
 
     /**
      * 서버에서 최신 그룹 정보 불러오기
-     * ViewModel 초기화 시 자동 호출됨
      */
     fun refreshGroupInfo() {
         viewModelScope.launch {
@@ -113,10 +81,7 @@ class GroupChallengeViewModel @Inject constructor(
 
             groupRepository.getGroupDetail().fold(
                 onSuccess = { groupDetail ->
-                    // 그룹에 참여 중인 경우
                     if (groupDetail.groupId != null && groupDetail.groupName != null) {
-                        android.util.Log.d("GroupViewModel", "그룹 정보 불러오기 성공: ${groupDetail.groupName}")
-
                         val status = when (groupDetail.status) {
                             "pending" -> ChallengeStatus.PENDING
                             "in_progress" -> ChallengeStatus.IN_PROGRESS
@@ -125,7 +90,6 @@ class GroupChallengeViewModel @Inject constructor(
                             else -> ChallengeStatus.NO_CHALLENGE
                         }
 
-                        // GroupManager에 저장
                         groupManager.saveGroupInfo(
                             groupId = groupDetail.groupId,
                             groupName = groupDetail.groupName,
@@ -148,10 +112,8 @@ class GroupChallengeViewModel @Inject constructor(
                             }
                         )
 
-                        // 스크린타임 동기화를 위해 active_group_id 저장
                         GroupPreferenceManager.setActiveGroupId(context, groupDetail.groupId)
 
-                        // UI 상태 업데이트
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             challengeStatus = status,
@@ -166,17 +128,10 @@ class GroupChallengeViewModel @Inject constructor(
                             isLeader = groupDetail.isHost ?: false
                         )
 
-                        // 참여자 목록 조회
-                        loadParticipants(groupDetail.groupId)
-
-                        // 진행 중이면 자동 갱신 시작
-                        if (status == ChallengeStatus.IN_PROGRESS) {
-                            startAutoRefresh()
-                            loadRanking()
+                        if (status == ChallengeStatus.PENDING) {
+                            startParticipantsPolling()
                         }
                     } else {
-                        // 그룹에 참여하지 않음
-                        android.util.Log.d("GroupViewModel", "참여 중인 그룹 없음")
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             challengeStatus = ChallengeStatus.NO_CHALLENGE
@@ -184,17 +139,31 @@ class GroupChallengeViewModel @Inject constructor(
                     }
                 },
                 onFailure = { error ->
-                    android.util.Log.w("GroupViewModel", "그룹 정보 불러오기 실패: ${error.message}")
-                    // 로컬에 저장된 정보로 복원 시도
-                    loadChallengeState()
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = error.message)
                 }
             )
         }
     }
 
+    fun onChallengeEnded() {
+        groupManager.endChallenge()
+        _uiState.value = _uiState.value.copy(
+            challengeStatus = ChallengeStatus.NO_CHALLENGE,
+            groupName = "",
+            goal = "",
+            penalty = "",
+            period = 0,
+            bet = 0,
+            entryCode = "",
+            startDate = "",
+            endDate = "",
+            participants = emptyList(),
+        )
+    }
+    
     fun onCreateDialogOpen() {
-        _uiState.value = _uiState.value.copy(showCreateDialog = true)
+        val costumeUrl = homeManager.getCostumeUrl()
+        _uiState.value = _uiState.value.copy(showCreateDialog = true, costumeUrl = costumeUrl)
     }
 
     fun onJoinDialogOpen() {
@@ -242,13 +211,11 @@ class GroupChallengeViewModel @Inject constructor(
                 betCoins = bet
             ).fold(
                 onSuccess = { response ->
-                    // 필수 필드 확인 (id, groupName, inviteCode, period, betCoins)
                     val id = response.id
                     val groupName = response.groupName
                     val inviteCode = response.inviteCode
                     val period = response.period
                     val betCoins = response.betCoins
-
                     val goalDescription = response.goalDescription ?: ""
                     val penaltyDescription = response.penaltyDescription ?: ""
                     val startDate = response.startDate ?: ""
@@ -257,10 +224,6 @@ class GroupChallengeViewModel @Inject constructor(
                     if (id != null && groupName != null && inviteCode != null &&
                         period != null && betCoins != null) {
 
-                        android.util.Log.d("GroupViewModel", "챌린지 생성 성공 - 저장 시작")
-                        android.util.Log.d("GroupViewModel", "groupId: $id, groupName: $groupName, isLeader: true")
-
-                        // GroupManager에 저장
                         groupManager.saveGroupInfo(
                             groupId = id,
                             groupName = groupName,
@@ -274,12 +237,8 @@ class GroupChallengeViewModel @Inject constructor(
                             isLeader = true
                         )
 
-                        // 스크린타임 동기화를 위해 active_group_id 저장
                         GroupPreferenceManager.setActiveGroupId(context, id)
 
-                        android.util.Log.d("GroupViewModel", "저장 완료 - status: ${groupManager.getChallengeStatus()}")
-
-                        // UI 상태 업데이트
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             challengeStatus = ChallengeStatus.PENDING,
@@ -297,8 +256,8 @@ class GroupChallengeViewModel @Inject constructor(
                             showCreateDialog = false,
                             showBetInputDialog = false
                         )
+                         startParticipantsPolling()
                     } else {
-                        // 필수 필드가 누락된 경우
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
                             errorMessage = "서버 응답에 필수 정보가 누락되었습니다"
@@ -318,9 +277,7 @@ class GroupChallengeViewModel @Inject constructor(
     fun onChallengeStarted() {
         val groupId = groupManager.getGroupId()
         if (groupId == 0L) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "그룹 정보를 찾을 수 없습니다"
-            )
+            _uiState.value = _uiState.value.copy(errorMessage = "그룹 정보를 찾을 수 없습니다")
             return
         }
 
@@ -329,25 +286,15 @@ class GroupChallengeViewModel @Inject constructor(
 
             groupRepository.startChallenge(groupId).fold(
                 onSuccess = {
-                    // API 성공 -> 스플래시 표시
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        showSplash = true
-                    )
+                    _uiState.value = _uiState.value.copy(isLoading = false, showSplash = true)
 
-                    // 2초 후 상태 변경
                     viewModelScope.launch {
-                        kotlinx.coroutines.delay(2000L)
+                        delay(2000L)
                         groupManager.startChallenge()
                         _uiState.value = _uiState.value.copy(
                             showSplash = false,
                             challengeStatus = ChallengeStatus.IN_PROGRESS
                         )
-
-                        // 챌린지 시작 시 자동 갱신 시작
-                        startAutoRefresh()
-                        // 최초 순위 조회
-                        loadRanking()
                     }
                 },
                 onFailure = { error ->
@@ -360,31 +307,8 @@ class GroupChallengeViewModel @Inject constructor(
         }
     }
 
-    fun onChallengeEnded() {
-        groupManager.endChallenge()
-        stopAutoRefresh() // 자동 갱신 중단
-        _uiState.value = _uiState.value.copy(
-            challengeStatus = ChallengeStatus.NO_CHALLENGE,
-            groupName = "",
-            goal = "",
-            penalty = "",
-            period = 0,
-            bet = 0,
-            entryCode = "",
-            startDate = "",
-            endDate = "",
-            participants = emptyList(),
-            rankings = emptyList()
-        )
-    }
-
-    /**
-     * 참여자 목록 조회
-     */
     fun loadParticipants(groupId: Long) {
-        if (groupId == 0L) {
-            return
-        }
+        if (groupId == 0L) return
 
         viewModelScope.launch {
             groupRepository.getParticipants(groupId).fold(
@@ -394,25 +318,18 @@ class GroupChallengeViewModel @Inject constructor(
                     )
                 },
                 onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = error.message
-                    )
+                    _uiState.value = _uiState.value.copy(errorMessage = error.message)
                 }
             )
         }
     }
 
-    /**
-     * 초대 코드로 그룹 정보 조회
-     */
     fun joinGroupWithCode(inviteCode: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             groupRepository.getGroupInfo(inviteCode).fold(
                 onSuccess = { response ->
-                    val period = response.period
-
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showJoinDialog = false,
@@ -421,7 +338,7 @@ class GroupChallengeViewModel @Inject constructor(
                         joinedGroupName = response.groupName,
                         joinedGroupGoal = response.goalDescription,
                         joinedGroupPenalty = response.penaltyDescription,
-                        joinedGroupPeriod = period
+                        joinedGroupPeriod = response.period
                     )
                 },
                 onFailure = { error ->
@@ -434,15 +351,10 @@ class GroupChallengeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 배팅 금액 입력 후 그룹 입장
-     */
     fun enterGroupWithBet(betCoin: Int) {
         val groupId = _uiState.value.joinedGroupId
         if (groupId == null) {
-            _uiState.value = _uiState.value.copy(
-                errorMessage = "그룹 정보를 찾을 수 없습니다"
-            )
+            _uiState.value = _uiState.value.copy(errorMessage = "그룹 정보를 찾을 수 없습니다")
             return
         }
 
@@ -451,7 +363,6 @@ class GroupChallengeViewModel @Inject constructor(
 
             groupRepository.enterGroup(groupId, betCoin).fold(
                 onSuccess = { response ->
-                    // 서버에서 받은 status를 ChallengeStatus로 변환
                     val status = when (response.status) {
                         "pending" -> ChallengeStatus.PENDING
                         "in_progress" -> ChallengeStatus.IN_PROGRESS
@@ -460,7 +371,6 @@ class GroupChallengeViewModel @Inject constructor(
                         else -> ChallengeStatus.PENDING
                     }
 
-                    // GroupManager에 저장
                     groupManager.saveGroupInfo(
                         groupId = groupId,
                         groupName = _uiState.value.joinedGroupName,
@@ -483,7 +393,6 @@ class GroupChallengeViewModel @Inject constructor(
                         }
                     )
 
-                    // 스크린타임 동기화를 위해 active_group_id 저장
                     GroupPreferenceManager.setActiveGroupId(context, groupId)
 
                     _uiState.value = _uiState.value.copy(
@@ -503,13 +412,8 @@ class GroupChallengeViewModel @Inject constructor(
                         isLeader = false
                     )
 
-                    // 진행 중인 챌린지에 입장한 경우 자동 갱신 시작 및 순위/참여자 조회
-                    if (status == ChallengeStatus.IN_PROGRESS) {
-                        startAutoRefresh()
-                        loadRanking()
-                    } else if (status == ChallengeStatus.PENDING) {
-                        // 대기 중인 경우 참여자 목록만 조회
-                        loadParticipants(groupId)
+                    if (status == ChallengeStatus.PENDING) {
+                        startParticipantsPolling()
                     }
                 },
                 onFailure = { error ->
@@ -522,36 +426,11 @@ class GroupChallengeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 5분마다 순위 자동 갱신 시작
-     */
-    private fun startAutoRefresh() {
-        stopAutoRefresh() // 기존 작업이 있으면 중단
-
-        updateRankingJob = viewModelScope.launch {
-            while (true) {
-                loadRanking() // 5분마다 순위 조회
-                delay(5 * 1000L) // 5초 대기
-            }
-        }
-    }
-
-    /**
-     * 자동 갱신 중단
-     */
-    private fun stopAutoRefresh() {
-        updateRankingJob?.cancel()
-        updateRankingJob = null
-    }
-
-    /**
-     * 참여자 목록 1초마다 폴링 시작 (PENDING 상태에서만 사용)
-     */
     fun startParticipantsPolling() {
         val groupId = groupManager.getGroupId()
         if (groupId == 0L) return
 
-        stopParticipantsPolling() // 기존 폴링이 있으면 중단
+        stopParticipantsPolling()
 
         participantsPollingJob = viewModelScope.launch {
             while (true) {
@@ -561,39 +440,8 @@ class GroupChallengeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 참여자 목록 폴링 중단
-     */
     fun stopParticipantsPolling() {
         participantsPollingJob?.cancel()
         participantsPollingJob = null
     }
-
-    /**
-     * 순위 조회 (참여자 정보도 함께 로드)
-     */
-    fun loadRanking() {
-        val groupId = groupManager.getGroupId()
-        if (groupId == 0L) return
-
-        viewModelScope.launch {
-            groupRepository.getRanking(groupId).fold(
-                onSuccess = { response ->
-                    _uiState.value = _uiState.value.copy(
-                        rankings = response.rankings
-                    )
-                    // 순위 조회 후 참여자 정보도 함께 로드 (장착 아이템 정보 포함)
-                    loadParticipants(groupId)
-                },
-                onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = error.message
-                    )
-                }
-            )
-        }
-    }
 }
-
-
-

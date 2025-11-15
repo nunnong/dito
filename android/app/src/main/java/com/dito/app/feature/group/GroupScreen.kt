@@ -14,26 +14,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Text
-import kotlinx.coroutines.delay
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.dito.app.R
-import androidx.compose.ui.platform.LocalContext
 import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
@@ -54,31 +51,26 @@ fun GroupScreen(
 
     LaunchedEffect(key1 = Unit) {
         viewModel.refreshGroupInfo()
-        // GroupScreen 진입 시 스크린타임 동기화
         ScreenTimeSyncWorker.triggerImmediateSync(context)
     }
 
-    // 스플래시 화면 표시
     if (uiState.showSplash) {
         ChallengeSplashScreen()
         return
     }
 
-    // 챌린지 상태에 따라 다른 화면 표시
     when (uiState.challengeStatus) {
         ChallengeStatus.IN_PROGRESS -> {
-            OngoingChallengeScreen(viewModel = viewModel)
+            val ongoingViewModel: OngoingChallengeViewModel = hiltViewModel()
+            OngoingChallengeScreen(viewModel = ongoingViewModel)
             return
         }
         ChallengeStatus.PENDING -> {
-            // 대기 중 (방장/참가자 모두 GroupWaitingScreen으로 통합)
             GroupWaitingScreen(viewModel = viewModel)
             return
         }
         ChallengeStatus.COMPLETED, ChallengeStatus.CANCELLED -> {
-            // 종료되거나 취소된 챌린지는 그룹 정보 삭제하고 NO_CHALLENGE로 표시
             viewModel.onChallengeEnded()
-            // fall through to NO_CHALLENGE
         }
         ChallengeStatus.NO_CHALLENGE -> {
         }
@@ -86,9 +78,7 @@ fun GroupScreen(
 
     Box(
         modifier = Modifier.fillMaxSize()
-
     ) {
-        // 메인 컨텐츠
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -97,7 +87,6 @@ fun GroupScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
             Row(
                 modifier = Modifier.padding(bottom = Spacing.m),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -105,14 +94,12 @@ fun GroupScreen(
                 Image(
                     painter = painterResource(id = R.drawable.group_main_img),
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(300.dp)
+                    modifier = Modifier.size(300.dp)
                 )
             }
 
             Column(
-                modifier = Modifier
-                    .padding(vertical = Spacing.xl, horizontal = Spacing.xs),
+                modifier = Modifier.padding(vertical = Spacing.xl, horizontal = Spacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -190,21 +177,16 @@ fun GroupScreen(
     if (uiState.showCreateDialog) {
         CreateGroupNameDialog(
             initialGroupName = uiState.groupName,
-            onDismiss = {
-                viewModel.onDialogClose()
-            },
-            onNavigateNext = { groupName ->
-                viewModel.onNavigateToChallenge(groupName)
-            }
+            costumeUrl = uiState.costumeUrl,
+            onDismiss = { viewModel.onDialogClose() },
+            onNavigateNext = { groupName -> viewModel.onNavigateToChallenge(groupName) }
         )
     }
 
     if (uiState.showChallengeDialog) {
         CreateChallengeDialog(
             groupName = uiState.groupName,
-            onDismiss = {
-                viewModel.onBackToNameDialog()
-            },
+            onDismiss = { viewModel.onBackToNameDialog() },
             onCreateChallenge = { name, goal, penalty, period, bet ->
                 viewModel.onChallengeCreated(name, goal, penalty, period, bet)
             }
@@ -213,12 +195,8 @@ fun GroupScreen(
 
     if (uiState.showJoinDialog) {
         JoinWithCodeDialog(
-            onDismiss = {
-                viewModel.onDialogClose()
-            },
-            onJoinWithCode = { inviteCode ->
-                viewModel.joinGroupWithCode(inviteCode)
-            }
+            onDismiss = { viewModel.onDialogClose() },
+            onJoinWithCode = { inviteCode -> viewModel.joinGroupWithCode(inviteCode) }
         )
     }
 
@@ -228,12 +206,8 @@ fun GroupScreen(
             goal = uiState.joinedGroupGoal,
             penalty = uiState.joinedGroupPenalty,
             period = uiState.joinedGroupPeriod,
-            onDismiss = {
-                viewModel.onDialogClose()
-            },
-            onConfirm = { betAmount ->
-                viewModel.enterGroupWithBet(betAmount)
-            }
+            onDismiss = { viewModel.onDialogClose() },
+            onConfirm = { betAmount -> viewModel.enterGroupWithBet(betAmount) }
         )
     }
 }

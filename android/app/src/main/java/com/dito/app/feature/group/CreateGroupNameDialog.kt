@@ -19,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import coil.compose.AsyncImage
 import com.dito.app.R
 import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
@@ -35,6 +36,7 @@ import com.dito.app.core.ui.designsystem.hardShadow
 @Composable
 fun CreateGroupNameDialog(
     initialGroupName: String = "",
+    costumeUrl: String?,
     onDismiss: () -> Unit,
     onNavigateNext: (String) -> Unit
 ) {
@@ -89,11 +91,12 @@ fun CreateGroupNameDialog(
                 Spacer(Modifier.height(Spacing.xl))
 
                 // 캐릭터 이미지
-                Image(
-                    painter = painterResource(id = R.drawable.dito),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(115.dp)
+                AsyncImage(
+                    model = costumeUrl,
+                    contentDescription = "Character Image",
+                    error = painterResource(id = R.drawable.dito), // fallback image
+                    modifier = Modifier.size(115.dp),
+                    contentScale = ContentScale.Crop
                 )
 
                 Spacer(Modifier.height(Spacing.xl))

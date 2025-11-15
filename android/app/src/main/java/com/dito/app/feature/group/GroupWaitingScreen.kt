@@ -28,7 +28,6 @@ import coil.compose.AsyncImage
 import com.dito.app.R
 import com.dito.app.core.data.group.Participant
 import com.dito.app.core.ui.designsystem.*
-import kotlinx.coroutines.delay
 
 @Composable
 fun GroupWaitingScreen(
@@ -38,22 +37,13 @@ fun GroupWaitingScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 초기 그룹 정보 로드
     LaunchedEffect(Unit) {
-        viewModel.refreshGroupInfo()
+        viewModel.startParticipantsPolling()
     }
 
-    // 1초마다 참가자 목록 폴링 (PENDING 상태일 때만)
-    LaunchedEffect(uiState.challengeStatus) {
-        if (uiState.challengeStatus == ChallengeStatus.PENDING) {
-            while (true) {
-                delay(1000L) // 1초 대기
-
-                // 화면이 활성화 상태일 때만 갱신
-                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                    viewModel.refreshGroupInfo()
-                }
-            }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopParticipantsPolling()
         }
     }
 

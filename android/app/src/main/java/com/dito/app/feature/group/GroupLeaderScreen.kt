@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import com.dito.app.core.data.group.Participant
@@ -51,26 +52,18 @@ fun GroupLeaderScreen(
     period: Int,
     goal: String,
     penalty: String,
+    startDate: String,
+    endDate: String,
     participants: List<Participant> = emptyList(),
     isStarted: Boolean = false,
     onStartChallenge: () -> Unit = {},
+    onLoadParticipants: () -> Unit = {},
+    onLoadGroupDetails: () -> Unit = {},
     onStartPolling: () -> Unit = {},
-    onStopPolling: () -> Unit = {}
+    onStopPolling: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val participantCount = participants.size
-
-    // 폴링 시작 및 정리
-    LaunchedEffect(Unit) {
-        onStartPolling()
-    }
-
-    // 화면을 떠날 때 폴링 중지
-    androidx.compose.runtime.DisposableEffect(Unit) {
-        onDispose {
-            onStopPolling()
-        }
-    }
 
     fun formatDate(date: String): String {
         return try {
@@ -86,6 +79,20 @@ fun GroupLeaderScreen(
             }
         } catch (e: Exception) {
             date
+        }
+    }
+
+    val formattedStartDate = formatDate(startDate)
+    val formattedEndDate = formatDate(endDate)
+
+    // 화면 진입 시 참여자 목록 조회 + 5초마다 polling
+    LaunchedEffect(Unit) {
+        onStartPolling()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onStopPolling()
         }
     }
 
@@ -260,7 +267,7 @@ fun GroupLeaderScreen(
                                         if (backgroundImgUrl != null) {
                                             AsyncImage(
                                                 model = backgroundImgUrl,
-                                                contentDescription = "${participant.nickname} background",
+                                                contentDescription = "${'$'}{participant.nickname} background",
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop
                                             )
@@ -270,7 +277,7 @@ fun GroupLeaderScreen(
                                         if (costumeImgUrl != null) {
                                             AsyncImage(
                                                 model = costumeImgUrl,
-                                                contentDescription = "${participant.nickname} costume",
+                                                contentDescription = "${'$'}{participant.nickname} costume",
                                                 modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop
                                             )
@@ -315,7 +322,7 @@ fun GroupLeaderScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "그룹 정보 : ${groupName}",
+                            text = "그룹 정보 : ${'$'}{groupName}",
                             style = DitoCustomTextStyles.titleKMedium,
                             color = Color.Black,
                         )
@@ -336,24 +343,24 @@ fun GroupLeaderScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
-                            text = "PERIOD : ${period}일",
+                            text = "PERIOD : ${'$'}formattedStartDate - ${'$'}formattedEndDate",
                             style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
 
                         Text(
-                            text = "GOAL : $goal",
+                            text = "GOAL : {}",
                             color = Color.Black,
                             style = DitoCustomTextStyles.titleKSmall
                         )
 
                         Text(
-                            text = "PENALTY : $penalty",
+                            text = "PENALTY : ${'$'}penalty",
                             style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
                         Text(
-                            text = "현재 참여 인원 : ${participantCount}명",
+                            text = "현재 참여 인원 : ${'$'}{participantCount}명",
                             style = DitoCustomTextStyles.titleKSmall,
                             color = Color.Black
                         )
