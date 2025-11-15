@@ -265,7 +265,7 @@ fun ChallengeResultContent(
                         isWin = true,
                         nickname = winner.nickname,
                         time = winner.totalScreenTimeFormatted,
-                        costumeUrl = winner.costumeUrl
+                        costumeUrl = winner.profileImage
                     )
 
                     // LOSE 카드
@@ -274,7 +274,7 @@ fun ChallengeResultContent(
                         isWin = false,
                         nickname = loser.nickname,
                         time = loser.totalScreenTimeFormatted,
-                        costumeUrl = loser.costumeUrl
+                        costumeUrl = loser.profileImage
                     )
                 }
             }

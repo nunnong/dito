@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.dito.app.core.data.RealmConfig
 import com.dito.app.core.data.phone.AppUsageEvent
+import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
@@ -21,9 +22,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.delay
 import java.time.LocalDate
-import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.util.ScreenTimeCollector
 import com.dito.app.core.di.ServiceLocator
 import com.dito.app.core.storage.GroupPreferenceManager

@@ -2,7 +2,6 @@ package com.dito.app.feature.group
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dito.app.core.data.group.Participant
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
@@ -24,7 +23,6 @@ data class OngoingChallengeUiState(
     val bet: Int = 0,
     val startDate: String = "",
     val endDate: String = "",
-    val participants: List<Participant> = emptyList(),
     val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null
 )
@@ -41,7 +39,6 @@ class OngoingChallengeViewModel @Inject constructor(
     private var autoRefreshJob: Job? = null
 
     init {
-        // ViewModel이 생성될 때 그룹 정보를 불러옵니다.
         refreshGroupDetails()
     }
 
@@ -50,12 +47,11 @@ class OngoingChallengeViewModel @Inject constructor(
         stopAutoRefresh()
     }
 
-    // 서버에서 최신 그룹 정보 가져오기 (재로그인 시 등)
     private fun refreshGroupDetails() {
         viewModelScope.launch {
             groupRepository.getGroupDetail().fold(
                 onSuccess = { groupDetail ->
-                     _uiState.value = _uiState.value.copy(
+                    _uiState.value = _uiState.value.copy(
                         groupName = groupDetail.groupName ?: groupManager.getGroupName(),
                         goal = groupDetail.goalDescription ?: groupManager.getGoal(),
                         penalty = groupDetail.penaltyDescription ?: groupManager.getPenalty(),
@@ -64,14 +60,12 @@ class OngoingChallengeViewModel @Inject constructor(
                         startDate = groupDetail.startDate ?: groupManager.getStartDate(),
                         endDate = groupDetail.endDate ?: groupManager.getEndDate()
                     )
-                    // 상세 정보 로드 후 랭킹 정보도 바로 로드
-                    loadRanking()
                 },
                 onFailure = {
-                    // 실패 시 매니저에 저장된 정보 사용
                     loadGroupDetailsFromManager()
                 }
             )
+            loadRanking() 
         }
     }
 
@@ -111,24 +105,6 @@ class OngoingChallengeViewModel @Inject constructor(
                 onSuccess = { response ->
                     _uiState.value = _uiState.value.copy(
                         rankings = response.rankings
-                    )
-                    loadParticipants(groupId)
-                },
-                onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = error.message
-                    )
-                }
-            )
-        }
-    }
-
-    private fun loadParticipants(groupId: Long) {
-        viewModelScope.launch {
-            groupRepository.getParticipants(groupId).fold(
-                onSuccess = { response ->
-                    _uiState.value = _uiState.value.copy(
-                        participants = response.participants
                     )
                 },
                 onFailure = { error ->
