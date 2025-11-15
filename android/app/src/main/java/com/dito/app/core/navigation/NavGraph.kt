@@ -18,7 +18,7 @@ import com.dito.app.feature.auth.SignUpCredentialsScreen
 import com.dito.app.feature.auth.SignUpJobScreen
 import com.dito.app.feature.auth.SignUpPermissionScreen
 import com.dito.app.feature.auth.SignUpProfileScreen
-import com.dito.app.feature.group.ChallengeResultScreen
+import com.dito.app.feature.group.ChallengeResultRoute
 import com.dito.app.feature.splash.SplashScreen
 import kotlinx.coroutines.delay
 
@@ -235,8 +235,7 @@ fun DitoNavGraph(
 
         // 10) 챌린지 결과 화면
         composable(Route.ChallengeResult.path) {
-            ChallengeResultScreen(
-                onNavigateToTab = { /* 탭 이동 */ },
+            ChallengeResultRoute(
                 onClose = { navController.popBackStack() }
             )
         }

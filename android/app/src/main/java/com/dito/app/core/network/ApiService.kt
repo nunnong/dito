@@ -142,13 +142,6 @@ interface ApiService {
         @Body request: UpdateCurrentAppRequest
     ): Response<ApiResponse<Unit>>
 
-    @GET("/challenges/groups/{groupId}/ranking")
-    suspend fun getGroupRanking(
-        @Path("groupId") groupId: Long,
-        @Header("Authorization") token: String
-    ): Response<GroupRankingResponse>
-
-
     // Group
 
     // 내가 속한 그룹 상세 정보

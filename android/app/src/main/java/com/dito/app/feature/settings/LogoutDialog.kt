@@ -45,6 +45,8 @@ fun LogoutDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Spacer(Modifier.height(Spacing.xl)) // 상단 여백 추가
+
                 // 제목 텍스트
                 Text(
                     text = "정말 로그아웃하시겠어요?",
@@ -52,7 +54,7 @@ fun LogoutDialog(
                     style = DitoCustomTextStyles.titleKLarge
                 )
 
-                Spacer(Modifier.height(Spacing.l))
+                Spacer(Modifier.height(Spacing.xxl))
 
                 // 버튼 Row
                 Row(
@@ -107,6 +109,8 @@ fun LogoutDialog(
                         )
                     }
                 }
+
+                Spacer(Modifier.height(Spacing.s)) // 하단 여백 추가
             }
         }
     }
