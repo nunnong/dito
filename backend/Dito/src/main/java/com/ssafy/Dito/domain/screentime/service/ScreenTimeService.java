@@ -5,6 +5,7 @@ import com.ssafy.Dito.domain.groups.entity.GroupParticipant;
 import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
+import com.ssafy.Dito.domain.item.entity.Type;
 import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
@@ -15,6 +16,8 @@ import com.ssafy.Dito.domain.screentime.dto.response.ScreenTimeUpdateRes;
 import com.ssafy.Dito.domain.screentime.repository.CurrentAppUsageRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeDailySummaryRepository;
 import com.ssafy.Dito.domain.screentime.repository.ScreenTimeSnapshotRepository;
+import com.ssafy.Dito.domain.user.userItem.entity.UserItem;
+import com.ssafy.Dito.domain.user.userItem.repository.UserItemQueryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,7 +49,7 @@ public class ScreenTimeService {
     private final CurrentAppUsageRepository currentAppUsageRepository;
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
-
+    private final UserItemQueryRepository  userItemQueryRepository;
     private static final int MAX_PARTICIPANTS = 6;
 
     // 메모리 캐시 사용 안 함
@@ -278,7 +281,13 @@ public class ScreenTimeService {
                 CurrentAppUsage currentApp = currentAppMap.get(uid);
                 String currentAppPackage = currentApp != null ? currentApp.getAppPackage() : null;
                 String currentAppName = currentApp != null ? currentApp.getAppName() : null;
-
+                // 장착된 코스튬 아이템 ID 조회
+                Integer costumeItemId = null;
+                UserItem equippedCostume = userItemQueryRepository.getEquippedItem(uid, Type.COSTUME);
+                if (equippedCostume != null) {
+                    Long itemId = equippedCostume.getId().getItem().getId();
+                    costumeItemId = itemId != null ? itemId.intValue() : null;
+                }
                 log.info("  - 랭킹 {}위: userId={}, nickname={}, youtubeMinutes={}, avgYoutubeMinutes={}m, currentApp={}",
                     rank, uid, data.nickname, data.youtubeMinutes, (int)avgYoutubeMinutes, currentAppName);
 
@@ -287,7 +296,7 @@ public class ScreenTimeService {
                     uid,
                     data.nickname,
                     null,
-                    null,
+                    costumeItemId,
                     formatTime(data.youtubeMinutes),
                     formatTime((int) avgYoutubeMinutes),
                     data.betCoins,
