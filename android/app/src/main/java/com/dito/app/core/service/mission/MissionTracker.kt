@@ -235,6 +235,8 @@ class MissionTracker @Inject constructor(
         // 시작 앱 기록 후 초기화
         if (packageName == missionStartAppPackage) {
             missionStartAppPackage = null
+
+
         }
     }
 
