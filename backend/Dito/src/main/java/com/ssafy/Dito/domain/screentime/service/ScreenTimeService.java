@@ -281,21 +281,23 @@ public class ScreenTimeService {
                 CurrentAppUsage currentApp = currentAppMap.get(uid);
                 String currentAppPackage = currentApp != null ? currentApp.getAppPackage() : null;
                 String currentAppName = currentApp != null ? currentApp.getAppName() : null;
-                // 장착된 코스튬 아이템 ID 조회
+                // 장착된 코스튬 아이템 ID 조회 + 이미지 url 조회
                 Integer costumeItemId = null;
+                String costumeImageUrl = null;
                 UserItem equippedCostume = userItemQueryRepository.getEquippedItem(uid, Type.COSTUME);
                 if (equippedCostume != null) {
                     Long itemId = equippedCostume.getId().getItem().getId();
                     costumeItemId = itemId != null ? itemId.intValue() : null;
+                    costumeImageUrl = equippedCostume.getId().getItem().getImgUrl();
                 }
-                log.info("  - 랭킹 {}위: userId={}, nickname={}, youtubeMinutes={}, avgYoutubeMinutes={}m, currentApp={}",
-                    rank, uid, data.nickname, data.youtubeMinutes, (int)avgYoutubeMinutes, currentAppName);
+                log.info("  - 랭킹 {}위: userId={}, nickname={}, costumeUrl={}, youtubeMinutes={}, avgYoutubeMinutes={}m, currentApp={}",
+                    rank, uid, data.nickname, costumeImageUrl,data.youtubeMinutes, (int)avgYoutubeMinutes, currentAppName);
 
                 return GroupRankingRes.ParticipantRank.of(
                     rank,
                     uid,
                     data.nickname,
-                    null,
+                    costumeImageUrl,
                     costumeItemId,
                     formatTime(data.youtubeMinutes),
                     formatTime((int) avgYoutubeMinutes),
