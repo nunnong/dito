@@ -24,7 +24,8 @@ data class OngoingChallengeUiState(
     val startDate: String = "",
     val endDate: String = "",
     val rankings: List<RankingItem> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val pokedUserId: Long? = null  // 찔린 사용자 ID
 )
 
 @HiltViewModel
@@ -123,12 +124,33 @@ class OngoingChallengeViewModel @Inject constructor(
         viewModelScope.launch {
             groupRepository.pokeMember(groupId, targetUserId).fold(
                 onSuccess = {
-                    // 찌르기 성공 UI 피드백 (예: Toast 메시지)
+                    // 찌르기 성공 - 해당 캐릭터 머리 위에 말풍선 표시
+                    _uiState.value = _uiState.value.copy(pokedUserId = targetUserId)
+
+                    // 1초 후 말풍선 숨김
+                    delay(1000L)
+                    _uiState.value = _uiState.value.copy(pokedUserId = null)
                 },
                 onFailure = {
                     // 찌르기 실패 UI 피드백
                 }
             )
+        }
+    }
+
+    fun resetPokeBubble() {
+        _uiState.value = _uiState.value.copy(pokedUserId = null)
+    }
+
+    // 테스트용: 랭킹 셔플
+    fun shuffleRankingsForTest() {
+        val currentRankings = _uiState.value.rankings.toMutableList()
+        if (currentRankings.size >= 2) {
+            currentRankings.shuffle()
+            val updatedRankings = currentRankings.mapIndexed { index, item ->
+                item.copy(rank = index + 1)
+            }
+            _uiState.value = _uiState.value.copy(rankings = updatedRankings)
         }
     }
 }

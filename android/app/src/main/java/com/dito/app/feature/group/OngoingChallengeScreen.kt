@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -28,7 +29,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.key
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -59,6 +62,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.ImageLoader
 import com.dito.app.R
+import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.WiggleClickable
@@ -84,6 +88,7 @@ fun OngoingChallengeScreen(
     DisposableEffect(Unit) {
         onDispose {
             viewModel.stopAutoRefresh()
+            viewModel.resetPokeBubble()
         }
     }
 
@@ -134,7 +139,28 @@ fun OngoingChallengeScreen(
                     strokeColor = Color.Black,
                     strokeWidth = 2.dp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp)
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 16.dp)
+                )
+            }
+
+            // 테스트 버튼 (랭킹 셔플)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(Color(0xFFFFEB3B))
+                    .border(2.dp, Color.Black, RoundedCornerShape(30.dp))
+                    .clickable { viewModel.shuffleRankingsForTest() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "🔀",
+                    style = DitoTypography.headlineSmall,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -143,25 +169,29 @@ fun OngoingChallengeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     rankings.take(4).forEach { rankingItem ->
-                        CharacterView(
-                            costumeItemId = rankingItem.costumeItemId,
-                            rank = rankingItem.rank,
-                            maxRank = rankings.size.coerceAtMost(4),
-                            currentAppPackage = rankingItem.currentAppPackage,
-                            isMe = rankingItem.isMe,
-                            onClick = {
-                                if (!rankingItem.isMe) {
-                                    viewModel.pokeMember(rankingItem.userId)
-                                }
-                             }
-                        )
+                        key(rankingItem.userId) {
+                            CharacterView(
+                                costumeItemId = rankingItem.costumeItemId,
+                                rank = rankingItem.rank,
+                                maxRank = rankings.size.coerceAtMost(4),
+                                currentAppPackage = rankingItem.currentAppPackage,
+                                isMe = rankingItem.isMe,
+                                showPokeBubble = uiState.pokedUserId == rankingItem.userId,
+                                onClick = {
+                                    if (!rankingItem.isMe) {
+                                        viewModel.pokeMember(rankingItem.userId)
+                                    }
+                                 }
+                            )
+                        }
                     }
                 }
             }
+
         }
 
         Row(
@@ -417,6 +447,7 @@ fun CharacterView(
     maxRank: Int,
     currentAppPackage: String?,
     isMe: Boolean,
+    showPokeBubble: Boolean = false,
     onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -504,12 +535,11 @@ fun CharacterView(
     Column(
         modifier = Modifier.width(60.dp)
             .clickable(onClick = {
-                if (isMe) {
-                    if (!isWiggling) {
-                        playWiggleSound(context)
-                        isWiggling = true
-                    }
-                } else {
+                if (!isWiggling) {
+                    playWiggleSound(context)
+                    isWiggling = true
+                }
+                if (!isMe) {
                     onClick()
                 }
             }),
@@ -530,11 +560,10 @@ fun CharacterView(
                 contentScale = ContentScale.FillBounds
             )
 
-            Column(
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(y = -characterHeight),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .offset(y = -characterHeight)
             ) {
                 Image(
                     painter = painterResource(id = characterDrawable),
@@ -543,18 +572,43 @@ fun CharacterView(
                     contentScale = ContentScale.Fit
                 )
 
-                if (currentAppPackage != null) {
-                    Image(
-                        painter = painterResource(id = R.drawable.dito),
-                        contentDescription = "Current app",
+                // 현재 사용 중인 앱 아이콘 (캐릭터 발끝과 살짝 겹침)
+                Image(
+                    painter = painterResource(id = R.drawable.dito),
+                    contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .align(Alignment.BottomCenter)
+                        .offset(y = (-10).dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White)
+                        .border(2.dp, Color.Black, RoundedCornerShape(8.dp))
+                        .padding(4.dp)
+                )
+
+                // 찌르기 말풍선 (캐릭터 머리 위)
+                if (showPokeBubble) {
+                    Box(
                         modifier = Modifier
-                            .size(28.dp)
-                            .offset(y = (-30).dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color.Black, RoundedCornerShape(6.dp))
-                            .padding(2.dp)
-                    )
+                            .align(Alignment.TopCenter)
+                            .offset(y = (-40).dp)
+                            .size(80.dp, 60.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.speech_bubble),
+                            contentDescription = "Poke Bubble",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                        Text(
+                            text = "아얏!",
+                            style = DitoTypography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                 }
             }
         }
@@ -562,7 +616,7 @@ fun CharacterView(
 }
 
 /**
- * 프로필 이미지에서 얼굴 부분만 크롭하는 함수
+ * 프로필 이미지에서 얼굴 부분만 크롭하는 함수d
  */
 fun cropFace(original: Bitmap): Bitmap {
     val w = original.width
@@ -570,7 +624,7 @@ fun cropFace(original: Bitmap): Bitmap {
 
     val faceSize = (w * 0.48f).toInt()
     val faceLeft = ((w - faceSize) / 2f).toInt()
-    val faceTop = (h * 0.265f).toInt() // 미세조정 반영
+    val faceTop = (h * 0.265f).toInt()
 
     return Bitmap.createBitmap(original, faceLeft, faceTop, faceSize, faceSize)
 }

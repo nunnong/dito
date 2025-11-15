@@ -29,7 +29,6 @@ class AuthRepository @Inject constructor(
     private val groupManager: GroupManager,
     private val json: Json
 ) {
-    // GroupRepository는 lazy로 주입받아 순환 참조 방지
     @Inject
     lateinit var groupRepository: GroupRepository
     companion object {
