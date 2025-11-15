@@ -47,7 +47,7 @@ fun DitoModalContainer(
     shadowOffsetX: Dp = 6.dp,
     shadowOffsetY: Dp = 6.dp,
     shadowColor: Color = OnSurface,
-    cornerRadius: Dp = 32.dp,
+    cornerRadius: Dp = 16.dp,
     contentPadding: PaddingValues = PaddingValues(horizontal = xxl, vertical = l),
     content: @Composable BoxScope.() -> Unit
 ) {
