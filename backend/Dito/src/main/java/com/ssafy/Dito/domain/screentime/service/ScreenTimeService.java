@@ -43,13 +43,13 @@ public class ScreenTimeService {
 
     private final ScreenTimeDailySummaryRepository summaryRepository;
     private final ScreenTimeSnapshotRepository snapshotRepository;
-    private final CurrentAppUsageRepository currentAppUsageRepository;  // ✅ 추가
+    private final CurrentAppUsageRepository currentAppUsageRepository;
     private final GroupChallengeRepository groupChallengeRepository;
     private final GroupParticipantRepository groupParticipantRepository;
 
     private static final int MAX_PARTICIPANTS = 6;
 
-    // ❌ 삭제: 메모리 캐시 사용 안 함
+    // 메모리 캐시 사용 안 함
     // private final Map<Long, CurrentAppInfo> currentAppCache = new ConcurrentHashMap<>();
 
     /**
@@ -128,7 +128,7 @@ public class ScreenTimeService {
         log.info("📱 현재 앱 정보 갱신 - userId: {}, groupId: {}, appPackage: {}, appName: {}",
             userId, request.groupId(), request.appPackage(), request.appName());
 
-        // ✅ MongoDB에 저장 (upsert)
+        // MongoDB에 저장 (upsert)
         CurrentAppUsage existing = currentAppUsageRepository
             .findByGroupIdAndUserId(request.groupId(), userId)
             .orElse(null);
@@ -151,7 +151,7 @@ public class ScreenTimeService {
         }
     }
 
-    // ❌ 삭제: getCurrentApp() 메서드 삭제 (메모리 캐시 사용 안 함)
+
 
     /**
      * 그룹 챌린지 랭킹 조회
@@ -206,7 +206,7 @@ public class ScreenTimeService {
                 s.getUserId(), s.getDate(), s.getTotalMinutes(), s.getYoutubeMinutes());
         }
 
-        // ✅ MongoDB에서 현재 앱 정보 조회 (실시간 업데이트)
+        // MongoDB에서 현재 앱 정보 조회 (실시간 업데이트)
         List<CurrentAppUsage> currentApps = currentAppUsageRepository.findAllByGroupId(groupId);
         Map<Long, CurrentAppUsage> currentAppMap = currentApps.stream()
             .collect(Collectors.toMap(CurrentAppUsage::getUserId, app -> app));
@@ -274,7 +274,7 @@ public class ScreenTimeService {
                 // 1등은 총 베팅 코인을 모두 가져감
                 Integer potentialPrize = (rank == 1) ? group.getTotalBetCoins() : 0;
 
-                // ✅ MongoDB에서 현재 앱 정보 조회 (실시간)
+                // MongoDB에서 현재 앱 정보 조회 (실시간)
                 CurrentAppUsage currentApp = currentAppMap.get(uid);
                 String currentAppPackage = currentApp != null ? currentApp.getAppPackage() : null;
                 String currentAppName = currentApp != null ? currentApp.getAppName() : null;
@@ -286,14 +286,15 @@ public class ScreenTimeService {
                     rank,
                     uid,
                     data.nickname,
-                    null, // 프로필 이미지 (User 엔티티에 없음)
-                    formatTime(data.youtubeMinutes),        // ✅ YouTube 총 시간
-                    formatTime((int) avgYoutubeMinutes),    // ✅ YouTube 일평균 시간
+                    null,
+                    null,
+                    formatTime(data.youtubeMinutes),
+                    formatTime((int) avgYoutubeMinutes),
                     data.betCoins,
                     potentialPrize,
                     uid.equals(currentUserId),
-                    currentAppPackage,  // ✅ 실시간 현재 앱 패키지
-                    currentAppName      // ✅ 실시간 현재 앱 이름
+                    currentAppPackage,
+                    currentAppName
                 );
             })
             .collect(Collectors.toList());
@@ -340,7 +341,6 @@ public class ScreenTimeService {
         }
     }
 
-    // ❌ 삭제: CurrentAppInfo 레코드 삭제 (MongoDB 사용)
 
     /**
      * 특정 사용자의 특정 기간 스크린타임 조회

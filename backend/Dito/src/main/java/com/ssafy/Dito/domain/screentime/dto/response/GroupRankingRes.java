@@ -1,5 +1,6 @@
 package com.ssafy.Dito.domain.screentime.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
@@ -30,6 +31,10 @@ public record GroupRankingRes(
         @Schema(description = "프로필 이미지 URL", example = "https://...")
         String profileImage,
 
+        @Schema(description = "장착된 코스튬 아이템 ID", example = "4")
+        @JsonProperty("itemId")
+        Integer costumeItemId,
+
         @Schema(description = "총 스크린타임 (포맷)", example = "10h 30m")
         String totalScreenTimeFormatted,
 
@@ -51,11 +56,11 @@ public record GroupRankingRes(
         @Schema(description = "현재 사용 중인 앱 이름", example = "YouTube")
         String currentAppName
     ) {
-        public static ParticipantRank of(Integer rank, Long userId, String nickname, String profileImage,
+        public static ParticipantRank of(Integer rank, Long userId, String nickname, String profileImage, Integer costumeItemId,
                                          String totalScreenTimeFormatted, String avgDailyScreenTimeFormatted,
                                          Integer betCoins, Integer potentialPrize, Boolean isMe,
                                          String currentAppPackage, String currentAppName) {
-            return new ParticipantRank(rank, userId, nickname, profileImage, totalScreenTimeFormatted,
+            return new ParticipantRank(rank, userId, nickname, profileImage, costumeItemId,totalScreenTimeFormatted,
                 avgDailyScreenTimeFormatted, betCoins, potentialPrize, isMe, currentAppPackage, currentAppName);
         }
     }
