@@ -17,6 +17,7 @@ import com.dito.app.core.data.group.GetParticipantsResponse
 import com.dito.app.core.data.group.GetRankingResponse
 import com.dito.app.core.data.group.JoinGroupRequest
 import com.dito.app.core.data.group.JoinGroupResponse
+import com.dito.app.core.data.group.PokeRequest
 import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
@@ -201,7 +202,7 @@ interface ApiService {
 
 
     // Setting
-    @POST("/logout")
+    @POST("//logout")
     suspend fun logout(
         @Header("Authorization") token: String
     ): Response<Unit>
@@ -223,6 +224,15 @@ interface ApiService {
         @Body request: UpdateFrequencyRequest,
         @Header("Authorization") token: String
     ): Response<ApiResponse<UpdateFrequencyResponse>>
+
+
+    // 콕콕 찌르기
+    @POST("/challenges/groups/{group_id}/poke")
+    suspend fun pokeMember(
+        @Path("group_id") groupId: Long,
+        @Body request: PokeRequest,
+        @Header("Authorization") token: String
+    ): Response<Unit>
 
 
 }
