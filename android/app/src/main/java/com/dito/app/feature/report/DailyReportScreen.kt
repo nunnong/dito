@@ -54,7 +54,8 @@ fun DailyReportScreen(
                     missionCompletionRate = state.data.missionCompletionRate,
                     currentStatus = state.data.currentStatus,
                     predictions = state.data.predictions,
-                    comparisons = state.data.comparisons
+                    comparisons = state.data.comparisons,
+                    advice = state.data.advice
                 )
             }
             is DailyReportUiState.Error -> {
@@ -87,7 +88,8 @@ fun DailyReportContent(
     missionCompletionRate: Int,
     currentStatus: com.dito.app.core.data.report.StatusDescription,
     predictions: List<String>,
-    comparisons: List<ComparisonItem>
+    comparisons: List<ComparisonItem>,
+    advice: String
 ) {
     Box(
         modifier = Modifier
@@ -168,7 +170,7 @@ fun DailyReportContent(
 
             // Dito의 메시지 섹션
             item {
-                DitoMessageCard()
+                DitoMessageCard(advice = advice)
             }
         }
     }
@@ -395,7 +397,7 @@ fun ComparisonCard(
 }
 
 @Composable
-fun DitoMessageCard() {
+fun DitoMessageCard(advice: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -448,7 +450,7 @@ fun DitoMessageCard() {
                 .padding(horizontal = 16.dp, vertical = 27.dp)
         ) {
             Text(
-                text = "저녁 쇼츠는 멈추고 그때 개발 학습에 집중해요. \n오늘은 미션탭에서 '오늘의 미션'을 확인하고 바로 시작해봅시다.",
+                text = advice,
                 color = Color.Black,
                 lineHeight = 1.43.em,
                 style = DitoCustomTextStyles.titleKMedium,
@@ -482,7 +484,7 @@ fun ComparisonItemCard(
     }
 
     val iconRes = when (comparisonItem.iconRes) {
-        "phone" -> R.drawable.phone
+        "phone" -> R.drawable.report_phone
         "self_control" -> R.drawable.self_control
         "sleep" -> R.drawable.sleep
         else -> R.drawable.lemon

@@ -21,6 +21,7 @@ import com.dito.app.core.data.home.HomeResponse
 import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
 import com.dito.app.core.data.missionNotification.MissionNotificationResponse
+import com.dito.app.core.data.report.DailyReportResponse
 import com.dito.app.core.data.screentime.GroupRankingResponse
 import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
@@ -211,5 +212,10 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<ApiResponse<UpdateFrequencyResponse>>
 
+    // ========== Report ==========
+    @GET("/user/report")
+    suspend fun getDailyReport(
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<DailyReportResponse>>
 
 }
