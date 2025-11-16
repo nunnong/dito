@@ -388,32 +388,24 @@ class GroupChallengeViewModel @Inject constructor(
 
                     GroupPreferenceManager.setActiveGroupId(context, groupId)
 
-                    // 스플래시 화면 표시
+                    // 대기방으로 바로 이동
+                    groupManager.saveChallengeStatus(GroupManager.STATUS_PENDING)
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showBetInputDialog = false,
                         showJoinDialog = false,
-                        showSplash = true,
-                        skipRefresh = true  // refresh 건너뛰기
+                        showSplash = false,
+                        skipRefresh = true,
+                        challengeStatus = ChallengeStatus.PENDING,
+                        groupName = _uiState.value.joinedGroupName,
+                        goal = _uiState.value.joinedGroupGoal,
+                        penalty = _uiState.value.joinedGroupPenalty,
+                        period = _uiState.value.joinedGroupPeriod,
+                        bet = betCoin,
+                        startDate = response.startDate,
+                        endDate = response.endDate,
+                        isLeader = false
                     )
-
-                    // 1초 후 OngoingChallengeScreen으로 전환
-                    viewModelScope.launch {
-                        delay(1000L)
-                        groupManager.saveChallengeStatus(GroupManager.STATUS_IN_PROGRESS)
-                        _uiState.value = _uiState.value.copy(
-                            showSplash = false,
-                            challengeStatus = ChallengeStatus.IN_PROGRESS,
-                            groupName = _uiState.value.joinedGroupName,
-                            goal = _uiState.value.joinedGroupGoal,
-                            penalty = _uiState.value.joinedGroupPenalty,
-                            period = _uiState.value.joinedGroupPeriod,
-                            bet = betCoin,
-                            startDate = response.startDate,
-                            endDate = response.endDate,
-                            isLeader = false
-                        )
-                    }
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
