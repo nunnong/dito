@@ -1,42 +1,56 @@
 package com.dito.app.core.data.report
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * 일일 리포트 응답 데이터
+ * 일일 리포트 API 응답
  */
 @Serializable
 data class DailyReportResponse(
-    val error: Boolean,
-    val message: String,
-    val data: DailyReportData?
+    val id: Int,
+    @SerialName("reportOverview")
+    val reportOverview: String,
+    val insights: List<InsightItem>,
+    val advice: String,
+    @SerialName("missionSuccessRate")
+    val missionSuccessRate: Int,
+    @SerialName("createdAt")
+    val createdAt: String
 )
 
 @Serializable
+data class InsightItem(
+    val type: ComparisonType,
+    val description: String
+)
+
+/**
+ * UI에서 사용할 데이터 모델
+ */
 data class DailyReportData(
     val userName: String,
-    val costumeUrl: String, // 캐릭터 이미지 URL
-    val missionCompletionRate: Int, // 퍼센트 (0-100)
+    val costumeUrl: String,
+    val missionCompletionRate: Int,
     val currentStatus: StatusDescription,
     val predictions: List<String>,
-    val comparisons: List<ComparisonItem>
+    val comparisons: List<ComparisonItem>,
+    val advice: String
 )
 
-@Serializable
 data class StatusDescription(
     val title: String,
     val description: String
 )
 
-@Serializable
 data class ComparisonItem(
-    val type: ComparisonType, // POSITIVE, NEGATIVE, NEUTRAL
-    val iconRes: String, // 리소스 이름 (백엔드에서 아이콘 타입 지정)
+    val type: ComparisonType,
+    val iconRes: String,
     val description: String
 )
 
 enum class ComparisonType {
-    POSITIVE,  // 파란색 배경
-    NEGATIVE,  // 빨간색 배경
-    NEUTRAL    // 중립 (기본)
+    POSITIVE,
+    NEGATIVE,
+    NEUTRAL
 }
