@@ -45,7 +45,7 @@ class DailyReportViewModel @Inject constructor(
 
             // TODO: API 연결 시 아래 주석 해제하고 더미 데이터 삭제
             // ApiService에 getDailyReport 메서드 추가 필요:
-            // @GET("/daily-report")
+            // @GET("/user/report")
             // suspend fun getDailyReport(@Header("Authorization") token: String): Response<DailyReportResponse>
 
             /*
