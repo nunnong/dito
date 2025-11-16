@@ -25,8 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -79,50 +81,60 @@ fun GroupScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+        // 배경 이미지
+        Image(
+            painter = painterResource(id = R.drawable.group_bg),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = Spacing.xxl),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(top = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.padding(bottom = Spacing.m),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.group_main_img),
-                    contentDescription = null,
-                    modifier = Modifier.size(300.dp)
-                )
-            }
+            Spacer(modifier = Modifier.height(21.dp))
 
-            Column(
-                modifier = Modifier.padding(vertical = Spacing.xl, horizontal = Spacing.xs),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "아직 참여 중인 챌린지가 없어요",
-                    color = OnPrimary,
-                    style = DitoCustomTextStyles.titleKMedium
-                )
+            // 로고 이미지 (270x120)
+            Image(
+                painter = painterResource(id = R.drawable.group_challenge_logo),
+                contentDescription = "Group Challenge Logo",
+                modifier = Modifier
+                    .size(width = 270.dp, height = 120.dp)
+            )
 
-                Spacer(modifier = Modifier.height(Spacing.xs))
+            // 텍스트 (16px, line-height 24px)
+            Text(
+                text = "친구들과 함께\n그룹 챌린지에 도전해보세요!",
+                color = Color.Black,
+                style = DitoCustomTextStyles.titleDLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = Spacing.xs)
+            )
 
-                Text(
-                    text = "함께 디지털 휴식에 도전해볼까요?",
-                    color = OnPrimary,
-                    style = DitoCustomTextStyles.titleKMedium
-                )
-            }
+            Spacer(modifier = Modifier.height(Spacing.xs))
 
-            Spacer(modifier = Modifier.height(Spacing.m))
+            // 캐릭터 이미지 - 전체 너비 사용
+            Image(
+                painter = painterResource(id = R.drawable.group_characters),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp) // 좌우 여백을 최소화
+                    .height(320.dp),
+                contentScale = ContentScale.Fit
+            )
 
+            Spacer(modifier = Modifier.weight(1f))
+
+            // 버튼 영역
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.l, vertical = Spacing.m),
+                    .padding(start = 28.dp, end = 28.dp, bottom = 68.dp),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.m)
             ) {
                 Column(
@@ -136,13 +148,13 @@ fun GroupScreen(
                             color = Color.Black
                         )
                         .clip(DitoShapes.small)
-                        .border(1.dp, Color.Black, DitoShapes.small)
+                        .border(1.5.dp, Color.Black, DitoShapes.small)
                         .background(Primary)
                         .clickable { viewModel.onCreateDialogOpen() }
-                        .padding(vertical = Spacing.l)
+                        .padding(vertical = 22.dp, horizontal = 24.dp)
                 ) {
                     Text(
-                        text = "방 만들기",
+                        text = "방만들기",
                         color = Color.Black,
                         style = DitoTypography.headlineSmall
                     )
@@ -159,10 +171,10 @@ fun GroupScreen(
                             color = Color.Black
                         )
                         .clip(DitoShapes.small)
-                        .border(1.dp, Color.Black, DitoShapes.small)
+                        .border(1.5.dp, Color.Black, DitoShapes.small)
                         .background(Primary)
                         .clickable { viewModel.onJoinDialogOpen() }
-                        .padding(vertical = Spacing.l)
+                        .padding(vertical = 22.dp, horizontal = 24.dp)
                 ) {
                     Text(
                         text = "입장하기",
