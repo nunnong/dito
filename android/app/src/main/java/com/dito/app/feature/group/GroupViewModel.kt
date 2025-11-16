@@ -1,5 +1,6 @@
 package com.dito.app.feature.group
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dito.app.core.data.group.Participant
@@ -368,11 +369,15 @@ class GroupChallengeViewModel @Inject constructor(
             return
         }
 
+        Log.d("GroupVM", "enterGroupWithBet 시작: groupId=$groupId, betCoin=$betCoin")
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             groupRepository.enterGroup(groupId, betCoin).fold(
                 onSuccess = { response ->
+                    Log.d("GroupVM", "enterGroup 성공: response=$response")
+
                     groupManager.saveGroupInfo(
                         groupId = groupId,
                         groupName = _uiState.value.joinedGroupName,
@@ -388,34 +393,35 @@ class GroupChallengeViewModel @Inject constructor(
 
                     GroupPreferenceManager.setActiveGroupId(context, groupId)
 
-                    // 스플래시 화면 표시
+                    // 대기방으로 바로 이동
+                    groupManager.saveChallengeStatus(GroupManager.STATUS_PENDING)
+
+                    Log.d("GroupVM", "상태 변경 전: ${_uiState.value.challengeStatus}")
+
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showBetInputDialog = false,
                         showJoinDialog = false,
-                        showSplash = true,
-                        skipRefresh = true  // refresh 건너뛰기
+                        showSplash = false,
+                        skipRefresh = true,
+                        challengeStatus = ChallengeStatus.PENDING,
+                        groupName = _uiState.value.joinedGroupName,
+                        goal = _uiState.value.joinedGroupGoal,
+                        penalty = _uiState.value.joinedGroupPenalty,
+                        period = _uiState.value.joinedGroupPeriod,
+                        bet = betCoin,
+                        startDate = response.startDate,
+                        endDate = response.endDate,
+                        isLeader = false
                     )
 
-                    // 1초 후 OngoingChallengeScreen으로 전환
-                    viewModelScope.launch {
-                        delay(1000L)
-                        groupManager.saveChallengeStatus(GroupManager.STATUS_IN_PROGRESS)
-                        _uiState.value = _uiState.value.copy(
-                            showSplash = false,
-                            challengeStatus = ChallengeStatus.IN_PROGRESS,
-                            groupName = _uiState.value.joinedGroupName,
-                            goal = _uiState.value.joinedGroupGoal,
-                            penalty = _uiState.value.joinedGroupPenalty,
-                            period = _uiState.value.joinedGroupPeriod,
-                            bet = betCoin,
-                            startDate = response.startDate,
-                            endDate = response.endDate,
-                            isLeader = false
-                        )
-                    }
+                    Log.d("GroupVM", "상태 변경 후: ${_uiState.value.challengeStatus}")
+
+                    // 참가자 폴링 시작
+                    startParticipantsPolling()
                 },
                 onFailure = { error ->
+                    Log.e("GroupVM", "enterGroup 실패: ${error.message}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "그룹 입장에 실패했습니다"

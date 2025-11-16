@@ -155,12 +155,21 @@ class GroupRepository @Inject constructor(
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
                     val enterData = apiResponse.data
-                        ?: return@withContext Result.failure(
-                            Exception("서버 응답에 data 필드가 없습니다. (message=${apiResponse.message})")
-                        )
-                    Log.d(TAG, "그룹 입장 성공: groupId=${enterData.groupId}, status=${enterData.status}")
-                    Log.d(TAG, "파싱된 응답 본문: $enterData")
-                    Result.success(enterData)
+                    if (enterData != null) {
+                        Log.d(TAG, "그룹 입장 성공: groupId=${enterData.groupId}, status=${enterData.status}")
+                        Log.d(TAG, "파싱된 응답 본문: $enterData")
+                        Result.success(enterData)
+                    } else {
+                        // 서버가 data 필드 없이 성공 응답을 보낸 경우 기본값으로 처리
+                        Log.d(TAG, "그룹 입장 성공 (data 필드 없음): message=${apiResponse.message}")
+                        Result.success(EnterGroupResponse(
+                            groupId = groupId,
+                            status = "pending",
+                            startDate = "",
+                            endDate = "",
+                            totalBetCoins = betCoin
+                        ))
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     val errorMessage = "그룹 입장 실패: $errorBody"
