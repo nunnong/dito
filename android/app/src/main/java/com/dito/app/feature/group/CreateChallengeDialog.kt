@@ -242,6 +242,7 @@ fun CreateChallengeDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .height(48.dp)
                                 .clip(DitoShapes.small)
                                 .border(1.dp, Color.Black, DitoShapes.small)
                                 .background(Background)
@@ -259,7 +260,7 @@ fun CreateChallengeDialog(
                             Box(
                                 modifier = Modifier
                                     .clip(DitoShapes.small)
-                                    .background(Color.White)
+                                    .background(Primary)
                                     .border(1.dp, Color.Black, DitoShapes.small)
                                     .clickable { showAppPicker = true }
                                     .padding(horizontal = Spacing.xs, vertical = 4.dp)
@@ -285,7 +286,7 @@ fun CreateChallengeDialog(
                             Box(
                                 modifier = Modifier
                                     .clip(DitoShapes.small)
-                                    .background(Color.White)
+                                    .background(Primary)
                                     .border(1.dp, Color.Black, DitoShapes.small)
                                     .clickable { showTimeValuePicker = true }
                                     .padding(horizontal = Spacing.xs, vertical = 4.dp)

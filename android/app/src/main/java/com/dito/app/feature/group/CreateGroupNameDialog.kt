@@ -6,8 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +18,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -96,7 +99,7 @@ fun CreateGroupNameDialog(
                     contentDescription = "Character Image",
                     error = painterResource(id = R.drawable.dito), // fallback image
                     modifier = Modifier.size(115.dp),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
 
                 Spacer(Modifier.height(Spacing.xl))
@@ -114,7 +117,9 @@ fun CreateGroupNameDialog(
                                 groupName = input
                             }
                         },
-                        textStyle = DitoTypography.bodyLarge.copy(color = OnSurface),
+                        textStyle = DitoTypography.bodyLarge.copy(color = OnSurface, textAlign = TextAlign.Center),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         modifier = Modifier
                             .fillMaxWidth()
                             .drawBehind {
@@ -137,7 +142,7 @@ fun CreateGroupNameDialog(
                                     Text(
                                         text = "영문/한글 1~10자",
                                         color = Color.Gray,
-                                        style = DitoTypography.bodyMedium
+                                        style = DitoTypography.bodyMedium.copy(textAlign = TextAlign.Center)
                                     )
                                 }
                                 innerTextField()
@@ -169,7 +174,7 @@ fun CreateGroupNameDialog(
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
-                        .background(if (isValid) Primary else ErrorContainer)
+                        .background(if (isValid) Primary else Color.White)
                         .clickable(enabled = isValid) {
                             onNavigateNext(groupName)
                         }
@@ -178,7 +183,7 @@ fun CreateGroupNameDialog(
                 ) {
                     Text(
                         text = "계속하기",
-                        color = if (isValid) Color.Black else OnErrorContainer,
+                        color = if (isValid) Color.Black else Color.Black,
                         style = DitoCustomTextStyles.titleDMedium
                     )
                 }
