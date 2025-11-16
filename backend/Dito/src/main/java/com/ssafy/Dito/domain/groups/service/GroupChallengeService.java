@@ -226,10 +226,7 @@ public class GroupChallengeService {
         List<String> messages = List.of(
             "%s님이 시간 빌게이츠냐고 물어보시네요~ ⏰",
             "지금 하버드에서는 책장이... 📚",
-            "%s님이 핸드폰 내려놓으라고 콕콕 찔렀습니다! 📵",
-            "%s님이 집중하라며 찌르기 시전! ⚡",
-            "%s님이 잊지 말라며 톡톡 찔렀어요 💪",
-            "%s님이 미션 생각났냐고 찔렀습니다 😜"
+            "%s님이 핸드폰 내려놓으라고 콕콕 찔렀습니다! 📵"
         );
 
         Random random = new Random();
