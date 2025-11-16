@@ -1,11 +1,14 @@
 package com.dito.app.feature.group
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +36,8 @@ data class OngoingChallengeUiState(
 @HiltViewModel
 class OngoingChallengeViewModel @Inject constructor(
     private val groupManager: GroupManager,
-    private val groupRepository: GroupRepository
+    private val groupRepository: GroupRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OngoingChallengeUiState())
@@ -94,8 +98,12 @@ class OngoingChallengeViewModel @Inject constructor(
         stopAutoRefresh()
         autoRefreshJob = viewModelScope.launch {
             while (true) {
+                // 자신의 YouTube 시간을 서버에 즉시 업로드
+                ScreenTimeSyncWorker.triggerImmediateSync(context)
+                // 약간의 딜레이 후 랭킹 조회 (서버가 업데이트할 시간)
+                delay(500L)
                 loadRanking()
-                delay(10_000L) // 10초마다 갱신
+                delay(9_500L) // 총 10초 주기
             }
         }
     }

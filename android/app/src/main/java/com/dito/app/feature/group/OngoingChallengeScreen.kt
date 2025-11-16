@@ -459,6 +459,18 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
     }
 }
 
+fun getAppIconFromPackage(packageName: String?): Int {
+    return when {
+        packageName == null -> R.drawable.dito
+        packageName.contains("com.google.android.youtube", ignoreCase = true) -> R.drawable.ic_youtube
+        packageName.contains("com.twitter.android", ignoreCase = true) -> R.drawable.ic_twitter
+        packageName.contains("com.android.chrome", ignoreCase = true) -> R.drawable.ic_chrome
+        packageName.contains("com.instagram.android", ignoreCase = true) -> R.drawable.ic_instagram
+        packageName.contains("dito", ignoreCase = true) -> R.drawable.dito
+        else -> R.drawable.dito
+    }
+}
+
 @Composable
 fun CharacterView(
     costumeItemId: Int?,
@@ -595,7 +607,7 @@ fun CharacterView(
 
                 // 현재 사용 중인 앱 아이콘 (캐릭터 발끝과 살짝 겹침)
                 Image(
-                    painter = painterResource(id = R.drawable.dito),
+                    painter = painterResource(id = getAppIconFromPackage(currentAppPackage)),
                     contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
                     modifier = Modifier
                         .size(32.dp)

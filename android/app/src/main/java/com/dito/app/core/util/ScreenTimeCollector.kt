@@ -4,6 +4,7 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.util.Log
+import com.dito.app.core.data.RealmConfig
 import com.dito.app.core.data.phone.MediaSessionEvent
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
@@ -37,28 +38,38 @@ class ScreenTimeCollector(private val context: Context) {
 
     fun getYouTubeUsageMinutes(): Int {
         try {
-            // UsageStatsManager를 사용하여 YouTube 앱의 포그라운드 시간 측정 (Shorts 포함)
-            val (startTime, endTime) = getTodayRange()
+            // Realm에서 오늘 하루의 YouTube 세션 데이터를 조회
+            val today = getTodayDateString()
 
-            val usageStats = usageStatsManager.queryUsageStats(
-                UsageStatsManager.INTERVAL_DAILY,
-                startTime,
-                endTime
-            )
-
-            if (usageStats == null || usageStats.isEmpty()) {
-                Log.w(TAG, "사용 통계가 비어있습니다.")
+            val realm = try {
+                RealmConfig.getInstance()
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Realm 초기화 실패", e)
                 return 0
             }
 
-            // YouTube 앱의 포그라운드 시간 찾기
-            val youtubeStats = usageStats.find { it.packageName == "com.google.android.youtube" }
-            val youtubeMillis = youtubeStats?.totalTimeInForeground ?: 0L
-            val youtubeMinutes = TimeUnit.MILLISECONDS.toMinutes(youtubeMillis).toInt()
+            val sessions = realm.query<MediaSessionEvent>(
+                "date == $0 AND appPackage == $1",
+                today,
+                "com.google.android.youtube"
+            ).find()
 
-            Log.d(TAG, "YouTube 사용시간 (UsageStats): ${youtubeMinutes}분 (${youtubeMillis}ms)")
+            val savedWatchTimeMillis = sessions.sumOf { it.watchTime }
 
-            return youtubeMinutes
+            // 현재 재생 중인 세션의 시청 시간 (아직 저장되지 않은 실시간 시간)
+            val currentSessionTime = try {
+                com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
+            } catch (e: Exception) {
+                Log.w(TAG, "현재 세션 조회 실패", e)
+                0L
+            }
+
+            val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
+            val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
+
+            Log.d(TAG, "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
+
+            return totalMinutes
         } catch (e: Exception) {
             Log.e(TAG, "❌ YouTube 사용시간 조회 실패", e)
             return 0
