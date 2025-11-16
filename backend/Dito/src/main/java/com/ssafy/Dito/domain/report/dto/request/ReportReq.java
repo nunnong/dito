@@ -1,9 +1,12 @@
 package com.ssafy.Dito.domain.report.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ssafy.Dito.domain.report.dto.InsightDto;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 
 public record ReportReq(
     @JsonProperty("user_id")
@@ -13,14 +16,8 @@ public record ReportReq(
     @JsonProperty("report_overview")
     String reportOverview,
 
-    @JsonProperty("insight_night")
-    String insightNight,
-
-    @JsonProperty("insight_content")
-    String insightContent,
-
-    @JsonProperty("insight_self")
-    String insightSelf,
+    @Valid
+    List<InsightDto> insights,
 
     String advice,
 

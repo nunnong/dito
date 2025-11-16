@@ -32,9 +32,7 @@ public class ReportService {
         Report report = Report.of(
             user,
             req.reportOverview(),
-            req.insightNight(),
-            req.insightContent(),
-            req.insightSelf(),
+            req.insights(),
             req.advice(),
             req.missionSuccessRate()
         );

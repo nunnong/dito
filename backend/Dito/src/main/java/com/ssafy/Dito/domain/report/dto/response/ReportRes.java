@@ -1,14 +1,14 @@
 package com.ssafy.Dito.domain.report.dto.response;
 
+import com.ssafy.Dito.domain.report.dto.InsightDto;
 import com.ssafy.Dito.domain.report.entity.Report;
 import java.time.Instant;
+import java.util.List;
 
 public record ReportRes(
     Long id,
     String reportOverview,
-    String insightNight,
-    String insightContent,
-    String insightSelf,
+    List<InsightDto> insights,
     String advice,
     Integer missionSuccessRate,
     Instant createdAt
@@ -17,9 +17,7 @@ public record ReportRes(
         return new ReportRes(
             report.getId(),
             report.getReportOverview(),
-            report.getInsightNight(),
-            report.getInsightContent(),
-            report.getInsightSelf(),
+            report.getInsights(),
             report.getAdvice(),
             report.getMissionSuccessRate(),
             report.getCreatedAt()
