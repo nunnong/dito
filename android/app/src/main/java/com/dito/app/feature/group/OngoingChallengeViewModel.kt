@@ -21,11 +21,12 @@ data class OngoingChallengeUiState(
     val penalty: String = "",
     val period: Int = 0,
     val bet: Int = 0,
+    val totalBetting: Int = 0,
     val startDate: String = "",
     val endDate: String = "",
     val rankings: List<RankingItem> = emptyList(),
     val errorMessage: String? = null,
-    val pokedUserId: Long? = null  // 찔린 사용자 ID
+    val pokedUserIds: Set<Long> = emptySet()  // 찔린 사용자 ID들
 )
 
 @HiltViewModel
@@ -38,6 +39,7 @@ class OngoingChallengeViewModel @Inject constructor(
     val uiState: StateFlow<OngoingChallengeUiState> = _uiState.asStateFlow()
 
     private var autoRefreshJob: Job? = null
+    private val pokeBubbleJobs = mutableMapOf<Long, Job>()
 
     init {
         refreshGroupDetails()
@@ -52,12 +54,16 @@ class OngoingChallengeViewModel @Inject constructor(
         viewModelScope.launch {
             groupRepository.getGroupDetail().fold(
                 onSuccess = { groupDetail ->
+                    // totalBetCoin을 GroupManager에 저장
+                    groupDetail.totalBetCoin?.let { groupManager.saveTotalBet(it) }
+
                     _uiState.value = _uiState.value.copy(
                         groupName = groupDetail.groupName ?: groupManager.getGroupName(),
                         goal = groupDetail.goalDescription ?: groupManager.getGoal(),
                         penalty = groupDetail.penaltyDescription ?: groupManager.getPenalty(),
                         period = groupDetail.period ?: groupManager.getPeriod(),
                         bet = groupDetail.betCoin ?: groupManager.getBet(),
+                        totalBetting = groupDetail.totalBetCoin ?: groupManager.getTotalBet(),
                         startDate = groupDetail.startDate ?: groupManager.getStartDate(),
                         endDate = groupDetail.endDate ?: groupManager.getEndDate()
                     )
@@ -66,7 +72,7 @@ class OngoingChallengeViewModel @Inject constructor(
                     loadGroupDetailsFromManager()
                 }
             )
-            loadRanking() 
+            loadRanking()
         }
     }
 
@@ -77,6 +83,7 @@ class OngoingChallengeViewModel @Inject constructor(
             penalty = groupManager.getPenalty(),
             period = groupManager.getPeriod(),
             bet = groupManager.getBet(),
+            totalBetting = groupManager.getTotalBet(),
             startDate = groupManager.getStartDate(),
             endDate = groupManager.getEndDate()
         )
@@ -124,12 +131,22 @@ class OngoingChallengeViewModel @Inject constructor(
         viewModelScope.launch {
             groupRepository.pokeMember(groupId, targetUserId).fold(
                 onSuccess = {
-                    // 찌르기 성공 - 해당 캐릭터 머리 위에 말풍선 표시
-                    _uiState.value = _uiState.value.copy(pokedUserId = targetUserId)
+                    // 해당 사용자의 이전 타이머가 있으면 취소
+                    pokeBubbleJobs[targetUserId]?.cancel()
 
-                    // 1초 후 말풍선 숨김
-                    delay(1000L)
-                    _uiState.value = _uiState.value.copy(pokedUserId = null)
+                    // 찌르기 성공 - 해당 캐릭터 머리 위에 말풍선 표시
+                    val currentPokedIds = _uiState.value.pokedUserIds.toMutableSet()
+                    currentPokedIds.add(targetUserId)
+                    _uiState.value = _uiState.value.copy(pokedUserIds = currentPokedIds)
+
+                    // 해당 사용자별로 독립적인 타이머 시작
+                    pokeBubbleJobs[targetUserId] = viewModelScope.launch {
+                        delay(1000L)
+                        val updatedPokedIds = _uiState.value.pokedUserIds.toMutableSet()
+                        updatedPokedIds.remove(targetUserId)
+                        _uiState.value = _uiState.value.copy(pokedUserIds = updatedPokedIds)
+                        pokeBubbleJobs.remove(targetUserId)
+                    }
                 },
                 onFailure = {
                     // 찌르기 실패 UI 피드백
@@ -139,7 +156,9 @@ class OngoingChallengeViewModel @Inject constructor(
     }
 
     fun resetPokeBubble() {
-        _uiState.value = _uiState.value.copy(pokedUserId = null)
+        pokeBubbleJobs.values.forEach { it.cancel() }
+        pokeBubbleJobs.clear()
+        _uiState.value = _uiState.value.copy(pokedUserIds = emptySet())
     }
 
     // 테스트용: 랭킹 셔플
