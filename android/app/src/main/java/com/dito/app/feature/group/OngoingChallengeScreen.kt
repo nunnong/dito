@@ -449,6 +449,8 @@ fun CharacterView(
     isMe: Boolean,
     showPokeBubble: Boolean = false,
     onClick: () -> Unit = {}
+
+
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
