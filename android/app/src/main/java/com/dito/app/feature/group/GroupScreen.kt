@@ -1,5 +1,6 @@
 package com.dito.app.feature.group
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,6 +52,8 @@ fun GroupScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
+    Log.d("GroupScreen", "Recompose: status=${uiState.challengeStatus}, showBetDialog=${uiState.showBetInputDialog}")
+
     LaunchedEffect(key1 = Unit) {
         viewModel.refreshGroupInfo()
         ScreenTimeSyncWorker.triggerImmediateSync(context)
@@ -63,11 +66,13 @@ fun GroupScreen(
 
     when (uiState.challengeStatus) {
         ChallengeStatus.IN_PROGRESS -> {
+            Log.d("GroupScreen", "-> OngoingChallengeScreen으로 이동")
             val ongoingViewModel: OngoingChallengeViewModel = hiltViewModel()
             OngoingChallengeScreen(viewModel = ongoingViewModel)
             return
         }
         ChallengeStatus.PENDING -> {
+            Log.d("GroupScreen", "-> GroupWaitingScreen으로 이동")
             GroupWaitingScreen(viewModel = viewModel)
             return
         }
