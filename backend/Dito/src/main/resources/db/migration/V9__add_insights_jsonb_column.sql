@@ -1,8 +1,14 @@
--- Add insights JSONB column to report table
-ALTER TABLE report ADD COLUMN insights JSONB;
-
--- Add comment for insights column
-COMMENT ON COLUMN report.insights IS '인사이트 목록 (JSONB)';
+-- Add insights JSONB column to report table (if not exists)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'report' AND column_name = 'insights'
+    ) THEN
+        ALTER TABLE report ADD COLUMN insights JSONB;
+        COMMENT ON COLUMN report.insights IS '인사이트 목록 (JSONB)';
+    END IF;
+END $$;
 
 -- Optional: Migrate existing data from insight_* columns to insights array
 -- This converts the three separate insight columns into a single JSONB array
