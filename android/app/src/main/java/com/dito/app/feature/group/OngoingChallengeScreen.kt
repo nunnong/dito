@@ -143,7 +143,7 @@ fun OngoingChallengeScreen(
                         strokeColor = Color.Black,
                         strokeWidth = 2.dp,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 16.dp).offset(y = 6.dp)
+                        modifier = Modifier.padding(horizontal = 16.dp).offset(y = 5.dp)
                     )
                 }
             }
@@ -625,10 +625,10 @@ fun cropFace(original: Bitmap): Bitmap {
     val w = original.width
     val h = original.height
 
-    val faceSize = (w * 0.40f).toInt()
+    val faceSize = (w * 0.95f).toInt()
 
     val faceLeft = ((w - faceSize) / 2f).toInt()
-    val faceTop = (h * 0.30f).toInt()
+    val faceTop = (h * 0.20f).toInt()
 
     return Bitmap.createBitmap(original, faceLeft, faceTop, faceSize, faceSize)
 }
