@@ -37,43 +37,30 @@ class ScreenTimeCollector(private val context: Context) {
 
     fun getYouTubeUsageMinutes(): Int {
         try {
-            // Realm에서 오늘 하루의 YouTube 세션 데이터를 조회
-            val today = getTodayDateString()
+            // UsageStatsManager를 사용하여 YouTube 앱의 포그라운드 시간 측정 (Shorts 포함)
+            val (startTime, endTime) = getTodayRange()
 
-            val realm = try {
-                com.dito.app.core.data.RealmConfig.getInstance()
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Realm 초기화 실패", e)
+            val usageStats = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                startTime,
+                endTime
+            )
+
+            if (usageStats == null || usageStats.isEmpty()) {
+                Log.w(TAG, "사용 통계가 비어있습니다.")
                 return 0
             }
 
-            val sessions = realm.query<MediaSessionEvent>(
-                "date == $0 AND appPackage == $1",
-                today,
-                "com.google.android.youtube"
-            ).find()
+            // YouTube 앱의 포그라운드 시간 찾기
+            val youtubeStats = usageStats.find { it.packageName == "com.google.android.youtube" }
+            val youtubeMillis = youtubeStats?.totalTimeInForeground ?: 0L
+            val youtubeMinutes = TimeUnit.MILLISECONDS.toMinutes(youtubeMillis).toInt()
 
-            val savedWatchTimeMillis = sessions.sumOf { it.watchTime }
+            Log.d(TAG, "YouTube 사용시간 (UsageStats): ${youtubeMinutes}분 (${youtubeMillis}ms)")
 
-
-
-            val currentSessionTime = try {
-                com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
-            } catch (e: Exception) {
-                Log.w(TAG, "현재 세션 조회 실패", e)
-                0L
-            }
-
-            val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
-            val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
-
-            Log.d("ScreenTimeCollector", "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
-
-
-
-            return totalMinutes
+            return youtubeMinutes
         } catch (e: Exception) {
-            Log.e("ScreenTimeCollector", "❌ YouTube 사용시간 조회 실패", e)
+            Log.e(TAG, "❌ YouTube 사용시간 조회 실패", e)
             return 0
         }
     }
