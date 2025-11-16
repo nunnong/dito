@@ -318,7 +318,7 @@ fun CurrentStatusCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 27.dp)
+                .padding(horizontal = 16.dp, vertical = 27.dp)
         ) {
             Text(
                 text = predictions.joinToString("\n"),
@@ -445,7 +445,7 @@ fun DitoMessageCard() {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 27.dp)
+                .padding(horizontal = 16.dp, vertical = 27.dp)
         ) {
             Text(
                 text = "저녁 쇼츠는 멈추고 그때 개발 학습에 집중해요. \n오늘은 미션탭에서 '오늘의 미션'을 확인하고 바로 시작해봅시다.",
