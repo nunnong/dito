@@ -116,12 +116,18 @@ fun MissionNotificationScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
+    // 설명 다이얼로그 상태
+    var showInfoDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Background)
     ) {
-        MissionNotificationHeader(onBackClick = onBackClick)
+        MissionNotificationHeader(
+            onBackClick = onBackClick,
+            onInfoClick = { showInfoDialog = true }
+        )
 
         Spacer(modifier = Modifier.height(40.dp))
 
@@ -137,6 +143,7 @@ fun MissionNotificationScreen(
                         color = OnSurface
                     )
                 }
+
                 uiState.error != null && uiState.notifications.isEmpty() -> {
                     Text(
                         text = uiState.error ?: "오류가 발생했습니다.",
@@ -145,6 +152,7 @@ fun MissionNotificationScreen(
                         style = DitoTypography.bodyMedium
                     )
                 }
+
                 uiState.notifications.isEmpty() -> {
                     Text(
                         text = "미션 알림이 없습니다.",
@@ -153,6 +161,7 @@ fun MissionNotificationScreen(
                         style = DitoTypography.bodyMedium
                     )
                 }
+
                 else -> {
                     LazyColumn(
                         state = listState,
@@ -182,11 +191,21 @@ fun MissionNotificationScreen(
             onConfirm = { viewModel.onRewardConfirm() }
         )
     }
+
+    // 미션 알림 페이지 설명 다이얼로그
+    if(showInfoDialog){
+        MissionInfoDialog(
+            onDismiss = { showInfoDialog = false }
+        )
+    }
 }
 
 // 상단 헤더: 왼쪽 화살표 + 가운데 정렬 제목
 @Composable
-private fun MissionNotificationHeader(onBackClick: () -> Unit) {
+private fun MissionNotificationHeader(
+    onBackClick: () -> Unit,
+    onInfoClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -211,9 +230,18 @@ private fun MissionNotificationHeader(onBackClick: () -> Unit) {
             color = Color.White,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.size(28.dp))
+        Image(
+            painter = painterResource(id = R.drawable.question),
+            contentDescription = "Info",
+            modifier = Modifier
+                .size(28.dp)
+                .clickable { onInfoClick() },
+            contentScale = ContentScale.Fit,
+            colorFilter = ColorFilter.tint(Color.White)
+        )
     }
 }
+
 
 // 개별 알림 아이템
 @Composable
@@ -355,20 +383,29 @@ fun NotificationItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
+
             // 우측 아이콘 (로딩 or 체크)
             if (isCompleted) {
-                val iconColor = when (notification.result) {
-                    MissionResult.SUCCESS -> Color(0xFF42A5F5)  // 파란색 (성공)
-                    MissionResult.FAILURE -> Color(0xFFFF5252)  // 빨간색 (실패)
-                    else -> Color(0xFFFF9800)  // 주황색 (기타)
+                when (notification.result) {
+                    MissionResult.FAILURE -> {
+                        Image(
+                            painter = painterResource(id = R.drawable.fail),
+                            contentDescription = "Failed",
+                            modifier = Modifier.size(32.dp),
+                            colorFilter = ColorFilter.tint(Color(0xFFFF5252))
+                        )
+                    }
+                    else -> {
+                        Image(
+                            painter = painterResource(id = R.drawable.complete),
+                            contentDescription = "Success",
+                            modifier = Modifier.size(32.dp),
+                            colorFilter = ColorFilter.tint(Color(0xFF42A5F5))
+                        )
+                    }
                 }
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Completed",
-                    tint = iconColor,
-                    modifier = Modifier.size(32.dp)
-                )
             } else {
+                // 진행중일 때 CircularProgressIndicator 표시
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
                     color = Primary,
@@ -417,7 +454,8 @@ private fun calculateProgress(triggerTime: String?, duration: Int?): Float {
     if (triggerTime != null) {
         return try {
             // 백엔드 Timestamp 형식: "2025-11-13T07:34:50.320+00:00" (ISO 8601)
-            val zonedDateTime = java.time.ZonedDateTime.parse(triggerTime, DateTimeFormatter.ISO_DATE_TIME)
+            val zonedDateTime =
+                java.time.ZonedDateTime.parse(triggerTime, DateTimeFormatter.ISO_DATE_TIME)
             val startMillis = zonedDateTime.toInstant().toEpochMilli()
             val endMillis = startMillis + (duration * 1000L)
             val nowMillis = System.currentTimeMillis()
