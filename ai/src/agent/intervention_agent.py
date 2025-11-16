@@ -258,7 +258,7 @@ def mission_node(state: InterventionState) -> dict:
 - 보상: {coin_reward} 코인
 
 메시지 프레임: "[인식] → [제안] → [보상]"
-예시: "30분째 시청 중이에요 → {duration_seconds // 60}분 휴식 어때요? → 성공 시 +{coin_reward} 코인!"
+예시: "30분째 시청 중이에요  {duration_seconds // 60}분 휴식 어때요?  성공 시 +{coin_reward} 코인!"
 
 요구사항:
 1. 최대 100자 이내
@@ -329,7 +329,7 @@ def message_node(state: InterventionState) -> dict:
 - 보상: {coin_reward} 코인
 
 메시지 프레임: "[인식] → [제안] → [보상]"
-예시: "30분째 시청 중이에요 → {duration_seconds // 60}분 휴식 어때요? → 성공 시 +{coin_reward} 코인!"
+예시: "30분째 시청 중이에요  {duration_seconds // 60}분 휴식 어때요?  성공 시 +{coin_reward} 코인!"
 
 요구사항:
 1. 최대 100자 이내
