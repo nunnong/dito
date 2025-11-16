@@ -434,6 +434,7 @@ class GroupChallengeViewModel @Inject constructor(
         participantsPollingJob = viewModelScope.launch {
             while (true) {
                 loadParticipants(groupId)
+                refreshGroupInfo() // 그룹 상태 체크 (챌린지 시작 여부 확인)
                 delay(1000L) // 1초 대기
             }
         }
