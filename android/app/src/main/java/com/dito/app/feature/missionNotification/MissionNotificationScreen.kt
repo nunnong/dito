@@ -51,11 +51,15 @@ import com.dito.app.core.ui.component.DitoModalContainer
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.DitoSoftShadow
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Primary
+import com.dito.app.core.ui.designsystem.Secondary
 import com.dito.app.core.ui.designsystem.Spacing
+import com.dito.app.core.ui.designsystem.Tertiary
 import com.dito.app.core.ui.designsystem.hardShadow
+import com.dito.app.core.ui.designsystem.softShadow
 import dagger.hilt.android.EntryPointAccessors
 import javax.inject.Inject
 
@@ -171,7 +175,7 @@ fun MissionNotificationScreen(
 
     // 미션 상세 모달
     uiState.selectedMission?.let { mission ->
-        MissionDetailModal(
+        MissionDetailDialog(
             mission = mission,
             isShowingAnimation = uiState.isClaimingReward,
             onDismiss = { viewModel.dismissModal() },
@@ -236,15 +240,14 @@ fun NotificationItem(
     }
 
     // 완료된 미션에 결과에 따라 테두리 색상 변경
-    val borderModifier = if (isCompleted) {
-        val borderColor = when (notification.result) {
+    val borderColor = if (isCompleted) {
+        when (notification.result) {
             MissionResult.SUCCESS -> Color(0xFF42A5F5)  // 파란색 (성공)
             MissionResult.FAILURE -> Color(0xFFFF5252)  // 빨간색 (실패)
-            else -> Color.Transparent
+            else -> Color.Black
         }
-        Modifier.border(2.dp, borderColor, RoundedCornerShape(12.dp))
     } else {
-        Modifier
+        Color.Black
     }
 
     Column(
@@ -257,52 +260,55 @@ fun NotificationItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
-                .then(borderModifier)
+                .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 12.dp))
+                .border(1.dp, borderColor, RoundedCornerShape(12.dp))
                 .clip(RoundedCornerShape(12.dp))
                 .background(Background)
-                .padding(16.dp),
+                .padding(16.dp)
+                .height(IntrinsicSize.Max),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 8.dp, horizontal = 6.dp)
+            ) {
                 // AI가 준 미션 내용 (크게)
                 Text(
                     text = notification.title,
                     color = OnSurface,
-                    style = DitoCustomTextStyles.titleKMedium.copy(fontSize = 18.sp)
+                    style = DitoCustomTextStyles.titleKMedium
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // 스탯 변화 표시
+                // 스탯 변화 표시 (pill 버튼 형태)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (notification.statChangeSelfCare > 0) {
-                        Text(
-                            text = "자기관리: +${notification.statChangeSelfCare}",
-                            color = OnSurface.copy(alpha = 0.6f),
-                            style = DitoTypography.labelSmall.copy(fontSize = 11.sp)
+                        StatPill(
+                            label = "자기관리 +${notification.statChangeSelfCare}",
+                            backgroundColor = Primary
                         )
                     }
                     if (notification.statChangeFocus > 0) {
-                        Text(
-                            text = "집중: +${notification.statChangeFocus}",
-                            color = OnSurface.copy(alpha = 0.6f),
-                            style = DitoTypography.labelSmall.copy(fontSize = 11.sp)
+                        StatPill(
+                            label = "집중 +${notification.statChangeFocus}",
+                            backgroundColor = Secondary
                         )
                     }
                     if (notification.statChangeSleep > 0) {
-                        Text(
-                            text = "수면: +${notification.statChangeSleep}",
-                            color = OnSurface.copy(alpha = 0.6f),
-                            style = DitoTypography.labelSmall.copy(fontSize = 11.sp)
+                        StatPill(
+                            label = "수면 +${notification.statChangeSleep}",
+                            backgroundColor = Tertiary
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 // 레몬 이미지 + 개수
                 Row(
@@ -318,7 +324,7 @@ fun NotificationItem(
                     Text(
                         text = "${notification.coinReward}",
                         color = OnSurface,
-                        style = DitoTypography.bodyMedium.copy(fontSize = 14.sp)
+                        style = DitoCustomTextStyles.titleDSmall
                     )
                 }
 
@@ -330,13 +336,22 @@ fun NotificationItem(
                         progress = progress,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .padding(end = 16.dp)
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp)),
-                        color = Color(0xFFB39DDB),  // 보라색
+                        color = Primary,  // 보라색
                         trackColor = Color(0xFF2A2A2A)
                     )
                 }
             }
+
+            // 구분선
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(Color.Black.copy(alpha = 0.2f))
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -356,19 +371,34 @@ fun NotificationItem(
             } else {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = Color(0xFFB39DDB),  // 보라색
+                    color = Primary,
                     strokeWidth = 3.dp
                 )
             }
         }
+    }
+}
 
-        // 구분선
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(1.dp)
-                .background(OnSurface.copy(alpha = 0.1f))
+// 스탯 pill 컴포넌트
+@Composable
+private fun StatPill(
+    label: String,
+    backgroundColor: Color
+) {
+    Box(
+        modifier = Modifier
+            .background(
+                color = backgroundColor,
+                shape = RoundedCornerShape(48.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = DitoTypography.labelSmall,
+            color = Color.Black,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -431,200 +461,6 @@ fun StatusBadge(type: NotificationType) {
     }
 }
 
-// 미션 상세 모달
-@Composable
-fun MissionDetailModal(
-    mission: MissionNotificationData,
-    isShowingAnimation: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
-            .padding(horizontal = Spacing.l, vertical = Spacing.xl),
-        contentAlignment = Alignment.Center
-    ) {
-        DitoModalContainer(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = Color.White,
-            borderColor = Color.Black,
-            shadowColor = Color.Black,
-            contentPadding = PaddingValues(vertical = Spacing.l)
-        ) {
-
-            //뒤로가기 버튼을 왼쪽에 정렬하기 위해
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.m, vertical = Spacing.s)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.back),
-                    contentDescription = "뒤로가기",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .align(Alignment.TopStart)
-                        .clickable{onDismiss()}
-                )
-            }
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // 제목
-                Text(
-                    text = mission.missionType,
-                    color = Color.Black,
-                    style = DitoTypography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = Spacing.m)
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.l))
-
-                // AI 피드백 섹션
-                mission.feedback?.let { feedback ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.m)
-                            .border(1.dp, Color.Black, DitoShapes.small)
-                            .background(Background, DitoShapes.small)
-                            .padding(Spacing.m)
-                    ) {
-                        Text(
-                            text = "AI 피드백",
-                            color = Primary,
-                            style = DitoCustomTextStyles.titleDMedium
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            text = feedback,
-                            color = Color.Black,
-                            style = DitoTypography.bodyMedium,
-                            lineHeight = 20.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(Spacing.l))
-                }
-
-                // 미션 결과
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.m),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "결과",
-                        color = Color.Black,
-                        style = DitoTypography.labelLarge
-                    )
-
-                    val resultText = when (mission.result) {
-                        MissionResult.SUCCESS -> "성공"
-                        MissionResult.FAILURE -> "실패"
-                        MissionResult.IGNORE -> "무시됨"
-                        else -> "진행 중"
-                    }
-
-                    Text(
-                        text = resultText,
-                        color = Color.Black,
-                        style = DitoCustomTextStyles.titleDMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.m))
-
-                // 레몬 보상
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.m),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "보상",
-                        color = Color.Black,
-                        style = DitoTypography.labelLarge
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.lemon),
-                            contentDescription = "Lemon",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${mission.coinReward}",
-                            color = Color.Black,
-                            style = DitoCustomTextStyles.titleDMedium
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.xl))
-
-                // 확인 버튼 (성공/실패 모두 표시)
-                if (mission.status == MissionStatus.COMPLETED) {
-                    val isSuccess = mission.result == MissionResult.SUCCESS
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.85f)
-                            .hardShadow(
-                                offsetX = 4.dp,
-                                offsetY = 4.dp,
-                                cornerRadius = 8.dp,
-                                color = Color.Black
-                            )
-                            .clip(DitoShapes.small)
-                            .border(1.dp, Color.Black, DitoShapes.small)
-                            .background(if (isSuccess) Primary else Color.White)
-                            .clickable(enabled = !isShowingAnimation) { onConfirm() }
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (isSuccess) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.lemon),
-                                    contentDescription = "Lemon",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-                            Text(
-                                text = if (isSuccess) "레몬 받기" else "확인",
-                                color = Color.Black,
-                                style = DitoCustomTextStyles.titleDMedium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(Spacing.m))
-                }
-
-
-
-//                Spacer(modifier = Modifier.height(Spacing.m))
-            }
-        }
-    }
-}
 
 // 미리보기
 @Preview(showBackground = true)
