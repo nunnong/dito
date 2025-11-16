@@ -125,24 +125,27 @@ fun OngoingChallengeScreen(
                     .clickable { isInfoPanelVisible = !isInfoPanelVisible },
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.challenge),
-                    contentDescription = "Challenge Sign",
-                    modifier = Modifier.matchParentSize(),
-                    contentScale = ContentScale.Fit
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.challenge),
+                        contentDescription = "Challenge Sign",
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Fit
+                    )
 
-                StrokeText(
-                    text = uiState.groupName,
-                    style = DitoTypography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    fillColor = Color.White,
-                    strokeColor = Color.Black,
-                    strokeWidth = 2.dp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = 16.dp)
-                )
+                    StrokeText(
+                        text = uiState.groupName,
+                        style = DitoTypography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        fillColor = Color.White,
+                        strokeColor = Color.Black,
+                        strokeWidth = 2.dp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp).offset(y = 5.dp)
+                    )
+                }
             }
 
             // 테스트 버튼 (랭킹 셔플)
@@ -180,7 +183,7 @@ fun OngoingChallengeScreen(
                                 maxRank = rankings.size.coerceAtMost(4),
                                 currentAppPackage = rankingItem.currentAppPackage,
                                 isMe = rankingItem.isMe,
-                                showPokeBubble = uiState.pokedUserId == rankingItem.userId,
+                                showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
                                 onClick = {
                                     if (!rankingItem.isMe) {
                                         viewModel.pokeMember(rankingItem.userId)
@@ -213,7 +216,7 @@ fun OngoingChallengeScreen(
         }
         }
 
-        // 나무 상자 모달
+        // 나무 상자 방 정보 모달
         if (isInfoPanelVisible) {
             Box(
                 modifier = Modifier
@@ -228,7 +231,6 @@ fun OngoingChallengeScreen(
                         .width(320.dp)
                         .clickable(enabled = false) { }
                 ) {
-                    // 나무 상자 배경
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -284,7 +286,7 @@ fun OngoingChallengeScreen(
                                 )
                                 InfoRow(
                                     label = "TOTAL BETTING",
-                                    value = uiState.bet
+                                    value = uiState.totalBetting
                                 )
                             }
                         }
@@ -348,7 +350,6 @@ fun UserInfoCard(
     // 얼굴 크롭된 이미지
     val croppedFace = rememberCroppedFace(profileImage)
 
-    // 기본 이미지(dito)도 크롭
     val croppedDefaultFace = remember {
         try {
             val ditoBitmap = android.graphics.BitmapFactory.decodeResource(
@@ -436,20 +437,7 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
         2 -> "grape"
         4 -> "melon"
         6 -> "tomato"
-        else -> "lemon" // 기본값
-    }
-}
-
-fun getAppIconFromPackage(packageName: String?): Int {
-    return when {
-        packageName == null -> R.drawable.dito
-        packageName.contains("com.google.android.youtube", ignoreCase = true) -> R.drawable.ic_youtube
-        packageName.contains("com.twitter.android", ignoreCase = true) -> R.drawable.ic_twitter
-        packageName.contains("com.twitter.android", ignoreCase = true) -> R.drawable.ic_twitter
-        packageName.contains("com.android.chrome", ignoreCase = true) -> R.drawable.ic_chrome
-        packageName.contains("com.instagram.android", ignoreCase = true) -> R.drawable.ic_instagram
-        packageName.contains("dito", ignoreCase = true) -> R.drawable.dito
-        else -> R.drawable.dito
+        else -> "lemon"
     }
 }
 
@@ -589,7 +577,7 @@ fun CharacterView(
 
                 // 현재 사용 중인 앱 아이콘 (캐릭터 발끝과 살짝 겹침)
                 Image(
-                    painter = painterResource(id = getAppIconFromPackage(currentAppPackage)),
+                    painter = painterResource(id = R.drawable.dito),
                     contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
                     modifier = Modifier
                         .size(32.dp)
@@ -606,8 +594,8 @@ fun CharacterView(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset(y = (-40).dp)
-                            .size(80.dp, 60.dp),
+                            .offset(y = (-80).dp)
+                            .size(140.dp, 120.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -618,10 +606,12 @@ fun CharacterView(
                         )
                         Text(
                             text = "아얏!",
-                            style = DitoTypography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                            style = DitoTypography.labelMedium,
                             color = Color.Black,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(bottom = 12.dp)
                         )
                     }
                 }
@@ -631,18 +621,20 @@ fun CharacterView(
 }
 
 /**
- * 프로필 이미지에서 얼굴 부분만 크롭하는 함수d
+ * 프로필 이미지에서 얼굴 부분만 크롭하는 함수
  */
 fun cropFace(original: Bitmap): Bitmap {
     val w = original.width
     val h = original.height
 
     val faceSize = (w * 0.95f).toInt()
+
     val faceLeft = ((w - faceSize) / 2f).toInt()
     val faceTop = (h * 0.20f).toInt()
 
     return Bitmap.createBitmap(original, faceLeft, faceTop, faceSize, faceSize)
 }
+
 
 /**
  * URL에서 이미지를 로드하고 얼굴 부분을 크롭해서 반환하는 Composable 함수

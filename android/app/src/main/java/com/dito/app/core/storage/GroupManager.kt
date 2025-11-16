@@ -28,6 +28,7 @@ class GroupManager @Inject constructor(
         private const val KEY_PENALTY = "penalty"
         private const val KEY_PERIOD = "period"
         private const val KEY_BET = "bet"
+        private const val KEY_TOTAL_BET = "total_bet"
         private const val KEY_ENTRY_CODE = "entry_code"
         private const val KEY_START_DATE = "start_date"
         private const val KEY_END_DATE = "end_date"
@@ -127,6 +128,20 @@ class GroupManager @Inject constructor(
      */
     fun getBet(): Int {
         return prefs.getInt(KEY_BET, 0)
+    }
+
+    /**
+     * 전체 배팅 금액 조회
+     */
+    fun getTotalBet(): Int {
+        return prefs.getInt(KEY_TOTAL_BET, 0)
+    }
+
+    /**
+     * 전체 배팅 금액 저장
+     */
+    fun saveTotalBet(totalBet: Int) {
+        prefs.edit { putInt(KEY_TOTAL_BET, totalBet) }
     }
 
     /**
