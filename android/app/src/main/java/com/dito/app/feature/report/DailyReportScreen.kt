@@ -326,7 +326,7 @@ fun CurrentStatusCard(
                 text = predictions.joinToString("\n"),
                 color = Color.Black,
                 lineHeight = 1.43.em,
-                style = DitoCustomTextStyles.titleKMedium,
+                style = DitoTypography.bodyMedium,
                 modifier = Modifier
                     .fillMaxWidth()
             )
@@ -453,7 +453,7 @@ fun DitoMessageCard(advice: String) {
                 text = advice,
                 color = Color.Black,
                 lineHeight = 1.43.em,
-                style = DitoCustomTextStyles.titleKMedium,
+                style = DitoTypography.bodyMedium,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -514,7 +514,7 @@ fun ComparisonItemCard(
             text = comparisonItem.description,
             color = textColor,
             lineHeight = 1.33.em,
-            style = DitoCustomTextStyles.titleKMedium,
+            style = DitoTypography.bodyMedium,
             modifier = Modifier
                 .weight(1f)
                 .height(41.dp)
