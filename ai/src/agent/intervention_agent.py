@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
 
+from agent.lock_manager import get_lock_manager
 from agent.prompts import (
     SYSTEM_MSG_NUDGE_GENERATOR,
     get_behavior_analysis_prompt,
@@ -29,9 +30,37 @@ from agent.utils import (
     youtube_analyzer,
 )
 
+# Lock manager (환경에 따라 자동 선택: Redis 또는 InMemory)
+lock_manager = get_lock_manager()
+
 # =============================================================================
 # Intervention Agent Nodes
 # =============================================================================
+
+
+def check_user_concurrency_node(state: InterventionState) -> Command[Literal["youtube_analyze_node"]]:
+    """동시성 제어 노드: user_id가 이미 작업 중인지 확인.
+
+    Lock 획득 실패 시 → 즉시 END (중복 처리 방지)
+    Lock 획득 성공 시 → youtube_analyze_node로 진행
+
+    Returns:
+        Command: 다음 노드로 이동 또는 END
+    """
+    user_id = state["user_id"]
+    print(f"[Concurrency Check] Checking lock for user: {user_id}")
+
+    # Lock 획득 시도 (TTL: 60초)
+    lock_acquired = lock_manager.acquire_lock(user_id, ttl=60)
+
+    if not lock_acquired:
+        # 이미 작업 중 - 즉시 종료
+        print(f"[Concurrency Check] User {user_id} is already in intervention workflow - exiting")
+        return Command(goto=END, update={"lock_acquired": False})
+
+    # Lock 획득 성공 - 워크플로우 진행
+    print(f"[Concurrency Check] Lock acquired for user {user_id} - proceeding")
+    return Command(goto="youtube_analyze_node", update={"lock_acquired": True})
 
 
 def youtube_analyze_node(state: InterventionState) -> dict:
@@ -179,7 +208,7 @@ def analyze_behavior_node(state: InterventionState) -> dict:
 
 def decide_intervention_node(
     state: InterventionState,
-) -> Command[Literal["mission_node", END]]:
+) -> Command[Literal["mission_node", "release_user_lock_node"]]:
     """2단계: 개입 필요성 판단"""
 
     decision_prompt = get_intervention_decision_prompt(
@@ -194,7 +223,7 @@ def decide_intervention_node(
             "intervention_needed": decision.intervention_needed,
             "intervention_reason": decision.reasoning,
         },
-        goto="mission_node" if decision.intervention_needed else END,
+        goto="mission_node" if decision.intervention_needed else "release_user_lock_node",
     )
 
 
@@ -342,6 +371,27 @@ def message_node(state: InterventionState) -> dict:
     return {"fcm_sent": result.fcm_sent}
 
 
+def release_user_lock_node(state: InterventionState) -> dict:
+    """Lock 해제 노드: 워크플로우 종료 전 사용자 락 해제.
+
+    모든 종료 경로(정상 종료, 개입 불필요)에서 호출되어야 함.
+    lock_acquired가 True인 경우에만 실제 해제 수행.
+
+    Returns:
+        빈 dict (상태 변경 없음)
+    """
+    user_id = state["user_id"]
+    lock_acquired = state.get("lock_acquired", False)
+
+    if lock_acquired:
+        print(f"[Lock Release] Releasing lock for user: {user_id}")
+        lock_manager.release_lock(user_id)
+    else:
+        print(f"[Lock Release] No lock to release for user: {user_id}")
+
+    return {}
+
+
 # =============================================================================
 # Intervention Agent Graph 구성
 # =============================================================================
@@ -351,30 +401,46 @@ def build_intervention_agent() -> StateGraph:
     """실시간 개입 에이전트 그래프 구성.
 
     워크플로우:
-    0. youtube_analyze: 유튜브 영상 분석 (조건부)
-    1. analyze_behavior: 행동 패턴 분석 (유튜브 정보 활용)
-    2. decide_intervention: 개입 필요성 판단 (Command로 분기)
-    3. generate_mission: 미션 생성 (LLM + API 호출)
-    4. generate_message: 넛지 메시지 생성
-    5. send_intervention: FCM 알림 전송
+    0. check_user_concurrency: 사용자 동시성 제어 (Command로 분기)
+       - Lock 획득 실패 → END (즉시 종료)
+       - Lock 획득 성공 → youtube_analyze_node
+    1. youtube_analyze: 유튜브 영상 분석 (조건부)
+    2. analyze_behavior: 행동 패턴 분석 (유튜브 정보 활용)
+    3. decide_intervention: 개입 필요성 판단 (Command로 분기)
+       - intervention_needed=True → mission_node
+       - intervention_needed=False → release_user_lock_node → END
+    4. mission_node: 미션 생성 (LLM + API 호출)
+    5. message_node: 넛지 메시지 생성 및 FCM 전송
+    6. release_user_lock_node: 사용자 락 해제 → END
     """
     workflow = StateGraph(InterventionState)
 
     # 노드 추가
+    workflow.add_node("check_user_concurrency_node", check_user_concurrency_node)
     workflow.add_node("youtube_analyze_node", youtube_analyze_node)
     workflow.add_node("analyze_behavior_node", analyze_behavior_node)
     workflow.add_node("decide_intervention_node", decide_intervention_node)
     workflow.add_node("mission_node", mission_node)
     workflow.add_node("message_node", message_node)
+    workflow.add_node("release_user_lock_node", release_user_lock_node)
 
     # 엣지 추가
-    workflow.add_edge(START, "youtube_analyze_node")
+    # START → 동시성 체크 (Command로 분기: lock 획득 실패 시 END, 성공 시 youtube_analyze_node)
+    workflow.add_edge(START, "check_user_concurrency_node")
+
+    # 정상 플로우
     workflow.add_edge("youtube_analyze_node", "analyze_behavior_node")
     workflow.add_edge("analyze_behavior_node", "decide_intervention_node")
     # decide_intervention에서 조건부 라우팅 (Command 사용)
-    # intervention_needed=True → generate_mission, False → END
+    # intervention_needed=True → mission_node
+    # intervention_needed=False → release_user_lock_node
+
+    # 개입 필요 시: mission → message → release → END
     workflow.add_edge("mission_node", "message_node")
-    workflow.add_edge("message_node", END)
+    workflow.add_edge("message_node", "release_user_lock_node")
+
+    # 모든 경로의 최종 종료점
+    workflow.add_edge("release_user_lock_node", END)
 
     # 컴파일 (LangGraph Server가 자동으로 checkpointer 관리)
     return workflow.compile()
