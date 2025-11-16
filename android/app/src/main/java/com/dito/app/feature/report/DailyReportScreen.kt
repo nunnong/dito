@@ -1,5 +1,6 @@
 package com.dito.app.feature.report
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,7 +54,8 @@ fun DailyReportScreen(
                     missionCompletionRate = state.data.missionCompletionRate,
                     currentStatus = state.data.currentStatus,
                     predictions = state.data.predictions,
-                    comparisons = state.data.comparisons
+                    comparisons = state.data.comparisons,
+                    advice = state.data.advice
                 )
             }
             is DailyReportUiState.Error -> {
@@ -85,204 +88,373 @@ fun DailyReportContent(
     missionCompletionRate: Int,
     currentStatus: com.dito.app.core.data.report.StatusDescription,
     predictions: List<String>,
-    comparisons: List<ComparisonItem>
+    comparisons: List<ComparisonItem>,
+    advice: String
 ) {
-    LazyColumn(
+    Box(
         modifier = Modifier
-            .fillMaxSize(),
-        contentPadding = PaddingValues(0.dp)
+            .fillMaxSize()
+            .background(color = Color.White)
     ) {
-        // 헤더 섹션
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.l)
-            ) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(28.dp, Alignment.Top),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(
+                start = 24.dp,
+                end = 24.dp,
+                top = 48.dp,
+                bottom = 56.dp
+            ),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // 헤더 섹션
+            item {
                 Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = Spacing.m)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
                 ) {
                     if (costumeUrl.isNotEmpty()) {
                         coil.compose.AsyncImage(
                             model = costumeUrl,
                             contentDescription = "Profile",
                             modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-//                                .background(Primary),
-                                    ,
+                                .width(53.dp)
+                                .height(90.dp),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            painter = painterResource(id = R.drawable.lemon_wiggle),
                             contentDescription = "Profile",
                             modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
+                                .width(53.dp)
+                                .height(90.dp),
+                            contentScale = ContentScale.Crop
                         )
                     }
-                    Spacer(modifier = Modifier.width(Spacing.m))
-                    Text(
-                        text = "Daily Report",
-                        style = DitoTypography.headlineLarge,
-                        color = OnSurface,
-                        fontSize = 38.sp
+                    Image(
+                        painter = painterResource(id = R.drawable.daily_report),
+                        contentDescription = "Daily Report",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .width(172.dp)
+                            .height(74.dp)
                     )
                 }
+            }
 
-                // 미션 수행률 카드
+            // 미션 수행률 카드
+            item {
                 MissionCompletionCard(
                     missionCompletionRate = missionCompletionRate
                 )
             }
-        }
 
-        // 현재 상태 섹션 + 비교 분석 섹션 (하나의 카드로)
-        item {
-            Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = Color.White,
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.l)
-                    .hardShadow(
-                        offsetX = 4.dp,
-                        offsetY = 4.dp,
-                        cornerRadius = 32.dp,
-                        color = Color.Black
-                    )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Spacing.l)
-                ) {
-                    // 현재 상태 섹션
-                    Text(
-                        text = "현재 $userName 님은",
-                        style = DitoTypography.titleLarge,
-                        color = OnSurface,
-                        fontSize = 22.sp
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.s))
-
-                    predictions.forEach { prediction ->
-                        Text(
-                            text = prediction,
-                            style = DitoTypography.bodyLarge,
-                            color = OnSurface,
-                            lineHeight = 24.sp,
-                            modifier = Modifier.padding(bottom = Spacing.s)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(Spacing.l))
-
-                    // 비교 분석 섹션
-                    Text(
-                        text = "이전과 비교했을 때...",
-                        style = DitoTypography.titleLarge,
-                        color = OnSurface,
-                        fontSize = 22.sp,
-                        modifier = Modifier.padding(bottom = Spacing.s)
-                    )
-
-                    // 비교 항목들
-                    comparisons.forEach { comparison ->
-                        ComparisonItemCard(
-                            comparisonItem = comparison,
-                            modifier = Modifier.padding(vertical = Spacing.xs)
-                        )
-                    }
-                }
+            // 현재 상태 섹션
+            item {
+                CurrentStatusCard(
+                    userName = userName,
+                    predictions = predictions
+                )
             }
-        }
 
-        // 하단 여백
-        item {
-            Spacer(modifier = Modifier.height(Spacing.xl))
+            // 비교 분석 섹션
+            item {
+                ComparisonCard(
+                    comparisons = comparisons
+                )
+            }
+
+            // Dito의 메시지 섹션
+            item {
+                DitoMessageCard(advice = advice)
+            }
         }
     }
 }
 
 @Composable
 fun MissionCompletionCard(missionCompletionRate: Int) {
-    Surface(
-        shape = RoundedCornerShape(32.dp),
-        color = Color.White,
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black),
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = Spacing.m)
+            .height(97.dp)
             .hardShadow(
                 offsetX = 4.dp,
                 offsetY = 4.dp,
-                cornerRadius = 32.dp,
+                cornerRadius = 8.dp,
                 color = Color.Black
             )
+            .clip(shape = RoundedCornerShape(8.dp))
+            .background(color = Color.White)
+            .border(
+                border = BorderStroke(1.5.dp, Color.Black),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(all = 16.dp)
     ) {
-        Box(
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.m)
+                .fillMaxHeight()
+                .weight(1f)
+                .background(color = Color.White)
         ) {
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = Spacing.s)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.check),
-                        contentDescription = "Mission Icon",
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(
-                        text = "미션 수행률",
-                        style = DitoTypography.titleMedium,
-                        color = OnSurface,
-                        fontSize = 22.sp
-                    )
-                }
-
-                // 진행률 바
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(11.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.mission_star),
+                    contentDescription = "Mission Icon",
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = "미션 수행률",
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 0.91.em,
+                    style = DitoCustomTextStyles.titleDLarge
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(48.dp),
+                border = BorderStroke(1.dp, Color.Black),
+                modifier = Modifier.clip(shape = RoundedCornerShape(48.dp))
+            ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .height(24.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(
-                            width = 0.6.dp,
-                            color = OnTertiaryContainer,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .background(Color(0xFFF0F0F0))
+                        .width(200.dp)
+                        .height(23.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxHeight()
                             .fillMaxWidth(missionCompletionRate / 100f)
-                            .background(
-                                Primary,
-                                shape = RoundedCornerShape(10.dp)
-                            )
+                            .height(23.dp)
+                            .clip(shape = RoundedCornerShape(48.dp))
+                            .background(color = Primary)
                     )
                 }
             }
-
-            // 퍼센트 표시
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "$missionCompletionRate%",
+                text = "$missionCompletionRate",
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+                lineHeight = 1.12.em,
                 style = DitoTypography.displayLarge,
-                color = OnSurface,
-                fontSize = 60.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 54.sp
+            )
+            Text(
+                text = "%",
+                color = Primary,
+                textAlign = TextAlign.Center,
+                lineHeight = 1.16.em,
+                style = DitoTypography.displayMedium,
+                fontSize = 54.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun CurrentStatusCard(
+    userName: String,
+    predictions: List<String>
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .hardShadow(
+                offsetX = 4.dp,
+                offsetY = 4.dp,
+                cornerRadius = 8.dp,
+                color = Color.Black
+            )
+            .clip(shape = RoundedCornerShape(8.dp))
+            .background(color = Color.White)
+            .border(
+                border = BorderStroke(1.5.dp, Color.Black),
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Primary)
+                .padding(all = 16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.now_status),
+                contentDescription = "Status Icon",
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = "현재 $userName 님은",
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+                lineHeight = 0.91.em,
+                style = DitoCustomTextStyles.titleDLarge
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.5.dp)
+                .background(color = Color.Black)
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 27.dp)
+        ) {
+            Text(
+                text = predictions.joinToString("\n"),
+                color = Color.Black,
+                lineHeight = 1.43.em,
+                style = DitoCustomTextStyles.titleKMedium,
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = Spacing.xs)
+                    .fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+fun ComparisonCard(
+    comparisons: List<ComparisonItem>
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .hardShadow(
+                offsetX = 4.dp,
+                offsetY = 4.dp,
+                cornerRadius = 8.dp,
+                color = Color.Black
+            )
+            .clip(shape = RoundedCornerShape(8.dp))
+            .background(color = Color.White)
+            .border(
+                border = BorderStroke(1.5.dp, Color.Black),
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Primary)
+                .padding(all = 16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.clock),
+                contentDescription = "Comparison Icon",
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = "이전과 비교해서",
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+                lineHeight = 0.91.em,
+                style = DitoCustomTextStyles.titleDLarge
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.5.dp)
+                .background(color = Color.Black)
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 27.dp)
+        ) {
+            comparisons.forEach { comparison ->
+                ComparisonItemCard(comparisonItem = comparison)
+            }
+        }
+    }
+}
+
+@Composable
+fun DitoMessageCard(advice: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .hardShadow(
+                offsetX = 4.dp,
+                offsetY = 4.dp,
+                cornerRadius = 8.dp,
+                color = Color.Black
+            )
+            .clip(shape = RoundedCornerShape(8.dp))
+            .background(color = Color.White)
+            .border(
+                border = BorderStroke(1.5.dp, Color.Black),
+                shape = RoundedCornerShape(8.dp)
+            )
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Primary)
+                .padding(all = 16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.letter),
+                contentDescription = "Message Icon",
+                modifier = Modifier.size(28.dp)
+            )
+            Text(
+                text = "Dito의 메시지",
+                color = Color.Black,
+                textAlign = TextAlign.Center,
+                lineHeight = 0.91.em,
+                style = DitoCustomTextStyles.titleDLarge
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.5.dp)
+                .background(color = Color.Black)
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 27.dp)
+        ) {
+            Text(
+                text = advice,
+                color = Color.Black,
+                lineHeight = 1.43.em,
+                style = DitoCustomTextStyles.titleKMedium,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -294,9 +466,15 @@ fun ComparisonItemCard(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = when (comparisonItem.type) {
-        ComparisonType.POSITIVE -> Color(0xFF0080FF).copy(alpha = 0.05f)
-        ComparisonType.NEGATIVE -> Color.Red.copy(alpha = 0.05f)
-        ComparisonType.NEUTRAL -> Color.Gray.copy(alpha = 0.05f)
+        ComparisonType.POSITIVE -> Color(0xFFEBF5FF)
+        ComparisonType.NEGATIVE -> Color(0xFFFFEBEB)
+        ComparisonType.NEUTRAL -> Color.Gray.copy(alpha = 0.1f)
+    }
+
+    val borderColor = when (comparisonItem.type) {
+        ComparisonType.POSITIVE -> Color(0xFF0080FF)
+        ComparisonType.NEGATIVE -> Color(0xFFEC3E3E)
+        ComparisonType.NEUTRAL -> Color.Gray
     }
 
     val textColor = when (comparisonItem.type) {
@@ -309,39 +487,38 @@ fun ComparisonItemCard(
         "phone" -> R.drawable.report_phone
         "self_control" -> R.drawable.self_control
         "sleep" -> R.drawable.sleep
-        else -> R.drawable.report_phone // 기본값
+        else -> R.drawable.lemon
     }
 
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor,
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Spacing.xs)
+            .clip(shape = MaterialTheme.shapes.medium)
+            .background(color = backgroundColor)
+            .border(
+                border = BorderStroke(1.dp, borderColor),
+                shape = MaterialTheme.shapes.medium
+            )
+            .padding(horizontal = 4.dp, vertical = 16.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(Spacing.m)
-        ) {
-            Image(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(32.dp)
-                    .padding(end = Spacing.s)
-            )
-
-            Text(
-                text = comparisonItem.description,
-                style = DitoTypography.bodyLarge,
-                color = textColor,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                lineHeight = 20.sp,
-                modifier = Modifier.weight(1f)
-            )
-        }
+                .width(31.dp)
+                .height(34.dp)
+        )
+        Text(
+            text = comparisonItem.description,
+            color = textColor,
+            lineHeight = 1.33.em,
+            style = DitoCustomTextStyles.titleKMedium,
+            modifier = Modifier
+                .weight(1f)
+                .height(41.dp)
+                .wrapContentHeight(align = Alignment.CenterVertically)
+        )
     }
 }
