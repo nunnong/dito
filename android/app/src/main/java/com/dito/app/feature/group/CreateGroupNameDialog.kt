@@ -171,6 +171,7 @@ fun CreateGroupNameDialog(
                             offsetY = 4.dp,
                             cornerRadius = 8.dp,
                             color = Color.Black
+
                         )
                         .clip(DitoShapes.small)
                         .border(1.dp, Color.Black, DitoShapes.small)
