@@ -167,7 +167,7 @@ fun OngoingChallengeScreen(
                 )
             }
 
-            if (rankings.isNotEmpty()) {
+            if (rankings.isNotEmpty() && uiState.initialUserOrder.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -175,21 +175,25 @@ fun OngoingChallengeScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    rankings.take(4).forEach { rankingItem ->
-                        key(rankingItem.userId) {
-                            CharacterView(
-                                costumeItemId = rankingItem.costumeItemId,
-                                rank = rankingItem.rank,
-                                maxRank = rankings.size.coerceAtMost(4),
-                                currentAppPackage = rankingItem.currentAppPackage,
-                                isMe = rankingItem.isMe,
-                                showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
-                                onClick = {
-                                    if (!rankingItem.isMe) {
-                                        viewModel.pokeMember(rankingItem.userId)
-                                    }
-                                 }
-                            )
+                    // 처음 위치 순서대로 캐릭터 표시 (순위가 바뀌어도 줄 위치는 고정)
+                    uiState.initialUserOrder.forEach { userId ->
+                        val rankingItem = rankings.find { it.userId == userId }
+                        if (rankingItem != null) {
+                            key(rankingItem.userId) {
+                                CharacterView(
+                                    costumeItemId = rankingItem.costumeItemId,
+                                    rank = rankingItem.rank,
+                                    maxRank = rankings.size.coerceAtMost(4),
+                                    currentAppPackage = rankingItem.currentAppPackage,
+                                    isMe = rankingItem.isMe,
+                                    showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
+                                    onClick = {
+                                        if (!rankingItem.isMe) {
+                                            viewModel.pokeMember(rankingItem.userId)
+                                        }
+                                     }
+                                )
+                            }
                         }
                     }
                 }
@@ -203,15 +207,29 @@ fun OngoingChallengeScreen(
                 .padding(vertical = 16.dp, horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            for (i in 0..3) {
-                val rankingItem = rankings.getOrNull(i)
-                UserInfoCard(
-                    nickname = rankingItem?.nickname ?: "",
-                    profileImage = rankingItem?.profileImage,
-                    screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
-                    isEmpty = rankingItem == null,
-                    modifier = Modifier.weight(1f)
-                )
+            // 처음 위치 순서대로 정보 카드 표시
+            if (uiState.initialUserOrder.isNotEmpty()) {
+                uiState.initialUserOrder.forEach { userId ->
+                    val rankingItem = rankings.find { it.userId == userId }
+                    UserInfoCard(
+                        nickname = rankingItem?.nickname ?: "",
+                        profileImage = rankingItem?.profileImage,
+                        screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
+                        isEmpty = rankingItem == null,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                // initialUserOrder가 아직 없을 때 빈 카드 표시
+                repeat(4) {
+                    UserInfoCard(
+                        nickname = "",
+                        profileImage = null,
+                        screenTime = "",
+                        isEmpty = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
         }

@@ -25,6 +25,7 @@ data class OngoingChallengeUiState(
     val startDate: String = "",
     val endDate: String = "",
     val rankings: List<RankingItem> = emptyList(),
+    val initialUserOrder: List<Long> = emptyList(),  // 처음 위치 순서 (userId)
     val errorMessage: String? = null,
     val pokedUserIds: Set<Long> = emptySet()  // 찔린 사용자 ID들
 )
@@ -111,8 +112,18 @@ class OngoingChallengeViewModel @Inject constructor(
         viewModelScope.launch {
             groupRepository.getRanking(groupId).fold(
                 onSuccess = { response ->
+                    val currentOrder = _uiState.value.initialUserOrder
+
+                    // 처음 랭킹을 받았을 때만 초기 순서 저장
+                    val initialOrder = if (currentOrder.isEmpty()) {
+                        response.rankings.take(4).map { it.userId }
+                    } else {
+                        currentOrder
+                    }
+
                     _uiState.value = _uiState.value.copy(
-                        rankings = response.rankings
+                        rankings = response.rankings,
+                        initialUserOrder = initialOrder
                     )
                 },
                 onFailure = { error ->
