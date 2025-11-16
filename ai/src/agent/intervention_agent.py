@@ -215,14 +215,48 @@ def mission_node(state: InterventionState) -> dict:
     # with_structured_output()을 사용할 때는 문자열로 직접 전달
     mission = mission_generator.invoke(mission_prompt)
 
-    # 2단계: Spring 백엔드 API로 미션 생성
-    # MissionData 객체 생성 (임시 메시지 사용, 나중에 generate_message에서 업데이트 가능)
+    # 2단계: 넛지 메시지 먼저 생성
+    coin_reward = 10
+    duration_seconds = mission.duration_seconds
+
+    nudge_prompt = f"""
+사용자에게 전달할 넛지 메시지를 생성하세요.
+
+상황:
+- 행동 패턴: {state["behavior_pattern"]}
+- 미션 유형: {mission.mission_type}
+- 미션 시간: {duration_seconds}초
+- 보상: {coin_reward} 코인
+
+메시지 프레임: "[인식] → [제안] → [보상]"
+예시: "30분째 시청 중이에요 → {duration_seconds // 60}분 휴식 어때요? → 성공 시 +{coin_reward} 코인!"
+
+요구사항:
+1. 최대 100자 이내
+2. 친근하고 공감적인 톤
+3. 행동 패턴을 명확히 인식시킴
+4. 구체적인 미션 시간과 보상 제시
+"""
+
+    try:
+        # LLM 호출 - 넛지 메시지 생성
+        nudge = message_generator.invoke(
+            [
+                SystemMessage(content=SYSTEM_MSG_NUDGE_GENERATOR),
+                HumanMessage(content=nudge_prompt),
+            ]
+        )
+        nudge_message = truncate_message(nudge.message, max_length=100)
+    except Exception as e:
+        nudge_message = f"잠시 {duration_seconds // 60}분 휴식 어때요? 성공 시 +{coin_reward} 코인!"
+
+    # 3단계: Spring 백엔드 API로 미션 생성 (nudge_message를 mission_text로 사용)
     mission_data = MissionData(
         user_id=state["user_id"],
         mission_type=mission.mission_type,
-        mission_text=f"{mission.mission_type} 미션을 시작하세요",  # 임시 메시지
-        coin_reward=10,
-        duration_seconds=mission.duration_seconds,
+        mission_text=nudge_message,  # ✨ nudge_message 사용
+        coin_reward=coin_reward,
+        duration_seconds=duration_seconds,
         target_app=state.get("behavior_log", {}).get("app_name", "All Apps"),
         stat_change_self_care=10,
         stat_change_focus=20,
@@ -237,7 +271,9 @@ def mission_node(state: InterventionState) -> dict:
     return {
         "mission_id": int(mission_id) if mission_id else None,
         "mission_type": mission.mission_type,
-        "duration_seconds": mission.duration_seconds,
+        "duration_seconds": duration_seconds,
+        "coin_reward": coin_reward,
+        "nudge_message": nudge_message,  # state에 저장하여 message_node에서 재사용
     }
 
 
@@ -289,17 +325,21 @@ def message_node(state: InterventionState) -> dict:
             message=f"잠시 {duration_seconds // 60}분 휴식 어때요? 성공 시 +{coin_reward} 코인!",
         )
 
-    # 메시지 길이 검증 및 자르기 (최대 100자)
-    truncated_message = truncate_message(nudge.message, max_length=100)
+    # mission_node에서 이미 nudge_message가 생성되었으므로, 여기서는 그것을 재사용
+    # (단, mission_node보다 먼저 실행되는 경우 대비 fallback 코드는 유지)
+    nudge_message = state.get("nudge_message")
 
-    # State에 nudge_message를 추가한 후 FCM 전송
-    # LangGraph에서는 state를 직접 수정하지 말고 업데이트된 state를 만들어야 함
-    updated_state = {**state, "nudge_message": truncated_message}
+    if not nudge_message:
+        # Fallback: mission_node에서 생성되지 않은 경우에만 여기서 생성
+        truncated_message = truncate_message(nudge.message, max_length=100)
+        nudge_message = truncated_message
+        print(f"⚠️ message_node에서 nudge_message 생성 (fallback): {nudge_message}")
 
-    result = send_notification(updated_state)
+    # FCM 전송
+    result = send_notification(state)
 
-    # 결과 처리: nudge_message와 fcm_sent를 모두 반환
-    return {"nudge_message": truncated_message, "fcm_sent": result.fcm_sent}
+    # 결과 처리
+    return {"fcm_sent": result.fcm_sent}
 
 
 # =============================================================================
