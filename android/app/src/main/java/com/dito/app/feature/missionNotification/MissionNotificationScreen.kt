@@ -306,7 +306,7 @@ fun NotificationItem(
                 Text(
                     text = notification.title,
                     color = OnSurface,
-                    style = DitoCustomTextStyles.titleKMedium
+                    style = DitoCustomTextStyles.titleKSmall
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -352,7 +352,7 @@ fun NotificationItem(
                     Text(
                         text = "${notification.coinReward}",
                         color = OnSurface,
-                        style = DitoCustomTextStyles.titleDSmall
+                        style = DitoCustomTextStyles.titleDMedium
                     )
                 }
 
