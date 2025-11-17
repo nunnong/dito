@@ -596,6 +596,7 @@ fun CharacterView(
     val scope = rememberCoroutineScope()
     var isWiggling by remember { mutableStateOf(false) }
     var wiggleFrame by remember { mutableStateOf(0) }
+    var showChain by remember { mutableStateOf(false) }
     var rememberedItemId by remember { mutableStateOf(costumeItemId) }
     if (costumeItemId != null) {
         rememberedItemId = costumeItemId
@@ -690,14 +691,32 @@ fun CharacterView(
         else -> if (showRight) R.drawable.lemon_right else R.drawable.lemon_left
     }
 
+    val chainDrawable = when (characterName) {
+        "lemon" -> R.drawable.chain_lemon
+        "grape" -> R.drawable.chain_grape
+        "melon" -> R.drawable.chain_melon
+        "tomato" -> R.drawable.chain_tomato
+        else -> R.drawable.chain_lemon
+    }
+
+    LaunchedEffect(showChain) {
+        if (showChain) {
+            delay(1000)
+            showChain = false
+        }
+    }
+
     Column(
-        modifier = Modifier.width(50.dp)
+        modifier = Modifier
+            .width(50.dp)
             .clickable(onClick = {
                 if (!isWiggling) {
                     playWiggleSound(context)
                     isWiggling = true
                 }
-                if (!isMe) {
+                if (isMe) {
+                    showChain = true
+                } else {
                     onClick()
                 }
             }),
@@ -724,7 +743,7 @@ fun CharacterView(
                     .offset(y = -characterHeight + bounceOffset.dp)
             ) {
                 Image(
-                    painter = painterResource(id = characterDrawable),
+                    painter = painterResource(id = if (showChain) chainDrawable else characterDrawable),
                     contentDescription = "$characterName character",
                     modifier = Modifier.size(characterSize),
                     contentScale = ContentScale.Crop
@@ -742,27 +761,28 @@ fun CharacterView(
                         .padding(4.dp)
                 )
 
-                if (showPokeBubble) {
+                if (showPokeBubble || showChain) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset(y = (-40).dp)
-                            .size(40.dp, 30.dp),
+                            .offset(y = (-60).dp)
+                            .size(if (showChain) 90.dp else 70.dp, 100.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.speech_bubble),
                             contentDescription = "Poke Bubble",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Fit
                         )
                         Text(
-                            text = "아얏!",
+                            text = if (showChain) "It's me" else "아얏!",
                             style = DitoTypography.labelMedium,
                             color = Color.Black,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .align(Alignment.Center)
+                                .padding(bottom = 6.dp)
                         )
                     }
                 }
