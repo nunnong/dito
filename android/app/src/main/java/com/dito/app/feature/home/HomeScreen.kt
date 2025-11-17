@@ -120,6 +120,9 @@ fun HomeContent(
     val context = LocalContext.current
     var showDitoFaceDialog by remember { mutableStateOf(false) }
 
+    // Log homeData for debugging character information
+    android.util.Log.d("HomeScreen", "HomeData: $homeData")
+
     val coinInteractionSource = remember { MutableInteractionSource() }
     val isCoinPressed by coinInteractionSource.collectIsPressedAsState()
     val coinScale by animateFloatAsState(if (isCoinPressed) 0.8f else 1f, label = "coin_scale")
@@ -332,7 +335,7 @@ fun HomeContent(
                         // 캐릭터 이미지
                         if (wiggleImageOverride) {
                             Image(
-                                painter = painterResource(id = R.drawable.lemon_wiggle),
+                                painter = painterResource(id = getWiggleDrawable(homeData.costumeUrl)),
                                 contentDescription = "Character",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
@@ -516,6 +519,31 @@ fun HomeContent(
             }
         }
     }
+}
+
+@Composable
+private fun getWiggleDrawable(costumeUrl: String): Int {
+    val context = LocalContext.current
+    val resources = context.resources
+    val packageName = context.packageName
+
+    // costumeUrl에서 파일 이름 추출 (예: "tomato_1.png")
+    val fileName = costumeUrl.substringAfterLast('/')
+    // 파일 이름에서 캐릭터 이름 추출 (예: "tomato")
+    val characterName = fileName.substringBefore('_')
+
+    if (characterName.isNotEmpty()) {
+        // wiggle 이미지 리소스 이름 생성 (예: "tomato_wiggle")
+        val wiggleDrawableName = "${characterName}_wiggle"
+        // 리소스 ID 동적 조회
+        val resourceId = resources.getIdentifier(wiggleDrawableName, "drawable", packageName)
+        if (resourceId != 0) {
+            return resourceId // 리소스가 존재하면 해당 ID 반환
+        }
+    }
+
+    // 해당하는 wiggle 이미지가 없거나 URL이 비정상적인 경우 기본 이미지 반환
+    return R.drawable.lemon_wiggle
 }
 
 @Composable

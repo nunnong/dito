@@ -4,6 +4,7 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.util.Log
+import com.dito.app.core.data.RealmConfig
 import com.dito.app.core.data.phone.MediaSessionEvent
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.query
@@ -41,7 +42,7 @@ class ScreenTimeCollector(private val context: Context) {
             val today = getTodayDateString()
 
             val realm = try {
-                com.dito.app.core.data.RealmConfig.getInstance()
+                RealmConfig.getInstance()
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Realm 초기화 실패", e)
                 return 0
@@ -55,8 +56,7 @@ class ScreenTimeCollector(private val context: Context) {
 
             val savedWatchTimeMillis = sessions.sumOf { it.watchTime }
 
-
-
+            // 현재 재생 중인 세션의 시청 시간 (아직 저장되지 않은 실시간 시간)
             val currentSessionTime = try {
                 com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
             } catch (e: Exception) {
@@ -67,13 +67,11 @@ class ScreenTimeCollector(private val context: Context) {
             val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
             val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
 
-            Log.d("ScreenTimeCollector", "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
-
-
+            Log.d(TAG, "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
 
             return totalMinutes
         } catch (e: Exception) {
-            Log.e("ScreenTimeCollector", "❌ YouTube 사용시간 조회 실패", e)
+            Log.e(TAG, "❌ YouTube 사용시간 조회 실패", e)
             return 0
         }
     }

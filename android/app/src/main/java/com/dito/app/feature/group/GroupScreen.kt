@@ -97,7 +97,6 @@ fun GroupScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(top = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -132,61 +131,60 @@ fun GroupScreen(
                     .height(320.dp),
                 contentScale = ContentScale.Fit
             )
+        }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // 버튼 영역
-            Row(
+        // 버튼 영역
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 28.dp, bottom = 48.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.m)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 28.dp, end = 28.dp, bottom = 68.dp),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.m)
+                    .weight(1f)
+                    .hardShadow(
+                        offsetX = 4.dp,
+                        offsetY = 4.dp,
+                        cornerRadius = 8.dp,
+                        color = Color.Black
+                    )
+                    .clip(DitoShapes.small)
+                    .border(1.5.dp, Color.Black, DitoShapes.small)
+                    .background(Primary)
+                    .clickable { viewModel.onCreateDialogOpen() }
+                    .padding(vertical = 22.dp, horizontal = 24.dp)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1f)
-                        .hardShadow(
-                            offsetX = 4.dp,
-                            offsetY = 4.dp,
-                            cornerRadius = 8.dp,
-                            color = Color.Black
-                        )
-                        .clip(DitoShapes.small)
-                        .border(1.5.dp, Color.Black, DitoShapes.small)
-                        .background(Primary)
-                        .clickable { viewModel.onCreateDialogOpen() }
-                        .padding(vertical = 22.dp, horizontal = 24.dp)
-                ) {
-                    Text(
-                        text = "방만들기",
-                        color = Color.Black,
-                        style = DitoTypography.headlineSmall
-                    )
-                }
+                Text(
+                    text = "방만들기",
+                    color = Color.Black,
+                    style = DitoTypography.headlineSmall
+                )
+            }
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1f)
-                        .hardShadow(
-                            offsetX = 4.dp,
-                            offsetY = 4.dp,
-                            cornerRadius = 8.dp,
-                            color = Color.Black
-                        )
-                        .clip(DitoShapes.small)
-                        .border(1.5.dp, Color.Black, DitoShapes.small)
-                        .background(Primary)
-                        .clickable { viewModel.onJoinDialogOpen() }
-                        .padding(vertical = 22.dp, horizontal = 24.dp)
-                ) {
-                    Text(
-                        text = "입장하기",
-                        color = Color.Black,
-                        style = DitoTypography.headlineSmall
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .hardShadow(
+                        offsetX = 4.dp,
+                        offsetY = 4.dp,
+                        cornerRadius = 8.dp,
+                        color = Color.Black
                     )
-                }
+                    .clip(DitoShapes.small)
+                    .border(1.5.dp, Color.Black, DitoShapes.small)
+                    .background(Primary)
+                    .clickable { viewModel.onJoinDialogOpen() }
+                    .padding(vertical = 22.dp, horizontal = 24.dp)
+            ) {
+                Text(
+                    text = "입장하기",
+                    color = Color.Black,
+                    style = DitoTypography.headlineSmall
+                )
             }
         }
     }
