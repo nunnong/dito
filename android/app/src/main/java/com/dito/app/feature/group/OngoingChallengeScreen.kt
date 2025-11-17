@@ -1,11 +1,9 @@
 package com.dito.app.feature.group
-
 import android.graphics.Bitmap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -126,7 +124,7 @@ fun OngoingChallengeScreen(
                 Image(
                     painter = painterResource(id = R.drawable.question),
                     contentDescription = "Info",
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(32.dp),
                     contentScale = ContentScale.Fit,
                     colorFilter = ColorFilter.tint(Color.Black)
                 )
@@ -210,7 +208,7 @@ fun OngoingChallengeScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 0.dp),
+                .padding(vertical = 8.dp, horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // 처음 위치 순서대로 정보 카드 표시
@@ -225,15 +223,16 @@ fun OngoingChallengeScreen(
                         profileImage = rankingItem?.profileImage,
                         screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
                         isEmpty = rankingItem == null,
+                        isMe = rankingItem?.isMe ?: false,
                         modifier = Modifier.weight(1f)
                     )
                 } else {
-                    // 빈 카드
                     UserInfoCard(
                         nickname = "",
                         profileImage = null,
                         screenTime = "",
                         isEmpty = true,
+                        isMe = false,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -392,7 +391,6 @@ fun ChallengeGuideDialog(
                 color = Color.Black
             )
 
-            // 가이드 내용
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -469,6 +467,7 @@ fun UserInfoCard(
     profileImage: String?,
     screenTime: String,
     isEmpty: Boolean,
+    isMe: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -487,8 +486,15 @@ fun UserInfoCard(
 
     Box(
         modifier = modifier
-            .background(Color.White, RoundedCornerShape(8.dp))
-            .border(2.dp, Color.Black, RoundedCornerShape(8.dp))
+            .background(
+                if (isMe) Color(0xFFFFEB3B).copy(alpha = 0.2f) else Color.White,
+                RoundedCornerShape(8.dp)
+            )
+            .border(
+                width = if (isMe) 3.dp else 2.dp,
+                color = if (isMe) Color(0xFFFFEB3B) else Color.Black,
+                shape = RoundedCornerShape(8.dp)
+            )
             .padding(4.dp)
     ) {
         Column(
@@ -521,7 +527,7 @@ fun UserInfoCard(
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 4.dp)
+//                            .padding(top = 4.dp)
                     )
                 }
             } else {
@@ -532,7 +538,6 @@ fun UserInfoCard(
                 )
             }
 
-            // 닉네임 박스
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -598,9 +603,25 @@ fun CharacterView(
 
     val characterName = getCharacterNameFromItemId(rememberedItemId)
 
+    // 위아래로 씰룩거리는 애니메이션 (각 캐릭터마다 다른 타이밍)
+    val infiniteTransition = rememberInfiniteTransition(label = "bounce_$rank")
+    // 각 캐릭터마다 다른 duration으로 다른 속도로 움직임
+    val animationDuration = 1500 + (rank * 200) // 순위마다 200ms씩 차이
+    val bounceOffset by infiniteTransition.animateFloat(
+        initialValue = -4f,
+        targetValue = 4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = animationDuration, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "bounceOffset"
+    )
+
     val ropeHeight = 320.dp
     val characterSize = 120.dp
-    val baseHeight = 180.dp
+    val minHeight = 0.dp // 캐릭터 발이 로프 하단
+    val maxHeight = ropeHeight - characterSize // 캐릭터 머리가 로프 상단
+    val baseHeight = maxHeight
 
     val previousRank = remember { mutableStateOf(rank) }
     val isAnimating = remember { mutableStateOf(false) }
@@ -610,8 +631,8 @@ fun CharacterView(
     androidx.compose.runtime.LaunchedEffect(rank) {
         if (previousRank.value != rank) {
             isAnimating.value = true
-            val previousHeight = (baseHeight - (previousRank.value - 1) * 60.dp).coerceIn(0.dp, ropeHeight - characterSize)
-            val targetHeight = (baseHeight - (rank - 1) * 60.dp).coerceIn(0.dp, ropeHeight - characterSize)
+            val previousHeight = (baseHeight - (previousRank.value - 1) * 60.dp).coerceIn(minHeight, maxHeight)
+            val targetHeight = (baseHeight - (rank - 1) * 60.dp).coerceIn(minHeight, maxHeight)
             val rankDiff = kotlin.math.abs(rank - previousRank.value)
             val animationTarget = rankDiff * 4f
             val animationDuration = (rankDiff * 1000).coerceAtMost(3000)
@@ -635,10 +656,10 @@ fun CharacterView(
     }
 
     val characterHeight = if (isAnimating.value) {
-        heightAnimatable.value.dp
+        heightAnimatable.value.dp.coerceIn(minHeight, maxHeight)
     } else {
         val heightReduction = (rank - 1) * 60.dp
-        (baseHeight - heightReduction).coerceIn(0.dp, ropeHeight - characterSize)
+        (baseHeight - heightReduction).coerceIn(minHeight, maxHeight)
     }
 
     androidx.compose.runtime.LaunchedEffect(isWiggling) {
@@ -670,7 +691,7 @@ fun CharacterView(
     }
 
     Column(
-        modifier = Modifier.width(60.dp)
+        modifier = Modifier.width(50.dp)
             .clickable(onClick = {
                 if (!isWiggling) {
                     playWiggleSound(context)
@@ -692,7 +713,7 @@ fun CharacterView(
                 painter = painterResource(id = R.drawable.rope),
                 contentDescription = "Rope",
                 modifier = Modifier
-                    .width(25.dp)
+                    .width(40.dp)
                     .fillMaxSize(),
                 contentScale = ContentScale.FillBounds
             )
@@ -700,7 +721,7 @@ fun CharacterView(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset(y = -characterHeight)
+                    .offset(y = -characterHeight + bounceOffset.dp)
             ) {
                 Image(
                     painter = painterResource(id = characterDrawable),
@@ -709,7 +730,7 @@ fun CharacterView(
                     contentScale = ContentScale.Crop
                 )
 
-                // 현재 사용 중인 앱 아이콘 (캐릭터 발끝과 살짝 겹침)
+                // 현재 사용 중인 앱 아이콘
                 Image(
                     painter = painterResource(id = getAppIconFromPackage(currentAppPackage)),
                     contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
@@ -718,18 +739,15 @@ fun CharacterView(
                         .align(Alignment.BottomCenter)
                         .offset(y = 24.dp)
                         .clip(DitoShapes.medium)
-//                        .background(Color.White)
-//                        .border(3.dp, Color.White, DitoShapes.extraLarge)
                         .padding(4.dp)
                 )
 
-                // 찌르기 말풍선 (캐릭터 머리 위)
                 if (showPokeBubble) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset(y = (-95).dp)
-                            .size(30.dp, 20.dp),
+                            .offset(y = (-40).dp)
+                            .size(40.dp, 30.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
@@ -745,7 +763,6 @@ fun CharacterView(
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .padding(bottom = 12.dp)
                         )
                     }
                 }
@@ -795,7 +812,6 @@ fun rememberCroppedFace(imageUrl: String?): ImageBitmap? {
                         croppedFace = cropped.asImageBitmap()
                     }
                 } catch (e: Exception) {
-                    // 이미지 로딩 실패 시 null 유지
                     croppedFace = null
                 }
             }
