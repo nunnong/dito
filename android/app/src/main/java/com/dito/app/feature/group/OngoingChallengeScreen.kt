@@ -60,6 +60,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.ImageLoader
 import com.dito.app.R
+import com.dito.app.core.ui.designsystem.BounceClickable
+import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.playWiggleSound
@@ -77,6 +79,7 @@ fun OngoingChallengeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     var isInfoPanelVisible by remember { mutableStateOf(false) }
+    var isChallengeGuideVisible by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.startAutoRefresh()
@@ -113,10 +116,27 @@ fun OngoingChallengeScreen(
                 contentScale = ContentScale.Crop
             )
 
+            // 정보 아이콘 (우측 상단)
+            BounceClickable(
+                onClick = { isChallengeGuideVisible = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) { isPressed ->
+                Image(
+                    painter = painterResource(id = R.drawable.question),
+                    contentDescription = "Info",
+                    modifier = Modifier.size(28.dp),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color.Black)
+                )
+            }
+
             // 그룹 정보
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
+                    .offset(x = (-20).dp, y = (-15).dp)
                     .width(200.dp)
                     .height(150.dp)
                     .clickable { isInfoPanelVisible = !isInfoPanelVisible },
@@ -145,35 +165,19 @@ fun OngoingChallengeScreen(
                 }
             }
 
-            // 테스트 버튼 (랭킹 셔플)
-            Box(
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(30.dp))
-                    .background(Color(0xFFFFEB3B))
-                    .border(2.dp, Color.Black, RoundedCornerShape(30.dp))
-                    .clickable { viewModel.shuffleRankingsForTest() },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.Bottom
             ) {
-                Text(
-                    text = "🔀",
-                    style = DitoTypography.headlineSmall,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            if (rankings.isNotEmpty() && uiState.initialUserOrder.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    // 처음 위치 순서대로 캐릭터 표시 (순위가 바뀌어도 줄 위치는 고정)
-                    uiState.initialUserOrder.forEach { userId ->
+                // 처음 위치 순서대로 캐릭터 표시 (순위가 바뀌어도 줄 위치는 고정)
+                // 항상 4개의 슬롯 유지
+                val displayOrder = uiState.initialUserOrder.take(4)
+                repeat(4) { index ->
+                    if (index < displayOrder.size) {
+                        val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
                         if (rankingItem != null) {
                             key(rankingItem.userId) {
@@ -188,10 +192,15 @@ fun OngoingChallengeScreen(
                                         if (!rankingItem.isMe) {
                                             viewModel.pokeMember(rankingItem.userId)
                                         }
-                                     }
+                                    }
                                 )
                             }
+                        } else {
+                            Spacer(modifier = Modifier.width(60.dp))
                         }
+                    } else {
+                        // 빈 슬롯
+                        Spacer(modifier = Modifier.width(60.dp))
                     }
                 }
             }
@@ -201,12 +210,15 @@ fun OngoingChallengeScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 4.dp),
+                .padding(vertical = 16.dp, horizontal = 0.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // 처음 위치 순서대로 정보 카드 표시
-            if (uiState.initialUserOrder.isNotEmpty()) {
-                uiState.initialUserOrder.forEach { userId ->
+            // 항상 4개의 카드 유지
+            val displayOrder = uiState.initialUserOrder.take(4)
+            repeat(4) { index ->
+                if (index < displayOrder.size) {
+                    val userId = displayOrder[index]
                     val rankingItem = rankings.find { it.userId == userId }
                     UserInfoCard(
                         nickname = rankingItem?.nickname ?: "",
@@ -215,10 +227,8 @@ fun OngoingChallengeScreen(
                         isEmpty = rankingItem == null,
                         modifier = Modifier.weight(1f)
                     )
-                }
-            } else {
-                // initialUserOrder가 아직 없을 때 빈 카드 표시
-                repeat(4) {
+                } else {
+                    // 빈 카드
                     UserInfoCard(
                         nickname = "",
                         profileImage = null,
@@ -326,6 +336,107 @@ fun OngoingChallengeScreen(
                 }
             }
         }
+
+        // 챌린지 가이드 다이얼로그
+        if (isChallengeGuideVisible) {
+            ChallengeGuideDialog(
+                onDismiss = { isChallengeGuideVisible = false }
+            )
+        }
+    }
+}
+
+@Composable
+fun ChallengeGuideDialog(
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() },
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(top = 100.dp)
+                .width(320.dp)
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
+                .clickable(enabled = false) { /* 클릭 이벤트 전파 방지 */ }
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // 제목
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "챌린지 가이드",
+                    style = DitoCustomTextStyles.titleDLarge,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            androidx.compose.material3.HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = Color.Black
+            )
+
+            // 가이드 내용
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp, horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ChallengeGuideItem(
+                    question = "챌린지 순위는 어떻게 정해지나요?",
+                    answer = "방장이 선택한 앱을 기준으로 사용 시간에 따라 순위가 정해져요. 사용 시간이 적을수록 순위가 높아집니다."
+                )
+
+                ChallengeGuideItem(
+                    question = "찌르기 기능이 뭔가요?",
+                    answer = "로프에 위치한 다른 캐릭터를 눌러서 찌르기를 할 수 있어요. 친구들에게 재미있는 알림을 보내보세요!"
+                )
+
+                ChallengeGuideItem(
+                    question = "방 정보는 어떻게 확인하나요?",
+                    answer = "나무 상자의 방 제목을 클릭하면 방 정보를 더 자세히 살펴볼 수 있어요. 기간, 목표, 벌칙, 총 배팅 금액 등을 확인할 수 있습니다."
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChallengeGuideItem(
+    question: String,
+    answer: String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = question,
+            style = DitoTypography.labelLarge,
+            color = Color.Black
+        )
+        Text(
+            text = answer,
+            style = DitoTypography.bodySmall,
+            color = Color.Black
+        )
     }
 }
 
@@ -455,10 +566,10 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
 fun getAppIconFromPackage(packageName: String?): Int {
     return when {
         packageName == null -> R.drawable.dito
-        packageName.contains("com.google.android.youtube", ignoreCase = true) -> R.drawable.ic_youtube
+        packageName.contains("com.google.android.youtube", ignoreCase = true) -> R.drawable.youtube
         packageName.contains("com.twitter.android", ignoreCase = true) -> R.drawable.ic_twitter
         packageName.contains("com.android.chrome", ignoreCase = true) -> R.drawable.ic_chrome
-        packageName.contains("com.instagram.android", ignoreCase = true) -> R.drawable.ic_instagram
+        packageName.contains("com.instagram.android", ignoreCase = true) -> R.drawable.instagram
         packageName.contains("dito", ignoreCase = true) -> R.drawable.dito
         else -> R.drawable.dito
     }
@@ -573,7 +684,7 @@ fun CharacterView(
     ) {
         Box(
             modifier = Modifier
-                .width(60.dp)
+                .width(80.dp)
                 .height(ropeHeight),
             contentAlignment = Alignment.TopCenter
         ) {
@@ -595,7 +706,7 @@ fun CharacterView(
                     painter = painterResource(id = characterDrawable),
                     contentDescription = "$characterName character",
                     modifier = Modifier.size(characterSize),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Crop
                 )
 
                 // 현재 사용 중인 앱 아이콘 (캐릭터 발끝과 살짝 겹침)
@@ -603,12 +714,12 @@ fun CharacterView(
                     painter = painterResource(id = getAppIconFromPackage(currentAppPackage)),
                     contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(54.dp)
                         .align(Alignment.BottomCenter)
-                        .offset(y = (-8).dp)
-                        .clip(DitoShapes.extraLarge)
-                        .background(Color.White)
-                        .border(1.dp, Color.White, DitoShapes.extraLarge)
+                        .offset(y = 24.dp)
+                        .clip(DitoShapes.medium)
+//                        .background(Color.White)
+//                        .border(3.dp, Color.White, DitoShapes.extraLarge)
                         .padding(4.dp)
                 )
 
@@ -617,19 +728,19 @@ fun CharacterView(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .offset(y = (-80).dp)
-                            .size(140.dp, 120.dp),
+                            .offset(y = (-95).dp)
+                            .size(30.dp, 20.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.speech_bubble),
                             contentDescription = "Poke Bubble",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
+                            contentScale = ContentScale.Crop
                         )
                         Text(
                             text = "아얏!",
-                            style = DitoTypography.labelSmall,
+                            style = DitoTypography.labelMedium,
                             color = Color.Black,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
