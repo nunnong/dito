@@ -16,8 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +33,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.dito.app.core.ui.designsystem.playPopSound
 import com.dito.app.R
 import com.dito.app.core.data.missionNotification.MissionNotificationData
 import com.dito.app.core.data.missionNotification.MissionResult
@@ -35,6 +46,7 @@ import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.LemonExplosion
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
@@ -46,15 +58,31 @@ fun MissionDetailDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var showLemonExplosion by remember { mutableStateOf(false) }
+
+    // 애니메이션이 끝나면 onConfirm 호출
+    LaunchedEffect(showLemonExplosion) {
+        if (showLemonExplosion) {
+            delay(200) // 애니메이션 시간 + 여유
+            onConfirm()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() }
             .padding(horizontal = Spacing.l, vertical = Spacing.xl),
         contentAlignment = Alignment.Center
     ) {
         DitoModalContainer(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {},
             backgroundColor = Color.White,
             borderColor = Color.Black,
             shadowColor = Color.Black,
@@ -156,7 +184,16 @@ fun MissionDetailDialog(
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(if (isSuccess) Primary else Color.White)
-                            .clickable(enabled = !isShowingAnimation) { onConfirm() }
+                            .clickable {
+                                if (!isShowingAnimation) {
+                                    playPopSound(context)
+                                    if (isSuccess) {
+                                        showLemonExplosion = true
+                                    } else {
+                                        onConfirm()
+                                    }
+                                }
+                            }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -183,6 +220,11 @@ fun MissionDetailDialog(
                     Spacer(modifier = Modifier.height(Spacing.m))
                 }
             }
+        }
+
+        // 레몬 폭죽 애니메이션
+        if (showLemonExplosion) {
+            LemonExplosion()
         }
     }
 }

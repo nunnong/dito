@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -48,6 +49,7 @@ import com.dito.app.core.service.mission.MissionTracker
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.ui.component.DitoModalContainer
+import com.dito.app.core.ui.designsystem.BounceClickable
 import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
@@ -60,6 +62,8 @@ import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.Tertiary
 import com.dito.app.core.ui.designsystem.hardShadow
 import com.dito.app.core.ui.designsystem.softShadow
+import com.dito.app.core.ui.designsystem.playPopSound
+import androidx.compose.ui.platform.LocalContext
 import dagger.hilt.android.EntryPointAccessors
 import javax.inject.Inject
 
@@ -206,6 +210,8 @@ private fun MissionNotificationHeader(
     onBackClick: () -> Unit,
     onInfoClick: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -230,15 +236,23 @@ private fun MissionNotificationHeader(
             color = Color.White,
             textAlign = TextAlign.Center
         )
-        Image(
-            painter = painterResource(id = R.drawable.question),
-            contentDescription = "Info",
-            modifier = Modifier
-                .size(28.dp)
-                .clickable { onInfoClick() },
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(Color.White)
-        )
+        BounceClickable(
+            onClick = {
+                scope.launch {
+                    playPopSound(context)
+                    delay(150L)
+                    onInfoClick()
+                }
+            }
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.question),
+                contentDescription = "Info",
+                modifier = Modifier.size(28.dp),
+                contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(Color.White)
+            )
+        }
     }
 }
 
@@ -249,6 +263,7 @@ fun NotificationItem(
     notification: MissionNotificationData,
     onMissionClick: (MissionNotificationData) -> Unit = {}
 ) {
+    val scope = rememberCoroutineScope()
     val notificationType = getNotificationType(notification.status, notification.result)
 
     // 미션 완료 여부 확인
@@ -278,11 +293,14 @@ fun NotificationItem(
         Color.Black
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onMissionClick(notification) }
-    ) {
+    BounceClickable(
+        onClick = {
+                            scope.launch {
+                                delay(250L)
+                                onMissionClick(notification)            }
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) { isPressed ->
         // 카드 영역
         Row(
             modifier = Modifier
