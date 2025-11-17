@@ -68,6 +68,8 @@ import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.WiggleClickable
 import com.dito.app.core.ui.designsystem.playWiggleSound
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Color.Companion.White
+import com.dito.app.core.ui.designsystem.DitoShapes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -610,12 +612,12 @@ fun CharacterView(
                     painter = painterResource(id = getAppIconFromPackage(currentAppPackage)),
                     contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(30.dp)
                         .align(Alignment.BottomCenter)
-                        .offset(y = (-10).dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .offset(y = (-8).dp)
+                        .clip(DitoShapes.extraLarge)
                         .background(Color.White)
-                        .border(2.dp, Color.Black, RoundedCornerShape(8.dp))
+                        .border(1.dp, Color.White, DitoShapes.extraLarge)
                         .padding(4.dp)
                 )
 
@@ -636,7 +638,7 @@ fun CharacterView(
                         )
                         Text(
                             text = "아얏!",
-                            style = DitoTypography.labelMedium,
+                            style = DitoTypography.labelSmall,
                             color = Color.Black,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
