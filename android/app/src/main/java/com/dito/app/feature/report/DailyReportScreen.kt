@@ -100,8 +100,8 @@ fun DailyReportContent(
             verticalArrangement = Arrangement.spacedBy(28.dp, Alignment.Top),
             horizontalAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(
-                start = 24.dp,
-                end = 24.dp,
+                start = 32.dp,
+                end = 32.dp,
                 top = 48.dp,
                 bottom = 56.dp
             ),
@@ -294,19 +294,19 @@ fun CurrentStatusCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Primary)
-                .padding(all = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.now_status),
                 contentDescription = "Status Icon",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 text = "현재 $userName 님은",
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 lineHeight = 0.91.em,
-                style = DitoCustomTextStyles.titleDLarge
+                style = DitoCustomTextStyles.titleDMedium
             )
         }
         Box(
@@ -320,7 +320,7 @@ fun CurrentStatusCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 27.dp)
+                .padding(horizontal = 24.dp, vertical = 27.dp)
         ) {
             Text(
                 text = predictions.joinToString("\n"),
@@ -361,19 +361,19 @@ fun ComparisonCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Primary)
-                .padding(all = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.clock),
                 contentDescription = "Comparison Icon",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 text = "이전과 비교해서",
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 lineHeight = 0.91.em,
-                style = DitoCustomTextStyles.titleDLarge
+                style = DitoCustomTextStyles.titleDMedium
             )
         }
         Box(
@@ -387,7 +387,7 @@ fun ComparisonCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 27.dp)
+                .padding(horizontal = 24.dp, vertical = 27.dp)
         ) {
             comparisons.forEach { comparison ->
                 ComparisonItemCard(comparisonItem = comparison)
@@ -421,19 +421,19 @@ fun DitoMessageCard(advice: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Primary)
-                .padding(all = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.letter),
                 contentDescription = "Message Icon",
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
             Text(
                 text = "Dito의 메시지",
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 lineHeight = 0.91.em,
-                style = DitoCustomTextStyles.titleDLarge
+                style = DitoCustomTextStyles.titleDMedium
             )
         }
         Box(
@@ -447,7 +447,7 @@ fun DitoMessageCard(advice: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 27.dp)
+                .padding(horizontal = 24.dp, vertical = 27.dp)
         ) {
             Text(
                 text = advice,
@@ -501,7 +501,7 @@ fun ComparisonItemCard(
                 border = BorderStroke(1.dp, borderColor),
                 shape = MaterialTheme.shapes.medium
             )
-            .padding(horizontal = 4.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         Image(
             painter = painterResource(id = iconRes),
