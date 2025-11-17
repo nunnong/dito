@@ -2,6 +2,7 @@ package com.dito.app.core.di
 
 import android.content.Context
 import com.dito.app.core.network.AIService
+import com.dito.app.core.network.AIApiService
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.storage.AuthTokenManager
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -32,6 +33,9 @@ object NetworkModule {
 
     //실제 기기 테스트 시 -> PC_IP:8123 (PC_IP는 같은 Wi-Fi 네트워크에서 PC의 IP)
     private const val AI_BASE_URL = "http://52.78.96.102:8080/"
+
+    // AI 분류 API (LangGraph 서버)
+    private const val AI_CLASSIFY_BASE_URL = "http://52.78.96.102:8000/"
 
     @Provides
     @Singleton
@@ -146,6 +150,41 @@ object NetworkModule {
     }
 
 
+    /**
+     * AI 분류 API용 OkHttpClient (인증 없음, 8000 포트)
+     */
+    @Provides
+    @Singleton
+    @AiClassifyOkHttpClient
+    fun provideAiClassifyOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(createLoggingInterceptor())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @AiClassifyRetrofit
+    fun provideAiClassifyRetrofit(
+        @AiClassifyOkHttpClient okHttpClient: OkHttpClient,
+        json: Json
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(AI_CLASSIFY_BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAIApiService(@AiClassifyRetrofit retrofit: Retrofit): AIApiService {
+        return retrofit.create(AIApiService::class.java)
+    }
+
 
     /**
      * 인증 Interceptor 생성
@@ -185,3 +224,11 @@ annotation class ApiRetrofit
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class AiRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AiClassifyOkHttpClient
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class AiClassifyRetrofit

@@ -12,10 +12,15 @@ import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.util.EducationalContentDetector
 import java.text.SimpleDateFormat
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.mongodb.kbson.ObjectId
 
 class SessionStateManager(
     private val context: Context,
@@ -62,6 +67,25 @@ class SessionStateManager(
             }
 
             return maxOf(0L, watchTime)
+        }
+
+        /**
+         * 현재 재생 중인 세션이 교육 콘텐츠인지 확인
+         * 제목과 채널명을 기반으로 판단
+         */
+        fun isCurrentSessionEducational(): Boolean {
+            val session = instance?.currentSession ?: return false
+
+            // YouTube가 아니면 false
+            if (session.appPackage != PKG_YOUTUBE) return false
+
+            val finalChannel = when {
+                session.bestChannel.isNotBlank() -> session.bestChannel
+                session.channel.isNotBlank() && session.channel != "알 수 없음" -> session.channel
+                else -> ""
+            }
+
+            return EducationalContentDetector.isEducationalContent(session.title, finalChannel)
         }
     }
 
@@ -650,6 +674,12 @@ class SessionStateManager(
         val trackType = "TRACK_2"
         val eventIds = mutableListOf<String>()
 
+        // 교육 콘텐츠 여부 판단 (하드코딩 방식 - 동기식)
+        val isEducational = EducationalContentDetector.isEducationalContent(session.title, finalChannel)
+        if (isEducational) {
+            Log.d(TAG, "📚 교육 콘텐츠로 판단됨 (하드코딩) → 챌린지 시간에서 제외")
+        }
+
         try {
             val realm = RealmConfig.getInstance()
             realm.writeBlocking {
@@ -666,10 +696,16 @@ class SessionStateManager(
                     this.date = formatDate(session.startTime)
                     this.detectionMethod = "media-session"
                     this.synced = false
+                    this.isEducational = isEducational  // 교육 콘텐츠 여부
                 })
                 eventIds.add(event._id.toHexString())
             }
-            Log.d(TAG, "✅ Realm 저장 완료 ($trackType)")
+            Log.d(TAG, "✅ Realm 저장 완료 ($trackType, 교육: $isEducational)")
+
+            // AI API로 재분류 (비동기, 백그라운드)
+            if (EducationalContentDetector.useAIApi && session.appPackage == PKG_YOUTUBE) {
+                classifyWithAIAsync(eventIds.firstOrNull(), session.title, finalChannel)
+            }
 
             if (missionTracker.isTracking()) {
                 missionTracker.onMediaEvent(
@@ -712,6 +748,34 @@ class SessionStateManager(
     private fun formatDate(timestamp: Long): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return sdf.format(Date(timestamp))
+    }
+
+    /**
+     * AI API를 사용하여 비동기로 교육 콘텐츠 분류 후 Realm 업데이트
+     */
+    private fun classifyWithAIAsync(eventId: String?, title: String, channel: String) {
+        if (eventId == null) return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val (isEducational, videoType) = EducationalContentDetector.classifyWithAI(title, channel)
+                Log.d(TAG, "🤖 AI 분류 결과: $title → $videoType (교육: $isEducational)")
+
+                // Realm 업데이트
+                val realm = RealmConfig.getInstance()
+                realm.write {
+                    val event = query(MediaSessionEvent::class, "_id == $0", ObjectId(eventId))
+                        .first()
+                        .find()
+                    event?.let {
+                        it.isEducational = isEducational
+                        Log.d(TAG, "✅ Realm 교육 여부 업데이트 완료: $isEducational")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ AI 분류 실패", e)
+            }
+        }
     }
 
     fun cleanup() {
