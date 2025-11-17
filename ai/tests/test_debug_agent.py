@@ -8,6 +8,7 @@ def test_debug_agent_via_langgraph_sdk():
     """LangGraph SDK를 사용한 debug 에이전트 테스트 (실제 서버 필요)"""
     # LangGraph 서버가 localhost:2024에서 실행 중이어야 함
     client = get_sync_client(url="http://localhost:2024")
+    # client = get_sync_client(url="http://52.78.96.102:8000")
 
     input_data = {
         "user_id": 29,
