@@ -31,8 +31,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.key
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import androidx.compose.material3.Text
@@ -62,13 +60,10 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.ImageLoader
 import com.dito.app.R
-import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.StrokeText
-import com.dito.app.core.ui.designsystem.WiggleClickable
 import com.dito.app.core.ui.designsystem.playWiggleSound
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.graphics.Color.Companion.White
 import com.dito.app.core.ui.designsystem.DitoShapes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -122,8 +117,8 @@ fun OngoingChallengeScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .width(160.dp)
-                    .height(120.dp)
+                    .width(200.dp)
+                    .height(150.dp)
                     .clickable { isInfoPanelVisible = !isInfoPanelVisible },
                 contentAlignment = Alignment.Center
             ) {
@@ -366,10 +361,7 @@ fun UserInfoCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-
-    // 얼굴 크롭된 이미지
     val croppedFace = rememberCroppedFace(profileImage)
-
     val croppedDefaultFace = remember {
         try {
             val ditoBitmap = android.graphics.BitmapFactory.decodeResource(
@@ -392,7 +384,6 @@ fun UserInfoCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 프로필 이미지
             if (!isEmpty) {
                 Box(
                     modifier = Modifier
