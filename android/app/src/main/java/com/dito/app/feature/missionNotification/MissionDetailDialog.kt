@@ -16,8 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,7 +33,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.dito.app.core.ui.designsystem.playPopSound
 import com.dito.app.R
 import com.dito.app.core.data.missionNotification.MissionNotificationData
 import com.dito.app.core.data.missionNotification.MissionResult
@@ -36,11 +46,11 @@ import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.LemonExplosion
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
 import com.dito.app.core.ui.designsystem.hardShadow
 
-// 미션 상세 모달
 @Composable
 fun MissionDetailDialog(
     mission: MissionNotificationData,
@@ -48,22 +58,38 @@ fun MissionDetailDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var showLemonExplosion by remember { mutableStateOf(false) }
+
+    // 애니메이션이 끝나면 onConfirm 호출
+    LaunchedEffect(showLemonExplosion) {
+        if (showLemonExplosion) {
+            delay(200) // 애니메이션 시간 + 여유
+            onConfirm()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
+            .clickable { onDismiss() }
             .padding(horizontal = Spacing.l, vertical = Spacing.xl),
         contentAlignment = Alignment.Center
     ) {
         DitoModalContainer(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {},
             backgroundColor = Color.White,
             borderColor = Color.Black,
             shadowColor = Color.Black,
+            cornerRadius = 32.dp, // 그림자 둥글기를 모달 모양에 맞춤
             contentPadding = PaddingValues(vertical = Spacing.l)
         ) {
-
-            //뒤로가기 버튼을 왼쪽에 정렬하기 위해
+            // 뒤로가기 버튼
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,7 +102,7 @@ fun MissionDetailDialog(
                     modifier = Modifier
                         .size(24.dp)
                         .align(Alignment.TopStart)
-                        .clickable{onDismiss()}
+                        .clickable { onDismiss() }
                 )
             }
 
@@ -110,82 +136,39 @@ fun MissionDetailDialog(
                             color = Primary,
                             style = DitoCustomTextStyles.titleDMedium
                         )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Spacer(modifier = Modifier.height(Spacing.s))
                         Text(
                             text = feedback,
                             color = Color.Black,
-                            style = DitoTypography.bodyMedium,
-                            lineHeight = 20.sp
+                            style = DitoTypography.bodyMedium
                         )
                     }
 
                     Spacer(modifier = Modifier.height(Spacing.l))
                 }
 
-                // 미션 결과
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.m),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "결과",
-                        color = Color.Black,
-                        style = DitoTypography.labelLarge
-                    )
-
-                    val resultText = when (mission.result) {
-                        MissionResult.SUCCESS -> "성공"
-                        MissionResult.FAILURE -> "실패"
-                        MissionResult.IGNORE -> "무시됨"
-                        else -> "진행 중"
-                    }
-
-                    Text(
-                        text = resultText,
-                        color = Color.Black,
-                        style = DitoCustomTextStyles.titleDMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.m))
-
-                // 레몬 보상
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = Spacing.m),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "보상",
-                        color = Color.Black,
-                        style = DitoTypography.labelLarge
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                // 미션 진행 중일 때 AI 피드백 안내
+                if (mission.status == MissionStatus.IN_PROGRESS && mission.feedback == null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.m)
+                            .border(1.dp, Color.Black, DitoShapes.small)
+                            .background(Background, DitoShapes.small)
+                            .padding(Spacing.m),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.lemon),
-                            contentDescription = "Lemon",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "${mission.coinReward}",
+                            text = "미션 수행 후\nAI 피드백을 받아보세요!",
                             color = Color.Black,
-                            style = DitoCustomTextStyles.titleDMedium
+                            style = DitoCustomTextStyles.titleDMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
+                    Spacer(modifier = Modifier.height(Spacing.l))
                 }
 
-                Spacer(modifier = Modifier.height(Spacing.xl))
-
-                // 확인 버튼 (성공/실패 모두 표시)
+                // 확인 버튼
                 if (mission.status == MissionStatus.COMPLETED) {
                     val isSuccess = mission.result == MissionResult.SUCCESS
 
@@ -201,13 +184,28 @@ fun MissionDetailDialog(
                             .clip(DitoShapes.small)
                             .border(1.dp, Color.Black, DitoShapes.small)
                             .background(if (isSuccess) Primary else Color.White)
-                            .clickable(enabled = !isShowingAnimation) { onConfirm() }
+                            .clickable {
+                                if (!isShowingAnimation) {
+                                    playPopSound(context)
+                                    if (isSuccess) {
+                                        showLemonExplosion = true
+                                    } else {
+                                        onConfirm()
+                                    }
+                                }
+                            }
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+
+                            Text(
+                                text = if (isSuccess) "레몬 받기" else "확인",
+                                color = Color.Black,
+                                style = DitoCustomTextStyles.titleDMedium
+                            )
                             if (isSuccess) {
                                 Image(
                                     painter = painterResource(id = R.drawable.lemon),
@@ -216,21 +214,17 @@ fun MissionDetailDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text(
-                                text = if (isSuccess) "레몬 받기" else "확인",
-                                color = Color.Black,
-                                style = DitoCustomTextStyles.titleDMedium
-                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(Spacing.m))
                 }
-
-
-
-//                Spacer(modifier = Modifier.height(Spacing.m))
             }
+        }
+
+        // 레몬 폭죽 애니메이션
+        if (showLemonExplosion) {
+            LemonExplosion()
         }
     }
 }

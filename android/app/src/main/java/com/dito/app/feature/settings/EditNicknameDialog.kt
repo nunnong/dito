@@ -23,17 +23,12 @@ import androidx.navigation.NavController
 import com.dito.app.R
 import com.dito.app.core.navigation.Route
 import com.dito.app.core.ui.component.DitoModalContainer
-import com.dito.app.core.ui.designsystem.Background
 import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
 import com.dito.app.core.ui.designsystem.DitoShapes
 import com.dito.app.core.ui.designsystem.DitoTypography
-import com.dito.app.core.ui.designsystem.Error
-import com.dito.app.core.ui.designsystem.ErrorContainer
-import com.dito.app.core.ui.designsystem.OnErrorContainer
 import com.dito.app.core.ui.designsystem.OnSurface
 import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.Spacing
-import com.dito.app.core.ui.designsystem.Surface
 import com.dito.app.core.ui.designsystem.hardShadow
 
 @Composable
