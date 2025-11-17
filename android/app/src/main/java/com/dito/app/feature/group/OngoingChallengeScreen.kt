@@ -275,7 +275,7 @@ fun OngoingChallengeScreen(
                                 strokeColor = Color(0xFF3E2723),
                                 strokeWidth = 2.dp,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().offset(y=5.dp)
                             )
 
                             // 구분선
