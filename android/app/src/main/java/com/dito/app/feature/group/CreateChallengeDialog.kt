@@ -105,7 +105,7 @@ fun CreateChallengeDialog(
                         )
                     )
                     .background(Color.White)
-                    .padding(horizontal = Spacing.s, vertical = Spacing.m)
+                    .padding(horizontal = Spacing.s)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back),
