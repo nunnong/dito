@@ -30,6 +30,9 @@ class InterventionState(TypedDict):
     user_id: str  # 사용자 personalId (문자열)
     behavior_log: dict  # app_usage_logs 데이터 (app_metadata 포함 가능)
 
+    # Optional - 동시성 제어 (check_user_concurrency_node에서 설정)
+    lock_acquired: NotRequired[bool]  # 사용자 락 획득 여부
+
     # Optional - 워크플로우 중 생성되는 필드
     video_type: NotRequired[str]  # 유튜브 영상 타입 (youtube_analyze_node에서 생성)
     keywords: NotRequired[
