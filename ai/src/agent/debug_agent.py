@@ -22,9 +22,13 @@ from agent.utils import (
 def make_mission_data(state: DebugState) -> MissionData:
     """Mission data 생성."""
     mission_data = state["mission_info"].copy()
-    mission_data.update(
-        {"user_id": state["user_id"], "mission_text": state["nudge_message"]}
-    )
+
+    # mission_info에 mission_text가 없으면 nudge_message 사용
+    if "mission_text" not in mission_data:
+        mission_data["mission_text"] = state["nudge_message"]
+
+    mission_data["user_id"] = state["user_id"]
+
     return MissionData(**mission_data)
 
 
