@@ -294,6 +294,7 @@ def send_fcm_with_mission(user_id: int, mission_id: str, message: str) -> bool:
         "title": "디토",
         "message": message,
         "mission_id": mission_id,
+        "type": "intervention",
     }
 
     try:
@@ -580,6 +581,7 @@ def send_evaluation_fcm(
         "title": title,
         "message": feedback,
         "mission_id": str(mission_id),
+        "type": "evaluation",
     }
 
     try:
