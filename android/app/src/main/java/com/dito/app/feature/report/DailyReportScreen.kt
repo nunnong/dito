@@ -10,11 +10,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -30,17 +33,43 @@ import com.dito.app.core.data.report.ComparisonItem
 import com.dito.app.core.data.report.ComparisonType
 import com.dito.app.core.ui.designsystem.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DailyReportScreen(
     viewModel: DailyReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(Unit) {
         viewModel.loadDailyReport()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopReportPolling()
+        }
+    }
+
+    // Pull to refresh 트리거
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.startReportPolling()
+        }
+    }
+
+    // 폴링 완료 시 refresh 종료
+    LaunchedEffect(uiState) {
+        if (uiState is DailyReportUiState.Success) {
+            pullToRefreshState.endRefresh()
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(pullToRefreshState.nestedScrollConnection)
+    ) {
         when (val state = uiState) {
             is DailyReportUiState.Loading -> {
                 CircularProgressIndicator(
@@ -78,6 +107,11 @@ fun DailyReportScreen(
                 }
             }
         }
+
+        PullToRefreshContainer(
+            state = pullToRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
 
