@@ -97,7 +97,7 @@ class MissionTracker @Inject constructor(
             putExtra("coin_reward", missionData.coinReward)
             putExtra("deep_link", missionData.deepLink)
             putExtra("start_time_ms", actualStartTime)
-            putExtra("delay_seconds", START_DELAY_SECONDS)
+            putExtra("delay_seconds", 0)
         }
         ContextCompat.startForegroundService(context, serviceIntent)
         Log.d(TAG, "🔔 MissionProgressService 시작")
@@ -106,7 +106,7 @@ class MissionTracker @Inject constructor(
         recordCurrentApp()
 
         // 미션 시간 + 딜레이 후에 평가 예약
-        scheduleEvaluation(missionData, START_DELAY_SECONDS.toLong())
+        scheduleEvaluation(missionData, 0L)
     }
 
     // 미션 시작 시 현재 앱 기록
@@ -313,8 +313,6 @@ class MissionTracker @Inject constructor(
             Log.e(TAG, "MissionProgressService 중지 실패", e)
         }
 
-        startTrackingRunnable?.let { handler.removeCallbacks(it) }
-        startTrackingRunnable = null
         currentMissionId = null
         currentMissionInfo = null
         sequenceCounter.set(0)
