@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.report.controller;
 
 import com.ssafy.Dito.domain.report.dto.request.ReportReq;
+import com.ssafy.Dito.domain.report.dto.request.ReportUpdateReq;
 import com.ssafy.Dito.domain.report.dto.response.ReportRes;
 import com.ssafy.Dito.domain.report.service.ReportService;
 import com.ssafy.Dito.global.dto.ApiResponse;
@@ -46,5 +47,44 @@ public class ReportInternalController {
     ) {
         ReportRes response = reportService.createReportForAi(request);
         return ApiResponse.create(response);
+    }
+
+    @PatchMapping("/report/{reportId}")
+    @Operation(
+        summary = "사용자 리포트 업데이트",
+        description = """
+            AI 서버에서 비동기 처리 완료 후 리포트를 업데이트합니다.
+            - X-API-Key 헤더 인증이 필요합니다.
+            - 모든 필드는 선택사항이며, 제공된 필드만 업데이트됩니다.
+            - 주로 status를 "IN_PROGRESS"에서 "COMPLETED"로 변경할 때 사용됩니다.
+
+            요청 Body 예시:
+            {
+              "report_overview": "업데이트된 리포트 요약...",
+              "insights": [
+                {"type": "POSITIVE", "description": "긍정적 인사이트..."},
+                {"type": "NEGATIVE", "description": "개선이 필요한 부분..."}
+              ],
+              "advice": "AI 조언...",
+              "mission_success_rate": 85,
+              "status": "COMPLETED"
+            }
+            """
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "리포트 업데이트 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "X-API-Key 인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "리포트를 찾을 수 없습니다")
+    })
+    public ResponseEntity<SingleResult<ReportRes>> updateReport(
+            @Parameter(description = "API Key (X-API-Key 헤더)", required = true)
+            @RequestHeader("X-API-Key") String apiKey,
+            @Parameter(description = "리포트 ID", required = true)
+            @PathVariable Long reportId,
+            @Valid @RequestBody ReportUpdateReq request
+    ) {
+        ReportRes response = reportService.updateReportForAi(reportId, request);
+        return ApiResponse.ok(response);
     }
 }

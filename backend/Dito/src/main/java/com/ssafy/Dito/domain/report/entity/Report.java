@@ -75,4 +75,33 @@ public class Report extends IdentifiableEntity {
                             String advice, Integer missionSuccessRate, LocalDate reportDate) {
         return new Report(user, reportOverview, insights, advice, missionSuccessRate, reportDate);
     }
+
+    /**
+     * Update report fields (partial update)
+     * Only non-null fields are updated
+     *
+     * @param reportOverview New report overview (optional)
+     * @param insights New insights list (optional)
+     * @param advice New advice (optional)
+     * @param missionSuccessRate New mission success rate (optional)
+     * @param status New status (optional)
+     */
+    public void update(String reportOverview, List<InsightDto> insights,
+                       String advice, Integer missionSuccessRate, String status) {
+        if (reportOverview != null) {
+            this.reportOverview = reportOverview;
+        }
+        if (insights != null) {
+            this.insights = insights;
+        }
+        if (advice != null) {
+            this.advice = advice;
+        }
+        if (missionSuccessRate != null) {
+            this.missionSuccessRate = missionSuccessRate;
+        }
+        if (status != null) {
+            this.status = status;
+        }
+    }
 }
