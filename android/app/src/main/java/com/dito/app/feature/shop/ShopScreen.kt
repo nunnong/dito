@@ -97,6 +97,7 @@ fun ShopScreen(
     if (showPurchaseConfirmDialog && selectedItemForPurchase != null) {
         ShopConfirmDialog(
             itemImage = rememberAsyncImagePainter(selectedItemForPurchase!!.imageUrl),
+            isCostume = uiState.selectedTab == ShopTab.COSTUME,
             onConfirm = {
                 selectedItemForPurchase?.let { item ->
                     viewModel.purchaseItem(item.itemId)

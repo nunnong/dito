@@ -47,6 +47,7 @@ import com.dito.app.core.ui.designsystem.StrokeText
 /**
  * 상점 구매 확인 모달
  * @param itemImage 구매할 아이템 이미지
+ * @param isCostume 의상 아이템인지 여부
  * @param onConfirm 구매 버튼 클릭 시 호출
  * @param onApply 적용하기 버튼 클릭 시 호출
  * @param onDismiss 취소 버튼 또는 모달 외부 클릭 시 호출
@@ -54,6 +55,7 @@ import com.dito.app.core.ui.designsystem.StrokeText
 @Composable
 fun ShopConfirmDialog(
     itemImage: Painter,
+    isCostume: Boolean = false,
     onConfirm: () -> Unit,
     onApply: () -> Unit,
     onDismiss: () -> Unit
@@ -61,6 +63,7 @@ fun ShopConfirmDialog(
     Dialog(onDismissRequest = onDismiss) {
         ShopConfirmDialogContent(
             itemImage = itemImage,
+            isCostume = isCostume,
             onConfirm = onConfirm,
             onApply = onApply,
             onDismiss = onDismiss
@@ -71,6 +74,7 @@ fun ShopConfirmDialog(
 @Composable
 private fun ShopConfirmDialogContent(
     itemImage: Painter,
+    isCostume: Boolean,
     onConfirm: () -> Unit,
     onApply: () -> Unit,
     onDismiss: () -> Unit
@@ -173,13 +177,24 @@ private fun ShopConfirmDialogContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(top = 8.dp)
+                .then(
+                    if (isPurchased) Modifier.padding(bottom = 16.dp)
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = itemImage,
                 contentDescription = "구매할 아이템",
-                modifier = Modifier.size(160.dp)
+                modifier = Modifier
+                    .widthIn(max = 160.dp)
+                    .heightIn(max = 160.dp)
+                    .then(
+                        if (!isCostume) Modifier.border(1.dp, Color.Black)
+                        else Modifier
+                    ),
+                contentScale = ContentScale.Fit
             )
         }
 
@@ -443,6 +458,7 @@ fun ShopConfirmDialogPreview() {
     ) {
         ShopConfirmDialogContent(
             itemImage = androidx.compose.ui.res.painterResource(R.drawable.ic_launcher_foreground),
+            isCostume = false,
             onConfirm = {},
             onApply = {},
             onDismiss = {}
