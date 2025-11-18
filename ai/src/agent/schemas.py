@@ -145,6 +145,32 @@ class StrategyAdjustment(BaseModel):
     new_strategy: str | None = Field(default=None, description="새로운 전략 (필요시)")
 
 
+class InsightItem(BaseModel):
+    """리포트 인사이트 항목"""
+
+    type: Literal["POSITIVE", "NEGATIVE"] = Field(
+        description="인사이트 유형 (긍정적/개선 필요)"
+    )
+    description: str = Field(description="인사이트 내용")
+
+
+class ReportAnalysis(BaseModel):
+    """일일 리포트 분석 결과 (레거시 - 사용 안 함)"""
+
+    report_overview: str = Field(description="하루 디지털 사용 패턴 요약 (2-3문장)")
+    insights: list[InsightItem] = Field(
+        description="주요 인사이트 리스트 (POSITIVE 또는 NEGATIVE 타입)"
+    )
+    advice: str = Field(description="개인화된 조언 (1-2문장)")
+
+
+class ReportSummary(BaseModel):
+    """리포트 개요 및 조언 생성 (insights 제외)"""
+
+    report_overview: str = Field(description="하루 디지털 사용 패턴 요약 (2-3문장)")
+    advice: str = Field(description="개인화된 조언 (1-2문장, 반말)")
+
+
 # =============================================================================
 # 미션 및 알림 데이터 모델 (Mission and Notification Models)
 # =============================================================================

@@ -20,6 +20,8 @@ from agent.schemas import (
     MissionData,
     MissionNotificationResult,
     NudgeMessage,
+    ReportAnalysis,
+    ReportSummary,
     StrategyAdjustment,
     VideoType,
 )
@@ -42,6 +44,8 @@ message_generator = llm.with_structured_output(NudgeMessage)
 effectiveness_analyzer = llm.with_structured_output(EffectivenessAnalysis)
 strategy_adjuster = llm.with_structured_output(StrategyAdjustment)
 
+report_analyzer = llm.with_structured_output(ReportAnalysis)  # 레거시
+report_summary_generator = llm.with_structured_output(ReportSummary)
 
 llm_fast = ChatAnthropic(model="claude-haiku-4-5")
 
@@ -439,7 +443,9 @@ def fetch_mission_info(mission_id: int) -> dict | None:
         return None
 
 
-def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> tuple[str, str]:
+def evaluate_mission_with_llm(
+    mission_info: dict, behavior_logs: list[dict]
+) -> tuple[str, str]:
     """미션 평가 및 피드백 생성
 
     behavior_logs와 mission의 targetApp을 비교하여 성공/실패 판정하고,
@@ -486,11 +492,13 @@ def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> 
         # targetApp과 일치하는지 확인 (app_name 또는 package_name)
         if target_app in [app_name, package_name]:
             has_violation = True
-            violation_details.append({
-                "app": app_name or package_name,
-                "duration": duration,
-                "timestamp": log.get("timestamp", "")
-            })
+            violation_details.append(
+                {
+                    "app": app_name or package_name,
+                    "duration": duration,
+                    "timestamp": log.get("timestamp", ""),
+                }
+            )
 
     evaluation_result = "FAILURE" if has_violation else "SUCCESS"
 
@@ -516,10 +524,9 @@ def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> 
 
 사용자를 칭찬하는 긍정적인 피드백을 작성해주세요."""
     else:
-        violation_summary = ", ".join([
-            f"{v['app']} ({v['duration']}초)"
-            for v in violation_details
-        ])
+        violation_summary = ", ".join(
+            [f"{v['app']} ({v['duration']}초)" for v in violation_details]
+        )
         user_prompt = f"""미션: {mission_text}
 미션 타입: {mission_type}
 제한 앱: {target_app}
@@ -529,10 +536,9 @@ def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> 
 
 사용자를 격려하고 다음에는 성공할 수 있도록 응원하는 피드백을 작성해주세요."""
 
-    response = llm.invoke([
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=user_prompt)
-    ])
+    response = llm.invoke(
+        [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+    )
 
     feedback = response.content.strip()
 
@@ -542,7 +548,9 @@ def evaluate_mission_with_llm(mission_info: dict, behavior_logs: list[dict]) -> 
     return evaluation_result, feedback
 
 
-def send_evaluation_fcm(user_id: int, result: str, feedback: str, mission_id: int) -> bool:
+def send_evaluation_fcm(
+    user_id: int, result: str, feedback: str, mission_id: int
+) -> bool:
     """평가 결과 FCM 알림 전송
 
     Args:
@@ -629,7 +637,7 @@ def submit_mission_result(mission_id: int, result: str, feedback: str = "") -> b
     payload = {
         "mission_id": mission_id,
         "result": result,  # "SUCCESS" | "FAILURE" | "IGNORE"
-        "feedback": feedback  # 평가 피드백
+        "feedback": feedback,  # 평가 피드백
     }
 
     try:
@@ -651,6 +659,270 @@ def submit_mission_result(mission_id: int, result: str, feedback: str = "") -> b
 
     except httpx.HTTPError as e:
         print(f"     ❌ 미션 결과 저장 HTTP 오류: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return False
+
+
+# =============================================================================
+# 리포트 관련 함수 (Report Functions)
+# =============================================================================
+
+
+def fetch_missions_by_date(user_id: int, report_date: str) -> list[dict] | None:
+    """날짜별 미션 목록 조회 API 호출
+
+    Args:
+        user_id: DB user ID
+        report_date: 리포트 날짜 (YYYY-MM-DD 형식)
+
+    Returns:
+        미션 목록 list[dict] if successful, None if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return None
+
+    print(f"     🔍 미션 목록 조회 중... (user_id={user_id}, date={report_date})")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f"{SPRING_SERVER_URL}/api/mission/{user_id}",
+                params={"date": report_date},
+                headers=headers,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            # API 응답: {"data": [...], "error": false}
+            missions = result.get("data", [])
+
+            print(f"     ✅ 미션 목록 조회 완료: {len(missions)}개")
+            return missions
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 미션 목록 조회 실패: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return None
+
+
+def calculate_mission_success_rate(missions: list[dict]) -> int:
+    """미션 성공률 계산
+
+    Args:
+        missions: 미션 목록 (status, result 필드 포함)
+
+    Returns:
+        성공률 (0-100, 정수)
+    """
+    if not missions or len(missions) == 0:
+        return 0
+
+    # COMPLETED 상태이면서 SUCCESS 결과인 미션만 카운트
+    completed_missions = [
+        m for m in missions if m.get("status") == "COMPLETED"
+    ]
+
+    if len(completed_missions) == 0:
+        return 0
+
+    success_missions = [
+        m for m in completed_missions if m.get("result") == "SUCCESS"
+    ]
+
+    success_rate = int((len(success_missions) / len(completed_missions)) * 100)
+
+    print(
+        f"     📊 미션 성공률: {len(success_missions)}/{len(completed_missions)} = {success_rate}%"
+    )
+
+    return success_rate
+
+
+def fetch_daily_activity(user_id: int, report_date: str) -> dict | None:
+    """일일 사용자 활동 데이터 조회 API 호출
+
+    Args:
+        user_id: DB user ID
+        report_date: 리포트 날짜 (YYYY-MM-DD 형식)
+
+    Returns:
+        일일 활동 데이터 dict if successful, None if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return None
+
+    print(
+        f"     🔍 일일 활동 데이터 조회 중... (user_id={user_id}, date={report_date})"
+    )
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(
+                f"{SPRING_SERVER_URL}/api/activity/{user_id}",
+                params={"date": report_date},
+                headers=headers,
+            )
+            response.raise_for_status()
+            daily_activity = response.json()
+
+            print(f"     ✅ 일일 활동 데이터 조회 완료")
+            return daily_activity
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 일일 활동 데이터 조회 실패: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return None
+
+
+def create_empty_report(user_id: int, report_date: str) -> int | None:
+    """빈 리포트 생성 API 호출
+
+    Args:
+        user_id: DB user ID
+        report_date: 리포트 날짜 (YYYY-MM-DD 형식)
+
+    Returns:
+        report_id (int) if successful, None if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return None
+
+    print(f"     📝 빈 리포트 생성 중... (user_id={user_id}, date={report_date})")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "user_id": user_id,
+        "report_date": report_date,
+        "status": "IN_PROGRESS",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(
+                f"{SPRING_SERVER_URL}/api/report",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            # API 응답: {"data": {"id": 123, ...}}
+            data = result.get("data", {})
+            report_id = data.get("id")
+
+            if report_id:
+                print(f"     ✅ 빈 리포트 생성 완료: ID={report_id}")
+                return report_id
+            else:
+                print("     ⚠️ 리포트 생성 응답에 id 없음")
+                print(f"        응답 내용: {result}")
+                return None
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 빈 리포트 생성 실패: {e}")
+        if hasattr(e, "response") and e.response:
+            print(f"        응답 코드: {e.response.status_code}")
+            try:
+                error_detail = e.response.json()
+                print(f"        오류 상세: {error_detail}")
+            except:
+                print(f"        오류 텍스트: {e.response.text[:200]}")
+        return None
+
+
+def update_report(
+    report_id: int,
+    report_overview: str,
+    insights: list[dict],
+    advice: str,
+    mission_success_rate: int,
+) -> bool:
+    """리포트 업데이트 API 호출 (PATCH)
+
+    Args:
+        report_id: 리포트 ID
+        report_overview: 리포트 개요
+        insights: 인사이트 리스트 [{"type": "POSITIVE/NEGATIVE", "description": "..."}]
+        advice: 조언
+        mission_success_rate: 미션 성공률
+
+    Returns:
+        True if successful, False if failed
+    """
+    if not SECURITY_INTERNAL_API_KEY:
+        print("❌ SECURITY_INTERNAL_API_KEY environment variable is not set")
+        return False
+
+    print(f"     💾 리포트 업데이트 중... (report_id={report_id})")
+
+    headers = {
+        "X-API-Key": SECURITY_INTERNAL_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "report_overview": report_overview,
+        "insights": insights,
+        "advice": advice,
+        "mission_success_rate": mission_success_rate,
+        "status": "COMPLETED",
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.patch(
+                f"{SPRING_SERVER_URL}/api/report/{report_id}",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            # error 필드가 false면 성공
+            if not result.get("error", False):
+                print("     ✅ 리포트 업데이트 완료")
+                return True
+            else:
+                print(f"     ❌ 리포트 업데이트 실패: {result.get('message')}")
+                return False
+
+    except httpx.HTTPError as e:
+        print(f"     ❌ 리포트 업데이트 HTTP 오류: {e}")
         if hasattr(e, "response") and e.response:
             print(f"        응답 코드: {e.response.status_code}")
             try:
