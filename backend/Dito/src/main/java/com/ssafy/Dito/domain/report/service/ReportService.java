@@ -36,7 +36,8 @@ public class ReportService {
             req.insights(),
             req.advice(),
             req.missionSuccessRate(),
-            req.reportDate()
+            req.reportDate(),
+            req.status()
         );
 
         Report savedReport = reportRepository.save(report);

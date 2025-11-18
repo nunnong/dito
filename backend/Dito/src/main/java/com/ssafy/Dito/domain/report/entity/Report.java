@@ -61,19 +61,20 @@ public class Report extends IdentifiableEntity {
     private Instant createdAt;
 
     private Report(User user, String reportOverview, List<InsightDto> insights,
-                   String advice, Integer missionSuccessRate, LocalDate reportDate) {
+                   String advice, Integer missionSuccessRate, LocalDate reportDate, String status) {
         this.user = user;
         this.reportOverview = reportOverview;
         this.insights = insights;
         this.advice = advice;
         this.missionSuccessRate = missionSuccessRate;
         this.reportDate = reportDate != null ? reportDate : LocalDate.now();
+        this.status = status;
         this.createdAt = Instant.now();
     }
 
     public static Report of(User user, String reportOverview, List<InsightDto> insights,
-                            String advice, Integer missionSuccessRate, LocalDate reportDate) {
-        return new Report(user, reportOverview, insights, advice, missionSuccessRate, reportDate);
+                            String advice, Integer missionSuccessRate, LocalDate reportDate, String status) {
+        return new Report(user, reportOverview, insights, advice, missionSuccessRate, reportDate, status);
     }
 
     /**

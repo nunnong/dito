@@ -13,7 +13,8 @@ public record ReportRes(
     String advice,
     Integer missionSuccessRate,
     LocalDate reportDate,
-    Instant createdAt
+    Instant createdAt,
+    String status
 ) {
     public static ReportRes from(Report report) {
         return new ReportRes(
@@ -23,7 +24,8 @@ public record ReportRes(
             report.getAdvice(),
             report.getMissionSuccessRate(),
             report.getReportDate(),
-            report.getCreatedAt()
+            report.getCreatedAt(),
+            report.getStatus()
         );
     }
 }

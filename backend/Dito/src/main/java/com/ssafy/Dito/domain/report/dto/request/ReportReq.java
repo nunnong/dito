@@ -28,6 +28,8 @@ public record ReportReq(
     Integer missionSuccessRate,
 
     @JsonProperty("report_date")
-    LocalDate reportDate
+    LocalDate reportDate,
+
+    String status
 ) {
 }
