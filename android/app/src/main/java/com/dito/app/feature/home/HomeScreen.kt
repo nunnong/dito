@@ -153,6 +153,10 @@ fun HomeContent(
     var isSeagullFlying by remember { mutableStateOf(false) }
     var seagullTrigger by remember { mutableStateOf(0) }
 
+    // 야구공 상태
+    var isBaseballFlying by remember { mutableStateOf(false) }
+    var baseballTrigger by remember { mutableStateOf(0) }
+
     // 바다 배경인지 확인 (busan 또는 ocean)
     val isOceanBackground = remember(homeData.backgroundUrl) {
         val isOcean = homeData.backgroundUrl?.let { url ->
@@ -198,23 +202,6 @@ fun HomeContent(
         }
     }
 
-    // 야구장 배경일 때 야구공 소리 (한 번)
-    DisposableEffect(isBaseballBackground) {
-        var mediaPlayer: MediaPlayer? = null
-        if (isBaseballBackground) {
-            try {
-                mediaPlayer = MediaPlayer.create(context, R.raw.baseball)
-                mediaPlayer?.setVolume(0.5f, 0.5f)
-                mediaPlayer?.setOnCompletionListener { mp -> mp.release() }
-                mediaPlayer?.start()
-            } catch (e: Exception) {
-                android.util.Log.e("HomeContent", "Error playing baseball sound", e)
-            }
-        }
-        onDispose {
-            mediaPlayer?.release()
-        }
-    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -334,27 +321,50 @@ fun HomeContent(
                     .fillMaxWidth()
                     .weight(1f)
                     .clipToBounds()
-                    .pointerInput(isOceanBackground) {
-                        // 배경(상단) 탭 → 갈매기
+                    .pointerInput(isOceanBackground, isBaseballBackground) {
+                        // 배경(상단) 탭 → 갈매기 또는 야구공
                         detectTapGestures(onTap = { offset ->
                             // 상단 55%만 배경 영역으로 간주 (캐릭터/코인 제외)
-                            if (offset.y < size.height * 0.55f && isOceanBackground && !isSeagullFlying) {
-                                isSeagullFlying = true
-                                seagullTrigger++
+                            if (offset.y < size.height * 0.55f) {
+                                // 바다 배경: 갈매기
+                                if (isOceanBackground && !isSeagullFlying) {
+                                    isSeagullFlying = true
+                                    seagullTrigger++
 
-                                // 갈매기 소리 재생
-                                try {
-                                    val mp = MediaPlayer.create(context, R.raw.seagulls)
-                                    mp?.apply {
-                                        setVolume(1.0f, 1.0f)
-                                        setOnCompletionListener { player -> player.release() }
-                                        start()
+                                    // 갈매기 소리 재생
+                                    try {
+                                        val mp = MediaPlayer.create(context, R.raw.seagulls)
+                                        mp?.apply {
+                                            setVolume(1.0f, 1.0f)
+                                            setOnCompletionListener { player -> player.release() }
+                                            start()
+                                        }
+                                    } catch (e: Exception) {
+                                        android.util.Log.e(
+                                            "HomeScreen",
+                                            "갈매기 소리 재생 오류: ${e.message}"
+                                        )
                                     }
-                                } catch (e: Exception) {
-                                    android.util.Log.e(
-                                        "HomeScreen",
-                                        "갈매기 소리 재생 오류: ${e.message}"
-                                    )
+                                }
+                                // 야구장 배경: 야구공
+                                else if (isBaseballBackground && !isBaseballFlying) {
+                                    isBaseballFlying = true
+                                    baseballTrigger++
+
+                                    // 야구공 소리 재생
+                                    try {
+                                        val mp = MediaPlayer.create(context, R.raw.baseball)
+                                        mp?.apply {
+                                            setVolume(0.5f, 0.5f)
+                                            setOnCompletionListener { player -> player.release() }
+                                            start()
+                                        }
+                                    } catch (e: Exception) {
+                                        android.util.Log.e(
+                                            "HomeScreen",
+                                            "야구공 소리 재생 오류: ${e.message}"
+                                        )
+                                    }
                                 }
                             }
                         })
@@ -390,8 +400,12 @@ fun HomeContent(
                 }
 
                 // 야구공 효과 (배경 위, 캐릭터 뒤)
-                if (isBaseballBackground) {
-                    BaseballEffect(modifier = Modifier.fillMaxSize())
+                if (isBaseballFlying) {
+                    BaseballEffect(
+                        modifier = Modifier.fillMaxSize(),
+                        trigger = baseballTrigger,
+                        onFinished = { isBaseballFlying = false }
+                    )
                 }
 
                 // 갈매기 떼 (배경 위, 캐릭터 뒤)
@@ -804,15 +818,22 @@ fun OceanEffect(
     )
 }
 
-// ===== 야구공 효과 (기존) =====
+// ===== 야구공 효과 =====
 @Composable
-fun BaseballEffect(modifier: Modifier = Modifier) {
+fun BaseballEffect(
+    modifier: Modifier = Modifier,
+    trigger: Int,
+    onFinished: () -> Unit
+) {
     val ballPainter = painterResource(id = R.drawable.baseball_ball)
 
     val progress = remember { Animatable(0f) }
     val rotation = remember { Animatable(0f) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(trigger) {
+        progress.snapTo(0f)
+        rotation.snapTo(0f)
+
         launch {
             progress.animateTo(
                 targetValue = 1f,
@@ -829,6 +850,9 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
                 animationSpec = tween(flightDuration.toInt(), easing = LinearEasing)
             )
         }
+
+        kotlinx.coroutines.delay(2600)
+        onFinished()
     }
 
     Canvas(modifier = modifier) {
