@@ -105,7 +105,7 @@ fun CreateChallengeDialog(
                         )
                     )
                     .background(Color.White)
-                    .padding(horizontal = Spacing.s, vertical = Spacing.m)
+                    .padding(horizontal = Spacing.s)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.back),
@@ -181,7 +181,7 @@ fun CreateChallengeDialog(
 
                 // 옵션 선택 UI
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         text = "공유 옵션",
@@ -474,6 +474,7 @@ fun ChallengeInputField(
                     value = value,
                     onValueChange = onValueChange,
                     textStyle = DitoTypography.bodySmall.copy(color = Color.Black),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

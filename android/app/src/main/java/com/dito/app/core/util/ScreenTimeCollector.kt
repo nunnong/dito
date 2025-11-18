@@ -54,11 +54,25 @@ class ScreenTimeCollector(private val context: Context) {
                 "com.google.android.youtube"
             ).find()
 
-            val savedWatchTimeMillis = sessions.sumOf { it.watchTime }
+            // 교육 콘텐츠가 아닌 세션만 합산
+            val savedWatchTimeMillis = sessions
+                .filter { !it.isEducational }
+                .sumOf { it.watchTime }
+
+            val educationalCount = sessions.count { it.isEducational }
+            val nonEducationalCount = sessions.size - educationalCount
 
             // 현재 재생 중인 세션의 시청 시간 (아직 저장되지 않은 실시간 시간)
             val currentSessionTime = try {
-                com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
+                val sessionTime = com.dito.app.core.service.phone.SessionStateManager.getCurrentSessionWatchTime()
+                // 현재 세션이 교육 콘텐츠인지 확인
+                val isCurrentEducational = com.dito.app.core.service.phone.SessionStateManager.isCurrentSessionEducational()
+                if (isCurrentEducational) {
+                    Log.d(TAG, "📚 현재 재생 중인 세션이 교육 콘텐츠 → 시간 제외")
+                    0L
+                } else {
+                    sessionTime
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "현재 세션 조회 실패", e)
                 0L
@@ -67,7 +81,7 @@ class ScreenTimeCollector(private val context: Context) {
             val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
             val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
 
-            Log.d(TAG, "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, ${sessions.size}개 세션)")
+            Log.d(TAG, "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, 교육: ${educationalCount}개 제외, 비교육: ${nonEducationalCount}개)")
 
             return totalMinutes
         } catch (e: Exception) {

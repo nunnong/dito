@@ -43,6 +43,9 @@ class MediaSessionEvent : RealmObject {
     var aiCalledAt:Long = 0L
     var aiRetryCount: Int = 0
 
+    // 교육 콘텐츠 여부 (데모용)
+    var isEducational: Boolean = false
+
     // 메타데이터
     var createdAt: Long = System.currentTimeMillis()
 }
