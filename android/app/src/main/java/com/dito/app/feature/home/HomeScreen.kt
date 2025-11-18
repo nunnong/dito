@@ -27,12 +27,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -42,6 +44,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -49,10 +54,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -149,6 +150,14 @@ fun HomeContent(
     val lifecycleOwner = LocalLifecycleOwner.current
     var animationKey by remember { mutableStateOf(0) }
 
+    // 갈매기 상태
+    var isSeagullFlying by remember { mutableStateOf(false) }
+    var seagullTrigger by remember { mutableStateOf(0) }
+
+    // 야구공 상태
+    var isBaseballFlying by remember { mutableStateOf(false) }
+    var baseballTrigger by remember { mutableStateOf(0) }
+
     // 바다 배경인지 확인 (busan 또는 ocean)
     val isOceanBackground = remember(homeData.backgroundUrl) {
         val isOcean = homeData.backgroundUrl?.let { url ->
@@ -171,14 +180,12 @@ fun HomeContent(
         if (isOceanBackground) {
             try {
                 mediaPlayer = MediaPlayer.create(context, R.raw.busan)
-                if (mediaPlayer != null) {
-                    mediaPlayer.isLooping = true
-                    mediaPlayer.setVolume(1.0f, 1.0f)
-                    mediaPlayer.start()
+                mediaPlayer?.let { mp ->
+                    mp.isLooping = true
+                    mp.setVolume(1.0f, 1.0f)
+                    mp.start()
                     android.util.Log.d("HomeScreen", "파도 소리 재생 시작")
-                } else {
-                    android.util.Log.e("HomeScreen", "MediaPlayer 생성 실패")
-                }
+                } ?: android.util.Log.e("HomeScreen", "MediaPlayer 생성 실패")
             } catch (e: Exception) {
                 android.util.Log.e("HomeScreen", "파도 소리 재생 오류: ${e.message}")
             }
@@ -186,9 +193,7 @@ fun HomeContent(
         onDispose {
             mediaPlayer?.apply {
                 try {
-                    if (isPlaying) {
-                        stop()
-                    }
+                    if (isPlaying) stop()
                     release()
                     android.util.Log.d("HomeScreen", "파도 소리 정지")
                 } catch (e: Exception) {
@@ -198,23 +203,6 @@ fun HomeContent(
         }
     }
 
-    // 야구장 배경일 때 야구공 소리 재생
-    DisposableEffect(isBaseballBackground) {
-        var mediaPlayer: MediaPlayer? = null
-        if (isBaseballBackground) {
-            try {
-                mediaPlayer = MediaPlayer.create(context, R.raw.baseball)
-                mediaPlayer?.setVolume(0.5f, 0.5f)
-                mediaPlayer?.setOnCompletionListener { mp -> mp.release() }
-                mediaPlayer?.start()
-            } catch (e: Exception) {
-                android.util.Log.e("HomeContent", "Error playing baseball sound", e)
-            }
-        }
-        onDispose {
-            mediaPlayer?.release()
-        }
-    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -285,7 +273,9 @@ fun HomeContent(
                             painter = painterResource(id = R.drawable.cart),
                             contentDescription = "Cart",
                             modifier = Modifier.fillMaxSize(),
-                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(
+                                Color.White
+                            ),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -318,19 +308,56 @@ fun HomeContent(
                         painter = painterResource(id = R.drawable.settings),
                         contentDescription = "settings",
                         modifier = Modifier.fillMaxSize(),
-                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
+                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(
+                            Color.White
+                        ),
                         contentScale = ContentScale.Fit
                     )
                 }
             }
 
-            // Frame 162 - 내부 컨텐츠
+            // Frame 162 - 내부 컨텐츠 (배경 영역)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .clipToBounds()
+                    .pointerInput(isOceanBackground, isBaseballBackground) {
+                        // 배경(상단) 탭 → 갈매기 또는 야구공
+                        detectTapGestures(onTap = { offset ->
+                            // 상단 55%만 배경 영역으로 간주 (캐릭터/코인 제외)
+                            if (offset.y < size.height * 0.55f) {
+                                // 바다 배경: 갈매기
+                                if (isOceanBackground && !isSeagullFlying) {
+                                    isSeagullFlying = true
+                                    seagullTrigger++
+
+                                    // 갈매기 소리 재생
+                                    try {
+                                        val mp = MediaPlayer.create(context, R.raw.seagulls)
+                                        mp?.apply {
+                                            setVolume(1.0f, 1.0f)
+                                            setOnCompletionListener { player -> player.release() }
+                                            start()
+                                        }
+                                    } catch (e: Exception) {
+                                        android.util.Log.e(
+                                            "HomeScreen",
+                                            "갈매기 소리 재생 오류: ${e.message}"
+                                        )
+                                    }
+                                }
+                                // 야구장 배경: 야구공
+                                else if (isBaseballBackground && !isBaseballFlying) {
+                                    isBaseballFlying = true
+                                    baseballTrigger++
+                                }
+                            }
+                        })
+                    },
                 contentAlignment = Alignment.TopCenter
             ) {
+                // 배경 이미지
                 if (!homeData.backgroundUrl.isNullOrEmpty()) {
                     AsyncImage(
                         model = homeData.backgroundUrl,
@@ -353,20 +380,30 @@ fun HomeContent(
                     )
                 }
 
-                // 바다 배경일 때 물결 + 반짝임 효과
+                // 파도 효과
                 if (isOceanBackground) {
                     OceanEffect(modifier = Modifier.fillMaxSize())
                 }
 
-                // 야구장 배경일 때 포물선 야구공 효과 (배경 위, 캐릭터 뒤)
-                if (isBaseballBackground) {
+                // 야구공 효과 (배경 위, 캐릭터 뒤)
+                if (isBaseballFlying) {
                     BaseballEffect(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clipToBounds()
+                        modifier = Modifier.fillMaxSize(),
+                        trigger = baseballTrigger,
+                        onFinished = { isBaseballFlying = false }
                     )
                 }
 
+                // 갈매기 떼 (배경 위, 캐릭터 뒤)
+                if (isSeagullFlying) {
+                    SeagullFlock(
+                        modifier = Modifier.fillMaxSize(),
+                        trigger = seagullTrigger,
+                        onFinished = { isSeagullFlying = false }
+                    )
+                }
+
+                // 캐릭터/말풍선
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -419,7 +456,6 @@ fun HomeContent(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // 캐릭터 이미지
                     WiggleClickable(
                         modifier = Modifier.size(110.dp),
                         onClick = {
@@ -629,6 +665,7 @@ fun HomeContent(
     }
 }
 
+// ===== 파도 효과 =====
 @Composable
 fun OceanEffect(
     modifier: Modifier = Modifier,
@@ -705,7 +742,6 @@ fun OceanEffect(
 
                 val path = Path()
 
-                // 아래쪽 곡선
                 path.moveTo(0f, bandBottomBase)
                 var x = 0f
                 while (x <= size.width) {
@@ -716,7 +752,6 @@ fun OceanEffect(
                     x += step
                 }
 
-                // 위쪽 곡선
                 x = size.width
                 while (x >= 0f) {
                     val t = (x / waveLength) + (waveProgress * 1.5f) + phase + 0.7f
@@ -759,7 +794,7 @@ fun OceanEffect(
                 drawCircle(
                     color = Color.White.copy(alpha = alpha),
                     radius = radius,
-                    center = androidx.compose.ui.geometry.Offset(
+                    center = Offset(
                         x = nx * this.size.width,
                         y = y
                     )
@@ -769,35 +804,78 @@ fun OceanEffect(
     )
 }
 
+// ===== 야구공 효과 =====
 @Composable
-fun BaseballEffect(modifier: Modifier = Modifier) {
+fun BaseballEffect(
+    modifier: Modifier = Modifier,
+    trigger: Int,
+    onFinished: () -> Unit
+) {
     val ballPainter = painterResource(id = R.drawable.baseball_ball)
+    val powPainter = painterResource(id = R.drawable.pow)
+    val context = LocalContext.current
 
     val progress = remember { Animatable(0f) }
     val rotation = remember { Animatable(0f) }
+    var hasPlayedSound by remember { mutableStateOf(false) }
+    val impactScale = remember { Animatable(0f) }
+    val impactAlpha = remember { Animatable(0f) }
 
-    // HomeScreen에 들어갈 때마다 한 번만 실행
-    LaunchedEffect(Unit) {
+    LaunchedEffect(trigger) {
+        progress.snapTo(0f)
+        rotation.snapTo(0f)
+        hasPlayedSound = false
+        impactScale.snapTo(0f)
+        impactAlpha.snapTo(0f)
+
+        // 전체 애니메이션: 1000ms (왼쪽에서 충돌까지 350ms + 튕겨져서 사라지기까지 650ms)
         launch {
             progress.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(2600, easing = LinearEasing)
+                animationSpec = tween(1000, easing = LinearEasing)
             )
         }
 
+        // 회전 애니메이션
         launch {
-            val flightDuration = 2600f
-            val rotationDuration = 500f
-            val totalRotations = flightDuration / rotationDuration
             rotation.animateTo(
-                targetValue = 360f * totalRotations,
-                animationSpec = tween(flightDuration.toInt(), easing = LinearEasing)
+                targetValue = 360f * 6f, // 1000ms 동안 6바퀴 (더 빠른 회전)
+                animationSpec = tween(1000, easing = LinearEasing)
             )
         }
+
+        // 충돌 효과 애니메이션 (충돌 시점부터 시작)
+        launch {
+            kotlinx.coroutines.delay(350) // 충돌 시점까지 대기
+            // 스케일: 0 -> 1.5 -> 0
+            launch {
+                impactScale.animateTo(
+                    targetValue = 1.5f,
+                    animationSpec = tween(100, easing = FastOutSlowInEasing)
+                )
+                impactScale.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(100, easing = FastOutSlowInEasing)
+                )
+            }
+            // 알파: 0 -> 1 -> 0
+            launch {
+                impactAlpha.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(80, easing = FastOutSlowInEasing)
+                )
+                impactAlpha.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(120, easing = FastOutSlowInEasing)
+                )
+            }
+        }
+
+        kotlinx.coroutines.delay(1000)
+        onFinished()
     }
 
     Canvas(modifier = modifier) {
-        // 애니메이션이 끝나면 그리지 않음
         if ((progress.value == 0f || progress.value == 1f) && !progress.isRunning) {
             return@Canvas
         }
@@ -805,34 +883,91 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
         val w = size.width
         val h = size.height
 
-        val startX = -0.15f * w
-        val endX = 1.15f * w
+        // 캐릭터 머리 위치 (화면 중앙, 더 아래로)
+        val hitX = w * 0.5f
+        val hitY = h * 0.42f // 캐릭터 머리 위치 (더 아래로 조정)
 
-        val baseY = h * 0.42f
-        val arcHeight = h * 0.18f
+        val t = progress.value
 
-        fun parabola(t: Float): Float =
-            (-4f * (t - 0.5f) * (t - 0.5f) + 1f).coerceAtLeast(0f)
+        // 충돌 시점: t = 0.35 (350ms / 1000ms) - 더 빠르게
+        val hitTime = 0.35f
 
-        val x = startX + (endX - startX) * progress.value
-        val y = baseY - arcHeight * parabola(progress.value)
+        val (x, y) = if (t < hitTime) {
+            // Phase 1: 왼쪽 위에서 캐릭터 머리로 날아옴 (더 빠름)
+            val phase1Progress = t / hitTime
+            val startX = -0.1f * w
+            val startY = h * 0.15f // 더 위쪽에서 시작
 
-        // 야구공 크기 두 배로
-        val startSize = w * 0.10f
-        val endSize = w * 0.24f
-        val currentSize = startSize + (endSize - startSize) * progress.value
+            Pair(
+                startX + (hitX - startX) * phase1Progress,
+                startY + (hitY - startY) * phase1Progress
+            )
+        } else {
+            // Phase 2: 맞고 튕겨져서 오른쪽으로 사라짐
+            val phase2Progress = (t - hitTime) / (1f - hitTime)
 
-        val center = androidx.compose.ui.geometry.Offset(x, y)
-        val topLeft = androidx.compose.ui.geometry.Offset(
-            x = center.x - currentSize / 2,
-            y = center.y - currentSize / 2
+            // 사운드 재생 (충돌 시점에 한 번만)
+            if (!hasPlayedSound) {
+                hasPlayedSound = true
+                try {
+                    val mp = MediaPlayer.create(context, R.raw.baseball)
+                    mp?.apply {
+                        setVolume(0.5f, 0.5f)
+                        setOnCompletionListener { player -> player.release() }
+                        start()
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("BaseballEffect", "야구공 소리 재생 오류: ${e.message}")
+                }
+            }
+
+            val endX = w * 1.1f
+            val endY = h * 0.15f // 위쪽으로 튕겨나감
+
+            // 튕겨나갈 때 포물선 효과
+            val bounceHeight = h * 0.1f * kotlin.math.sin(phase2Progress * Math.PI.toFloat())
+
+            Pair(
+                hitX + (endX - hitX) * phase2Progress,
+                hitY + (endY - hitY) * phase2Progress - bounceHeight
+            )
+        }
+
+        // 크기: 일정하게 유지
+        val ballSize = w * 0.12f
+
+        val center = Offset(x, y)
+        val topLeft = Offset(
+            x = center.x - ballSize / 2,
+            y = center.y - ballSize / 2
         )
 
+        // 충돌 효과 (POW 이미지) - 공 그리기 전에 먼저 그림
+        if (impactAlpha.value > 0f) {
+            val impactCenter = Offset(hitX, hitY)
+            val powSize = w * 0.175f * impactScale.value
+
+            scale(scale = impactScale.value, pivot = impactCenter) {
+                translate(
+                    left = impactCenter.x - powSize / 2,
+                    top = impactCenter.y - powSize / 2
+                ) {
+                    with(powPainter) {
+                        draw(
+                            size = Size(powSize, powSize),
+                            alpha = impactAlpha.value
+                        )
+                    }
+                }
+            }
+        }
+
+        // 야구공 그리기
         rotate(degrees = rotation.value, pivot = center) {
             translate(left = topLeft.x, top = topLeft.y) {
                 with(ballPainter) {
                     draw(
-                        size = androidx.compose.ui.geometry.Size(currentSize, currentSize)
+                        size = Size(ballSize, ballSize)
                     )
                 }
             }
@@ -840,6 +975,96 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
     }
 }
 
+// ===== 갈매기 떼 효과 =====
+@Composable
+fun SeagullFlock(
+    modifier: Modifier = Modifier,
+    trigger: Int,
+    onFinished: () -> Unit
+) {
+    val seagullPainter = painterResource(id = R.drawable.seagull)
+    val progress = remember { Animatable(0f) }
+
+    // 각 갈매기마다 약간씩 다른 위치/딜레이
+    val birdsMeta = remember {
+        val count = 6
+        List(count) {
+            BirdMeta(
+                delay = it * 0.10f,                    // 순차 딜레이
+                xJitter = Random.nextFloat() * 0.08f, // 살짝 좌우 퍼짐
+                yJitter = Random.nextFloat() * 0.08f, // 살짝 상하 퍼짐
+                scale = 0.8f + Random.nextFloat() * 0.4f
+            )
+        }
+    }
+
+    LaunchedEffect(trigger) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 2200, easing = FastOutSlowInEasing)
+        )
+        onFinished()
+    }
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        // 오른쪽 중앙 → 왼쪽 상단
+        val startX = w * 0.9f
+        val startY = h * 0.4f
+        val endX = w * 0.1f
+        val endY = h * 0.1f
+
+        birdsMeta.forEach { bird ->
+            val tRaw = progress.value - bird.delay
+            if (tRaw <= 0f || tRaw >= 1.2f) return@forEach
+            val t = tRaw.coerceIn(0f, 1f)
+
+            val x = startX + (endX - startX) * t - bird.xJitter * w
+            val y = startY + (endY - startY) * t - bird.yJitter * h
+
+            // 멀어질수록 작아지도록
+            val baseSize = w * 0.12f
+            val sizeFactor = bird.scale * (1f - t * 0.3f)
+            val birdWidth = baseSize * sizeFactor
+            val intrinsic = seagullPainter.intrinsicSize
+            val ratio =
+                if (intrinsic.width > 0 && intrinsic.height > 0) intrinsic.height / intrinsic.width else 1f
+            val birdHeight = birdWidth * ratio
+
+            // 날갯짓 느낌: 위아래 살짝 흔들기
+            val flapPhase = (t * 4f * Math.PI).toFloat()
+            val flapOffset = kotlin.math.sin(flapPhase) * (birdHeight * 0.08f)
+
+            val topLeft = Offset(
+                x = x - birdWidth / 2f,
+                y = y - birdHeight / 2f + flapOffset.toFloat()
+            )
+
+            val alpha = 1f - t * 0.3f
+
+            translate(left = topLeft.x, top = topLeft.y) {
+                with(seagullPainter) {
+                    draw(
+                        size = androidx.compose.ui.geometry.Size(birdWidth, birdHeight),
+                        alpha = alpha
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class BirdMeta(
+    val delay: Float,
+    val xJitter: Float,
+    val yJitter: Float,
+    val scale: Float
+)
+
+// ===== 기타 기존 함수들 =====
 @Composable
 private fun getWiggleDrawable(costumeUrl: String): Int {
     val context = LocalContext.current

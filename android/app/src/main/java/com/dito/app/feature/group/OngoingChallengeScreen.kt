@@ -1,5 +1,4 @@
 package com.dito.app.feature.group
-
 import android.graphics.Bitmap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -66,8 +65,8 @@ import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.playWiggleSound
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.rotate
+import androidx.core.graphics.rotationMatrix
 import com.dito.app.core.ui.designsystem.DitoShapes
-import com.dito.app.core.ui.designsystem.Primary
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -104,191 +103,185 @@ fun OngoingChallengeScreen(
                 .background(Color.White)
                 .verticalScroll(rememberScrollState())
         ) {
-            // 상단 레몬나무 배경 이미지
+        // 상단 레몬나무 배경 이미지
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(410f / 635f)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.test),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // 정보 아이콘 (우측 상단)
+            BounceClickable(
+                onClick = { isChallengeGuideVisible = true },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) { isPressed ->
+                Image(
+                    painter = painterResource(id = R.drawable.question),
+                    contentDescription = "Info",
+                    modifier = Modifier.size(32.dp),
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color.Black)
+                )
+            }
+
+            // 나무 팻말 (우측 로프 상단)
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(410f / 635f)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 20.dp, y = 150.dp)
+                    .width(210.dp)
+                    .height(140.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.test),
-                    contentDescription = null,
+                    painter = painterResource(id = R.drawable.wooden_sign),
+                    contentDescription = "Betting Sign",
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
-
-                // 정보 아이콘 (우측 상단)
-                BounceClickable(
-                    onClick = { isChallengeGuideVisible = true },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                ) { isPressed ->
-                    Image(
-                        painter = painterResource(id = R.drawable.question),
-                        contentDescription = "Info",
-                        modifier = Modifier.size(32.dp),
-                        contentScale = ContentScale.Fit,
-                        colorFilter = ColorFilter.tint(Color.Black)
-                    )
-                }
-
-                // 나무 팻말 (우측 로프 상단)
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 20.dp, y = 150.dp)
-                        .width(210.dp)
-                        .height(140.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.wooden_sign),
-                        contentDescription = "Betting Sign",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .offset(x = 10.dp, y = (-18).dp)
-                            .rotate(20f),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically,
-
-                        ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.lemon),
-                            contentDescription = "Lemon",
-                            modifier = Modifier.size(24.dp),
-                            contentScale = ContentScale.Fit
-                        )
-//                    Spacer(modifier = Modifier.width(4.dp))
-                        StrokeText(
-                            text = "x${uiState.totalBetting}",
-                            style = DitoTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            fillColor = Color(0xFFFFF8DC),
-                            strokeColor = Color(0xFF3E2723),
-                            strokeWidth = 1.dp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
-                // 그룹 정보
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = (-20).dp, y = (-15).dp)
-                        .width(200.dp)
-                        .height(150.dp)
-                        .clickable { isInfoPanelVisible = !isInfoPanelVisible },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.challenge),
-                            contentDescription = "Challenge Sign",
-                            modifier = Modifier.matchParentSize(),
-                            contentScale = ContentScale.Fit
-                        )
-
-                        StrokeText(
-                            text = uiState.groupName,
-                            style = DitoTypography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                            fillColor = Color.White,
-                            strokeColor = Color.Black,
-                            strokeWidth = 2.dp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .offset(y = 5.dp)
-                        )
-                    }
-                }
 
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter),
-                    horizontalArrangement = Arrangement.spacedBy(
-                        4.dp,
-                        Alignment.CenterHorizontally
-                    ),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    // 처음 위치 순서대로 캐릭터 표시 (순위가 바뀌어도 줄 위치는 고정)
-                    // 항상 4개의 슬롯 유지
-                    val displayOrder = uiState.initialUserOrder.take(4)
-                    repeat(4) { index ->
-                        if (index < displayOrder.size) {
-                            val userId = displayOrder[index]
-                            val rankingItem = rankings.find { it.userId == userId }
-                            if (rankingItem != null) {
-                                key(rankingItem.userId) {
-                                    CharacterView(
-                                        costumeItemId = rankingItem.costumeItemId,
-                                        rank = rankingItem.rank,
-                                        maxRank = rankings.size.coerceAtMost(4),
-                                        currentAppPackage = rankingItem.currentAppPackage,
-                                        isMe = rankingItem.isMe,
-                                        showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
-                                        onClick = {
-                                            if (!rankingItem.isMe) {
-                                                viewModel.pokeMember(rankingItem.userId)
-                                            }
-                                        }
-                                    )
-                                }
-                            } else {
-                                Spacer(modifier = Modifier.width(60.dp))
-                            }
-                        } else {
-                            // 빈 슬롯
-                            Spacer(modifier = Modifier.width(60.dp))
-                        }
-                    }
-                }
+                        .align(Alignment.Center)
+                        .offset(x = 10.dp, y = (-18).dp).rotate(20f),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
 
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.lemon),
+                        contentDescription = "Lemon",
+                        modifier = Modifier.size(24.dp),
+                        contentScale = ContentScale.Fit
+                    )
+//                    Spacer(modifier = Modifier.width(4.dp))
+                    StrokeText(
+                        text = "x${uiState.totalBetting}",
+                        style = DitoTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        fillColor = Color(0xFFFFF8DC),
+                        strokeColor = Color(0xFF3E2723),
+                        strokeWidth = 1.dp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // 그룹 정보
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = (-20).dp, y = (-15).dp)
+                    .width(200.dp)
+                    .height(150.dp)
+                    .clickable { isInfoPanelVisible = !isInfoPanelVisible },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.challenge),
+                        contentDescription = "Challenge Sign",
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    StrokeText(
+                        text = uiState.groupName,
+                        style = DitoTypography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        fillColor = Color.White,
+                        strokeColor = Color.Black,
+                        strokeWidth = 2.dp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp).offset(y = 5.dp)
+                    )
+                }
             }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.Bottom
             ) {
-                // 처음 위치 순서대로 정보 카드 표시
-                // 항상 4개의 카드 유지
+                // 처음 위치 순서대로 캐릭터 표시 (순위가 바뀌어도 줄 위치는 고정)
+                // 항상 4개의 슬롯 유지
                 val displayOrder = uiState.initialUserOrder.take(4)
                 repeat(4) { index ->
                     if (index < displayOrder.size) {
                         val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
-                        UserInfoCard(
-                            nickname = rankingItem?.nickname ?: "",
-                            profileImage = rankingItem?.profileImage,
-                            screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
-                            isEmpty = rankingItem == null,
-                            isMe = rankingItem?.isMe ?: false,
-                            modifier = Modifier.weight(1f)
-                        )
+                        if (rankingItem != null) {
+                            key(rankingItem.userId) {
+                                CharacterView(
+                                    costumeItemId = rankingItem.costumeItemId,
+                                    rank = rankingItem.rank,
+                                    maxRank = rankings.size.coerceAtMost(4),
+                                    currentAppPackage = rankingItem.currentAppPackage,
+                                    isMe = rankingItem.isMe,
+                                    showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
+                                    onClick = {
+                                        if (!rankingItem.isMe) {
+                                            viewModel.pokeMember(rankingItem.userId)
+                                        }
+                                    }
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(60.dp))
+                        }
                     } else {
-                        UserInfoCard(
-                            nickname = "",
-                            profileImage = null,
-                            screenTime = "",
-                            isEmpty = true,
-                            isMe = false,
-                            modifier = Modifier.weight(1f)
-                        )
+                        // 빈 슬롯
+                        Spacer(modifier = Modifier.width(60.dp))
                     }
                 }
             }
+
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp, horizontal = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // 처음 위치 순서대로 정보 카드 표시
+            // 항상 4개의 카드 유지
+            val displayOrder = uiState.initialUserOrder.take(4)
+            repeat(4) { index ->
+                if (index < displayOrder.size) {
+                    val userId = displayOrder[index]
+                    val rankingItem = rankings.find { it.userId == userId }
+                    UserInfoCard(
+                        nickname = rankingItem?.nickname ?: "",
+                        profileImage = rankingItem?.profileImage,
+                        screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
+                        isEmpty = rankingItem == null,
+                        isMe = rankingItem?.isMe ?: false,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    UserInfoCard(
+                        nickname = "",
+                        profileImage = null,
+                        screenTime = "",
+                        isEmpty = true,
+                        isMe = false,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
         }
 
         // 나무 상자 방 정보 모달
@@ -332,9 +325,7 @@ fun OngoingChallengeScreen(
                                 strokeColor = Color(0xFF3E2723),
                                 strokeWidth = 2.dp,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .offset(y = 5.dp)
+                                modifier = Modifier.fillMaxWidth().offset(y=5.dp)
                             )
 
                             // 구분선
@@ -540,12 +531,12 @@ fun UserInfoCard(
     Box(
         modifier = modifier
             .background(
-                if (isMe) Primary else Color.White,
+                if (isMe) Color(0xFFFFEB3B).copy(alpha = 0.2f) else Color.White,
                 RoundedCornerShape(8.dp)
             )
             .border(
                 width = if (isMe) 3.dp else 2.dp,
-                color = Color.Black,
+                color = if (isMe) Color(0xFFFFEB3B) else Color.Black,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(4.dp)
@@ -685,8 +676,7 @@ fun CharacterView(
     androidx.compose.runtime.LaunchedEffect(rank) {
         if (previousRank.value != rank) {
             isAnimating.value = true
-            val previousHeight =
-                (baseHeight - (previousRank.value - 1) * 60.dp).coerceIn(minHeight, maxHeight)
+            val previousHeight = (baseHeight - (previousRank.value - 1) * 60.dp).coerceIn(minHeight, maxHeight)
             val targetHeight = (baseHeight - (rank - 1) * 60.dp).coerceIn(minHeight, maxHeight)
             val rankDiff = kotlin.math.abs(rank - previousRank.value)
             val animationTarget = rankDiff * 4f
@@ -824,20 +814,19 @@ fun CharacterView(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.speech_bubble_2),
+                            painter = painterResource(id = R.drawable.speech_bubble),
                             contentDescription = "Poke Bubble",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
                         Text(
-                            text = if (showChain) "안뇽" else "아얏!",
+                            text = if (showChain) "It's me" else "아얏!",
                             style = DitoTypography.labelMedium,
                             color = Color.Black,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .align(Alignment.Center)
                                 .padding(bottom = 6.dp)
-                                .offset(y = -4.dp)
                         )
                     }
                 }

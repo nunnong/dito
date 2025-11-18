@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DailyReportResponse(
     val id: Int,
+    val status: String,
     @SerialName("reportOverview")
     val reportOverview: String,
     val insights: List<InsightItem>,
@@ -29,6 +30,7 @@ data class InsightItem(
  * UI에서 사용할 데이터 모델
  */
 data class DailyReportData(
+    val status: String,
     val userName: String,
     val costumeUrl: String,
     val missionCompletionRate: Int,

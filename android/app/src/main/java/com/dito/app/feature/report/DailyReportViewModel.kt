@@ -10,6 +10,7 @@ import com.dito.app.core.network.ApiService
 import com.dito.app.core.repository.HomeRepository
 import com.dito.app.core.storage.AuthTokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,8 @@ class DailyReportViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<DailyReportUiState>(DailyReportUiState.Loading)
     val uiState: StateFlow<DailyReportUiState> = _uiState.asStateFlow()
+
+    private var reportPollingJob: Job? = null
 
     fun loadDailyReport() {
         viewModelScope.launch {
@@ -79,6 +82,7 @@ class DailyReportViewModel @Inject constructor(
                         }
 
                         val uiData = DailyReportData(
+                            status = reportData.status,
                             userName = userName,
                             costumeUrl = costumeUrl,
                             missionCompletionRate = reportData.missionSuccessRate,
@@ -91,7 +95,14 @@ class DailyReportViewModel @Inject constructor(
                             advice = reportData.advice
                         )
 
-                        _uiState.value = DailyReportUiState.Success(uiData)
+                        // status가 COMPLETED이면 Success 상태로 전환하고 폴링 중지
+                        if (reportData.status == "COMPLETED") {
+                            _uiState.value = DailyReportUiState.Success(uiData)
+                            stopReportPolling()
+                        } else {
+                            // IN_PROGRESS 상태는 Loading으로 유지
+                            _uiState.value = DailyReportUiState.Loading
+                        }
                     } else {
                         _uiState.value = DailyReportUiState.Error("데이터를 불러올 수 없습니다")
                     }
@@ -106,5 +117,27 @@ class DailyReportViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun startReportPolling() {
+        // 기존 폴링이 있다면 중지
+        stopReportPolling()
+
+        reportPollingJob = viewModelScope.launch {
+            while (true) {
+                loadDailyReport()
+                delay(1000L) // 1초 대기
+            }
+        }
+    }
+
+    fun stopReportPolling() {
+        reportPollingJob?.cancel()
+        reportPollingJob = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopReportPolling()
     }
 }
