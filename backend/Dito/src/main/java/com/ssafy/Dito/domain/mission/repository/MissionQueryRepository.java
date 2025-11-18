@@ -9,6 +9,9 @@ import com.ssafy.Dito.domain.mission.dto.response.QMissionRes;
 import com.ssafy.Dito.domain.mission.entity.QMission;
 import com.ssafy.Dito.domain.missionResult.entity.QMissionResult;
 import com.ssafy.Dito.global.util.PageUtils;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -82,5 +85,36 @@ public class MissionQueryRepository {
             .from(mission)
             .where(mission.id.eq(missionId))
             .fetch();
+    }
+
+    public List<MissionRes> getMissionsByUserIdAndDate(Long userId, LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.plusDays(1).atStartOfDay();
+
+        Timestamp startTimestamp = Timestamp.valueOf(startOfDay);
+        Timestamp endTimestamp = Timestamp.valueOf(endOfDay);
+
+        return jpaQueryFactory
+                .select(new QMissionRes(
+                        mission.id,
+                        mission.missionType,
+                        mission.missionText,
+                        mission.coinReward,
+                        mission.status,
+                        missionResult.result,
+                        mission.triggerTime,
+                        mission.durationSeconds,
+                        missionResult.feedback,
+                        mission.statChangeSelfCare,
+                        mission.statChangeFocus,
+                        mission.statChangeSleep
+                ))
+                .from(mission)
+                .leftJoin(missionResult).on(missionResult.mission.eq(mission))
+                .where(mission.user.id.eq(userId)
+                        .and(mission.triggerTime.goe(startTimestamp))
+                        .and(mission.triggerTime.lt(endTimestamp)))
+                .orderBy(mission.triggerTime.desc())
+                .fetch();
     }
 }

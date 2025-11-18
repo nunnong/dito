@@ -5,6 +5,7 @@ import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionTextUpdateReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
 import com.ssafy.Dito.domain.mission.dto.response.MissionCreateRes;
+import com.ssafy.Dito.domain.mission.dto.response.MissionRes;
 import com.ssafy.Dito.domain.mission.service.MissionService;
 import com.ssafy.Dito.domain.missionResult.dto.request.MissionResultReq;
 import com.ssafy.Dito.domain.missionResult.service.MissionResultService;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -97,5 +99,14 @@ public class AiController {
         return ApiResponse.ok(res);
     }
 
+    @Operation(summary = "특정 날짜의 미션 조회")
+    @GetMapping("/mission/user/{userId}")
+    public ResponseEntity<ListResult<MissionRes>> getMissionsByDate(
+        @PathVariable Long userId,
+        @RequestParam String date
+    ) {
+        List<MissionRes> res = missionService.getMissionsByUserIdAndDate(userId, date);
+        return ApiResponse.ok(res);
+    }
 
 }

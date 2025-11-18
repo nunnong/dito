@@ -15,6 +15,9 @@ import com.ssafy.Dito.domain.user.repository.UserRepository;
 import com.ssafy.Dito.global.exception.BadRequestException;
 import com.ssafy.Dito.global.jwt.util.JwtAuthentication;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -71,5 +74,16 @@ public class MissionService {
         Mission mission = missionRepository.getByIdAndUserId(req.missionId(), req.userId());
 
         mission.updateMissionText(req);
+    }
+
+    public List<MissionRes> getMissionsByUserIdAndDate(Long userId, String dateStr) {
+        LocalDate date;
+        try {
+            date = LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException("Invalid date format. Expected format: YYYY-MM-DD");
+        }
+
+        return missionQueryRepository.getMissionsByUserIdAndDate(userId, date);
     }
 }
