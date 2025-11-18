@@ -29,7 +29,6 @@ class MissionTracker @Inject constructor(
 ){
     companion object{
         private const val TAG = "MissionTracker"
-        private const val START_DELAY_SECONDS = 20
 
         @Volatile
         private var currentMissionId: String? = null
@@ -47,9 +46,6 @@ class MissionTracker @Inject constructor(
         private var missionStartTime: Long = 0L
     }
 
-    private val handler = Handler(Looper.getMainLooper())
-    private var startTrackingRunnable: Runnable? = null
-
     fun startTracking(missionData: MissionData){
         if (currentMissionId == missionData.missionId) {
             Log.w(TAG, "⚠️ 이미 추적 중인 미션: ${missionData.missionId}")
@@ -58,7 +54,6 @@ class MissionTracker @Inject constructor(
 
         if (currentMissionId != null) {
             Log.w(TAG, "⚠️ 기존 미션($currentMissionId) 종료 후 새 미션 시작")
-            startTrackingRunnable?.let { handler.removeCallbacks(it) }
             WorkManager.getInstance(context)
                 .cancelUniqueWork("mission_eval_$currentMissionId")
             stopTracking()
@@ -67,14 +62,10 @@ class MissionTracker @Inject constructor(
         Log.i(TAG, "🎯 미션 수신: ${missionData.missionId}")
         Log.d(TAG, "   타입: ${missionData.missionType}")
         Log.d(TAG, "   지시: ${missionData.instruction}")
-        Log.d(TAG, "   ${START_DELAY_SECONDS}초 후 시작 예정")
+        Log.d(TAG, "   즉시 시작")
 
-        // 20초 후 추적 시작 (Progress 알림 표시)
-        startTrackingRunnable = Runnable {
-            Log.i(TAG, "⏰ ${START_DELAY_SECONDS}초 대기 완료 - 미션 시작")
-            actualStartTracking(missionData)
-        }
-        handler.postDelayed(startTrackingRunnable!!, START_DELAY_SECONDS * 1000L)
+        // 즉시 추적 시작 (Progress 알림 표시)
+        actualStartTracking(missionData)
     }
 
     private fun actualStartTracking(missionData: MissionData) {
