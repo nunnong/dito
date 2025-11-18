@@ -169,6 +169,14 @@ fun MissionNotificationScreen(
         }
     }
 
+    // 딥링크로 특정 미션 모달 자동 열기
+    LaunchedEffect(initialMissionId, uiState.notifications) {
+        if (initialMissionId != null && uiState.notifications.isNotEmpty()) {
+            delay(300)  // 화면 로드 대기
+            viewModel.openMissionById(initialMissionId.toLongOrNull())
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -318,20 +326,13 @@ fun NotificationItem(
     // 진행률 계산 (실시간)
     var progress by remember { mutableFloatStateOf(0f) }
 
-    // 미션 시간이 끝났는지 확인 (평가 대기 상태)
-    var isWaitingForEvaluation by remember { mutableStateOf(false) }
-
     LaunchedEffect(notification.triggerTime, notification.duration) {
         while (notification.status == MissionStatus.IN_PROGRESS) {
             progress = calculateProgress(notification.triggerTime, notification.duration)
-
-            // 진행률이 100%에 도달하면 평가 대기 상태로 전환
-            if (progress >= 1f) {
-                isWaitingForEvaluation = true
-                break
-            }
-
             delay(1000L)  // 1초마다 업데이트
+
+            // 100% 완료되면 루프 종료
+            if (progress >= 1f) break
         }
     }
 
@@ -373,97 +374,74 @@ fun NotificationItem(
                     .weight(1f)
                     .padding(vertical = 8.dp, horizontal = 6.dp)
             ) {
-                if (isWaitingForEvaluation) {
-                    // 평가 대기 중 상태
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-//                        CircularProgressIndicator(
-//                            modifier = Modifier.size(28.dp),
-//                            color = Primary,
-//                            strokeWidth = 3.dp
-//                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "평가를 기다려주세요...",
-                            color = OnSurface,
-                            style = DitoCustomTextStyles.titleDMedium,
-                            textAlign = TextAlign.Center
+                // AI가 준 미션 내용 (크게)
+                Text(
+                    text = notification.title,
+                    color = OnSurface,
+                    style = DitoCustomTextStyles.titleKSmall
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 스탯 변화 표시 (pill 버튼 형태)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (notification.statChangeSelfCare > 0) {
+                        StatPill(
+                            label = "자기관리 +${notification.statChangeSelfCare}",
+                            backgroundColor = Primary
                         )
                     }
-                } else {
-                    // 일반 미션 정보 표시
-                    // AI가 준 미션 내용 (크게)
-                    Text(
-                        text = notification.title,
-                        color = OnSurface,
-                        style = DitoCustomTextStyles.titleKSmall
+                    if (notification.statChangeFocus > 0) {
+                        StatPill(
+                            label = "집중 +${notification.statChangeFocus}",
+                            backgroundColor = Secondary
+                        )
+                    }
+                    if (notification.statChangeSleep > 0) {
+                        StatPill(
+                            label = "수면 +${notification.statChangeSleep}",
+                            backgroundColor = Tertiary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // 레몬 이미지 + 개수
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.lemon),
+                        contentDescription = "Lemon",
+                        modifier = Modifier.size(20.dp)
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${notification.coinReward}",
+                        color = OnSurface,
+                        style = DitoCustomTextStyles.titleDMedium
+                    )
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                    // 스탯 변화 표시 (pill 버튼 형태)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (notification.statChangeSelfCare > 0) {
-                            StatPill(
-                                label = "자기관리 +${notification.statChangeSelfCare}",
-                                backgroundColor = Primary
-                            )
-                        }
-                        if (notification.statChangeFocus > 0) {
-                            StatPill(
-                                label = "집중 +${notification.statChangeFocus}",
-                                backgroundColor = Secondary
-                            )
-                        }
-                        if (notification.statChangeSleep > 0) {
-                            StatPill(
-                                label = "수면 +${notification.statChangeSleep}",
-                                backgroundColor = Tertiary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    // 레몬 이미지 + 개수
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.lemon),
-                            contentDescription = "Lemon",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "${notification.coinReward}",
-                            color = OnSurface,
-                            style = DitoCustomTextStyles.titleDMedium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 진행바 (진행 중일 때만)
-                    if (notification.status == MissionStatus.IN_PROGRESS) {
-                        LinearProgressIndicator(
-                            progress = progress,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 16.dp)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = Primary,  // 보라색
-                            trackColor = Color(0xFF2A2A2A)
-                        )
-                    }
+                // 진행바 (진행 중일 때만)
+                if (notification.status == MissionStatus.IN_PROGRESS) {
+                    LinearProgressIndicator(
+                        progress = progress,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 16.dp)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = Primary,  // 보라색
+                        trackColor = Color(0xFF2A2A2A)
+                    )
                 }
             }
 
