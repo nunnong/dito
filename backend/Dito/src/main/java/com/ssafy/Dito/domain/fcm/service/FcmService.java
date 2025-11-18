@@ -173,6 +173,11 @@ public class FcmService {
         data.put("title", request.title());
         data.put("message", request.message());
 
+        // FCM 타입 추가 (intervention | evaluation)
+        if (request.type() != null && !request.type().isBlank()) {
+            data.put("type", request.type());
+        }
+
         // 미션 ID가 있으면 Mission 정보 조회 및 추가
         if (request.missionId() != null) {
             Mission mission = missionRepository.findById(request.missionId())

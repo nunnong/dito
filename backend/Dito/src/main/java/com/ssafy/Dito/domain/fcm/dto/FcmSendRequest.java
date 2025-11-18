@@ -16,7 +16,8 @@ import jakarta.validation.constraints.NotNull;
   "user_id": 123,
   "title": "디토",
   "message": "잠시 휴식을 취해보는 건 어떨까요?",
-  "mission_id": 42
+  "mission_id": 42,
+  "type": "intervention"
 }
 """)
 public record FcmSendRequest(
@@ -35,5 +36,8 @@ public record FcmSendRequest(
 
         @JsonProperty("mission_id")
         @Schema(description = "미션 ID (선택) - 있으면 Mission 테이블 조회", example = "42")
-        Long missionId
+        Long missionId,
+
+        @Schema(description = "FCM 타입 (intervention | evaluation)", example = "intervention")
+        String type
 ) {}
