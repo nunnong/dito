@@ -1,5 +1,7 @@
 package com.ssafy.Dito.domain.report.controller;
 
+import com.ssafy.Dito.domain.ai.report.dto.DailyActivityQueryRes;
+import com.ssafy.Dito.domain.ai.report.service.DailyUserActivityService;
 import com.ssafy.Dito.domain.report.dto.request.ReportReq;
 import com.ssafy.Dito.domain.report.dto.request.ReportUpdateReq;
 import com.ssafy.Dito.domain.report.dto.response.ReportRes;
@@ -13,8 +15,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api")
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReportInternalController {
 
     private final ReportService reportService;
+    private final DailyUserActivityService dailyUserActivityService;
 
     @PostMapping("/report")
     @Operation(
@@ -86,5 +92,31 @@ public class ReportInternalController {
     ) {
         ReportRes response = reportService.updateReportForAi(reportId, request);
         return ApiResponse.ok(response);
+    }
+
+    @GetMapping("/activity/{userId}")
+    @Operation(
+        summary = "일일 사용자 활동 조회 (MongoDB)",
+        description = """
+            특정 날짜의 사용자 활동 데이터를 MongoDB에서 조회합니다.
+            - X-API-Key 헤더 인증이 필요합니다.
+            - 앱 사용 로그와 미디어 세션 이벤트를 포함합니다.
+            """
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "활동 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "X-API-Key 인증 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "사용자 활동을 찾을 수 없습니다")
+    })
+    public ResponseEntity<SingleResult<DailyActivityQueryRes>> getDailyActivity(
+            @Parameter(description = "API Key (X-API-Key 헤더)", required = true)
+            @RequestHeader("X-API-Key") String apiKey,
+            @Parameter(description = "사용자 ID", required = true)
+            @PathVariable Long userId,
+            @Parameter(description = "조회할 날짜 (ISO 8601 형식: YYYY-MM-DD)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+    ) {
+        DailyActivityQueryRes res = dailyUserActivityService.getActivity(userId, date);
+        return ApiResponse.ok(res);
     }
 }

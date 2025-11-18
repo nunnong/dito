@@ -1,9 +1,6 @@
 package com.ssafy.Dito.domain.ai.api.controller;
 
 import com.ssafy.Dito.domain.ai.api.dto.AiReq;
-import com.ssafy.Dito.domain.ai.report.dto.DailyActivityQueryRes;
-import com.ssafy.Dito.domain.ai.report.service.DailyUserActivityService;
-import com.ssafy.Dito.domain.mission.dto.request.AiMissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionReq;
 import com.ssafy.Dito.domain.mission.dto.request.MissionTextUpdateReq;
 import com.ssafy.Dito.domain.mission.dto.response.AiMissionRes;
@@ -11,12 +8,8 @@ import com.ssafy.Dito.domain.mission.dto.response.MissionCreateRes;
 import com.ssafy.Dito.domain.mission.service.MissionService;
 import com.ssafy.Dito.domain.missionResult.dto.request.MissionResultReq;
 import com.ssafy.Dito.domain.missionResult.service.MissionResultService;
-import com.ssafy.Dito.domain.report.dto.request.ReportReq;
-import com.ssafy.Dito.domain.report.dto.response.ReportRes;
-import com.ssafy.Dito.domain.report.service.ReportService;
 import com.ssafy.Dito.domain.user.dto.response.UserInfoRes;
 import com.ssafy.Dito.domain.user.service.UserService;
-import com.ssafy.Dito.domain.weaklyGoal.dto.request.UserWeeklyGoalReq;
 import com.ssafy.Dito.domain.weaklyGoal.dto.response.UserWeeklyGoalRes;
 import com.ssafy.Dito.domain.weaklyGoal.service.WeeklyGoalService;
 import com.ssafy.Dito.global.dto.ApiResponse;
@@ -27,10 +20,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,7 +29,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -52,8 +42,6 @@ public class AiController {
     private final MissionResultService missionResultService;
     private final UserService userService;
     private final WeeklyGoalService weeklyGoalService;
-    private final ReportService reportService;
-    private final DailyUserActivityService dailyUserActivityService;
 
     @Operation(summary = "미션 등록")
     @PostMapping("/mission")
@@ -109,23 +97,5 @@ public class AiController {
         return ApiResponse.ok(res);
     }
 
-    @Operation(summary = "AI 리포트 저장 (PostgreSQL)")
-    @PostMapping("/ai/report")
-    public ResponseEntity<SingleResult<ReportRes>> saveReport(
-        @Valid @RequestBody ReportReq req
-    ) {
-        ReportRes res = reportService.createReportForAi(req);
-        return ApiResponse.ok(res);
-    }
-
-    @Operation(summary = "일일 사용자 활동 조회 (MongoDB)")
-    @GetMapping("/ai/activity/{userId}")
-    public ResponseEntity<SingleResult<DailyActivityQueryRes>> getDailyActivity(
-        @PathVariable Long userId,
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
-    ) {
-        DailyActivityQueryRes res = dailyUserActivityService.getActivity(userId, date);
-        return ApiResponse.ok(res);
-    }
 
 }
