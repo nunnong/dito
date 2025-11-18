@@ -16,6 +16,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
@@ -349,106 +351,126 @@ private fun ShopItemCard(
     item: ShopItem,
     onPurchase: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .width(120.67.dp)
-            .height(139.dp)
-            .background(Color.White, RoundedCornerShape(4.dp))
-            .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+
+    Box(modifier = Modifier
+        .width(120.67.dp)
+        .height(139.dp)
     ) {
-        Box(
+        Column( // This is the card itself
             modifier = Modifier
-                .aspectRatio(1f)
-                .fillMaxWidth()
-                .background(Color(0xFFF5EBD2)),
-            contentAlignment = Alignment.Center
+                .fillMaxSize() // Fill the parent Box
+                .background(Color.White, RoundedCornerShape(4.dp))
+                .border(1.dp, Color.Black, RoundedCornerShape(4.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            AsyncImage(
-                model = item.imageUrl,
-                contentDescription = item.name,
-                modifier = Modifier.size(70.dp),
-                contentScale = ContentScale.Fit,
-                onSuccess = {
-                    android.util.Log.d("ShopItemCard", "Image loaded successfully: ${item.imageUrl}")
-                },
-                onError = { error ->
-                    android.util.Log.e("ShopItemCard", "Image loading failed for ${item.imageUrl}: ${error.result.throwable?.message}")
+            Box( // This is the image area
+                modifier = Modifier
+                    .aspectRatio(1f)
+                    .fillMaxWidth()
+                    .background(Color(0xFFF5EBD2)),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = item.name,
+                    modifier = Modifier
+                        .size(70.dp)
+                        .then(if (item.isPurchased) Modifier.alpha(0.3f) else Modifier), // Revert to translucent image
+                    contentScale = ContentScale.Fit,
+                    onSuccess = {
+                        android.util.Log.d("ShopItemCard", "Image loaded successfully: ${item.imageUrl}")
+                    },
+                    onError = { error ->
+                        android.util.Log.e("ShopItemCard", "Image loading failed for ${item.imageUrl}: ${error.result.throwable?.message}")
+                    }
+                )
+
+                // Removed the semi-transparent light gray overlay box here
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (item.isPurchased) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(28.dp)
+                                    .background(Color.Black, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "보유중",
+                                    style = DitoCustomTextStyles.titleDSmall,
+                                    color = Color.White
+                                )
+                            }            } else {
+                var isPressed by remember { mutableStateOf(false) }
+                val scale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.85f else 1f,
+                    label = "purchase_button_scale"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(28.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .background(Primary, CircleShape)
+                        .border(1.dp, Color.Black, CircleShape)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    isPressed = true
+                                    tryAwaitRelease()
+                                    isPressed = false
+                                },
+                                onTap = {
+                                    onPurchase()
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = item.price.toString(),
+                            style = DitoCustomTextStyles.titleDSmall,
+                            color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.lemon),
+                            contentDescription = "Coin",
+                            modifier = Modifier.size(17.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
                 }
-            )
+            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
         if (item.isPurchased) {
-            Box(
+            // Owned stamp icon
+            Image(
+                painter = painterResource(id = R.drawable.owned), // Use owned.png
+                contentDescription = "Owned stamp",
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(28.dp)
-                    .background(Color.Black, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "보유중",
-                    style = DitoCustomTextStyles.titleDSmall,
-                    color = Color.White
-                )
-            }
-        } else {
-            var isPressed by remember { mutableStateOf(false) }
-            val scale by animateFloatAsState(
-                targetValue = if (isPressed) 0.85f else 1f,
-                label = "purchase_button_scale"
+                    .size(60.dp) // Larger size
+                    .align(Alignment.TopStart) // Top-left corner
+                    .padding(start = 0.dp, top = 4.dp), // Keep inside card
+                contentScale = ContentScale.Fit
             )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(28.dp)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .background(Primary, CircleShape)
-                    .border(1.dp, Color.Black, CircleShape)
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                isPressed = true
-                                tryAwaitRelease()
-                                isPressed = false
-                            },
-                            onTap = {
-                                onPurchase()
-                            }
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = item.price.toString(),
-                        style = DitoCustomTextStyles.titleDSmall,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Image(
-                        painter = painterResource(id = R.drawable.lemon),
-                        contentDescription = "Coin",
-                        modifier = Modifier.size(17.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-            }
         }
     }
 }
-
 @Preview(showBackground = true)
 @Composable
 fun ShopScreenPreview() {
