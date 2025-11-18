@@ -1,62 +1,79 @@
 package com.dito.app.feature.home
 
-
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.dito.app.R
-import com.dito.app.core.data.home.HomeData
-import com.dito.app.core.ui.designsystem.*
-import coil.compose.AsyncImage
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
+import android.media.MediaPlayer
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.delay
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import com.dito.app.R
+import com.dito.app.core.data.home.HomeData
 import com.dito.app.core.ui.designsystem.BounceClickable
+import com.dito.app.core.ui.designsystem.DitoCustomTextStyles
+import com.dito.app.core.ui.designsystem.DitoHardShadow
+import com.dito.app.core.ui.designsystem.DitoSoftShadow
+import com.dito.app.core.ui.designsystem.DitoTypography
+import com.dito.app.core.ui.designsystem.Primary
 import com.dito.app.core.ui.designsystem.WiggleClickable
+import com.dito.app.core.ui.designsystem.hardShadow
 import com.dito.app.core.ui.designsystem.playPopSound
 import com.dito.app.core.ui.designsystem.playWiggleSound
-
+import com.dito.app.core.ui.designsystem.softShadow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,7 +114,6 @@ fun HomeScreen(
             }
 
             uiState.homeData != null -> {
-                // `homeData`가 null이 아닐 때만 UI를 표시
                 val homeData = uiState.homeData!!
                 HomeContent(
                     homeData = homeData,
@@ -120,7 +136,6 @@ fun HomeContent(
     val context = LocalContext.current
     var showDitoFaceDialog by remember { mutableStateOf(false) }
 
-    // Log homeData for debugging character information
     android.util.Log.d("HomeScreen", "HomeData: $homeData")
 
     val coinInteractionSource = remember { MutableInteractionSource() }
@@ -133,6 +148,73 @@ fun HomeContent(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     var animationKey by remember { mutableStateOf(0) }
+
+    // 바다 배경인지 확인 (busan 또는 ocean)
+    val isOceanBackground = remember(homeData.backgroundUrl) {
+        val isOcean = homeData.backgroundUrl?.let { url ->
+            url.contains("busan.png", ignoreCase = true) || url.contains("ocean.png", ignoreCase = true)
+        } ?: false
+        android.util.Log.d("HomeScreen", "Background URL: ${homeData.backgroundUrl}, isOceanBackground: $isOcean")
+        isOcean
+    }
+
+    // 야구장 배경인지 확인
+    val isBaseballBackground = remember(homeData.backgroundUrl) {
+        val isBaseball = homeData.backgroundUrl?.contains("baseball.png", ignoreCase = true) ?: false
+        android.util.Log.d("HomeScreen", "Background URL: ${homeData.backgroundUrl}, isBaseballBackground: $isBaseball")
+        isBaseball
+    }
+
+    // 바다 배경일 때 파도 소리 재생
+    DisposableEffect(isOceanBackground) {
+        var mediaPlayer: MediaPlayer? = null
+        if (isOceanBackground) {
+            try {
+                mediaPlayer = MediaPlayer.create(context, R.raw.busan)
+                if (mediaPlayer != null) {
+                    mediaPlayer.isLooping = true
+                    mediaPlayer.setVolume(1.0f, 1.0f)
+                    mediaPlayer.start()
+                    android.util.Log.d("HomeScreen", "파도 소리 재생 시작")
+                } else {
+                    android.util.Log.e("HomeScreen", "MediaPlayer 생성 실패")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("HomeScreen", "파도 소리 재생 오류: ${e.message}")
+            }
+        }
+        onDispose {
+            mediaPlayer?.apply {
+                try {
+                    if (isPlaying) {
+                        stop()
+                    }
+                    release()
+                    android.util.Log.d("HomeScreen", "파도 소리 정지")
+                } catch (e: Exception) {
+                    android.util.Log.e("HomeScreen", "MediaPlayer 정지 오류: ${e.message}")
+                }
+            }
+        }
+    }
+
+    // 야구장 배경일 때 야구공 소리 재생
+    DisposableEffect(isBaseballBackground) {
+        var mediaPlayer: MediaPlayer? = null
+        if (isBaseballBackground) {
+            try {
+                mediaPlayer = MediaPlayer.create(context, R.raw.baseball)
+                mediaPlayer?.setVolume(0.5f, 0.5f)
+                mediaPlayer?.setOnCompletionListener { mp -> mp.release() }
+                mediaPlayer?.start()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeContent", "Error playing baseball sound", e)
+            }
+        }
+        onDispose {
+            mediaPlayer?.release()
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -149,6 +231,7 @@ fun HomeContent(
     if (showDitoFaceDialog) {
         DitoFaceDialog(onDismiss = { showDitoFaceDialog = false })
     }
+
     // Frame 156: 메인 노란색 카드 (359x589)
     Column(
         modifier = Modifier
@@ -170,7 +253,8 @@ fun HomeContent(
                 .width(327.dp)
                 .height(477.dp)
                 .background(Color.White)
-                .border(2.dp, Color.Black), horizontalAlignment = Alignment.CenterHorizontally
+                .border(2.dp, Color.Black),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 상단 블랙 바 (Frame 165)
             Row(
@@ -194,7 +278,8 @@ fun HomeContent(
                         onClick = {
                             playPopSound(context)
                             onCartClick()
-                        }, modifier = Modifier.size(24.dp)
+                        },
+                        modifier = Modifier.size(24.dp)
                     ) { isPressed ->
                         Image(
                             painter = painterResource(id = R.drawable.cart),
@@ -208,7 +293,8 @@ fun HomeContent(
                         onClick = {
                             playPopSound(context)
                             onClosetClick()
-                        }, modifier = Modifier.size(20.dp)
+                        },
+                        modifier = Modifier.size(20.dp)
                     ) { isPressed ->
                         Image(
                             painter = painterResource(id = R.drawable.closet),
@@ -225,15 +311,14 @@ fun HomeContent(
                     onClick = {
                         playPopSound(context)
                         onSettingsClick()
-                    }, modifier = Modifier.size(24.dp)
+                    },
+                    modifier = Modifier.size(24.dp)
                 ) { isPressed ->
                     Image(
                         painter = painterResource(id = R.drawable.settings),
                         contentDescription = "settings",
                         modifier = Modifier.fillMaxSize(),
-                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(
-                            Color.White
-                        ),
+                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
                         contentScale = ContentScale.Fit
                     )
                 }
@@ -261,10 +346,27 @@ fun HomeContent(
                         },
                         onSuccess = {
                             android.util.Log.d(
-                                "HomeScreen", "배경 이미지 로딩 성공: ${homeData.backgroundUrl}"
+                                "HomeScreen",
+                                "배경 이미지 로딩 성공: ${homeData.backgroundUrl}"
                             )
-                        })
+                        }
+                    )
                 }
+
+                // 바다 배경일 때 물결 + 반짝임 효과
+                if (isOceanBackground) {
+                    OceanEffect(modifier = Modifier.fillMaxSize())
+                }
+
+                // 야구장 배경일 때 포물선 야구공 효과 (배경 위, 캐릭터 뒤)
+                if (isBaseballBackground) {
+                    BaseballEffect(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -273,7 +375,6 @@ fun HomeContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // 말풍선 이미지 + 텍스트 (애니메이션 동안만 표시) - 항상 공간 차지
                     val speechBubbleAlpha by animateFloatAsState(
                         targetValue = if (showSpeechBubble) 1f else 0f,
                         animationSpec = tween(durationMillis = 200),
@@ -292,7 +393,8 @@ fun HomeContent(
                                     .fillMaxSize()
                                     .graphicsLayer {
                                         alpha = speechBubbleAlpha
-                                    }, contentAlignment = Alignment.Center
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Image(
                                     painter = painterResource(id = R.drawable.speech_bubble),
@@ -317,22 +419,23 @@ fun HomeContent(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // 캐릭터 이미지 + 배경
+                    // 캐릭터 이미지
                     WiggleClickable(
-                        modifier = Modifier.size(110.dp), onClick = {
+                        modifier = Modifier.size(110.dp),
+                        onClick = {
                             if (!wiggleImageOverride) {
                                 scope.launch {
                                     playWiggleSound(context)
                                     showSpeechBubble = true
                                     wiggleImageOverride = true
-                                    delay(400) // Animation duration
+                                    delay(400)
                                     wiggleImageOverride = false
-                                    delay(1000) // 말풍선 추가로 보이는 시간
+                                    delay(1000)
                                     showSpeechBubble = false
                                 }
                             }
-                        }) {
-                        // 캐릭터 이미지
+                        }
+                    ) {
                         if (wiggleImageOverride) {
                             Image(
                                 painter = painterResource(id = getWiggleDrawable(homeData.costumeUrl)),
@@ -352,19 +455,23 @@ fun HomeContent(
                                 contentScale = ContentScale.Fit,
                                 onError = { error ->
                                     android.util.Log.e(
-                                        "HomeScreen", "이미지 로딩 실패", error.result.throwable
+                                        "HomeScreen",
+                                        "이미지 로딩 실패",
+                                        error.result.throwable
                                     )
                                 },
                                 onSuccess = {
                                     android.util.Log.d(
-                                        "HomeScreen", "이미지 로딩 성공"
+                                        "HomeScreen",
+                                        "이미지 로딩 성공"
                                     )
-                                })
+                                }
+                            )
                         }
                     }
                 }
 
-                // 코인 표시 - Box 내부에서 절대 위치로 배치
+                // 코인 표시
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -373,7 +480,6 @@ fun HomeContent(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 코인 박스
                     Row(
                         modifier = Modifier
                             .graphicsLayer {
@@ -387,20 +493,24 @@ fun HomeContent(
                                     scope.launch {
                                         for (i in 0..1) {
                                             lemonRotation.animateTo(
-                                                targetValue = -15f, animationSpec = tween(75)
+                                                targetValue = -15f,
+                                                animationSpec = tween(75)
                                             )
                                             lemonRotation.animateTo(
-                                                targetValue = 15f, animationSpec = tween(75)
+                                                targetValue = 15f,
+                                                animationSpec = tween(75)
                                             )
                                         }
                                         lemonRotation.animateTo(
-                                            targetValue = 0f, animationSpec = tween(75)
+                                            targetValue = 0f,
+                                            animationSpec = tween(75)
                                         )
                                     }
-                                })
+                                }
+                            )
                             .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 48.dp))
-                            .widthIn(min = 97.dp) // 최소 너비 설정
-                        .height(36.dp)
+                            .widthIn(min = 97.dp)
+                            .height(36.dp)
                             .background(Color.White, RoundedCornerShape(48.dp))
                             .border(1.dp, Color.Black, RoundedCornerShape(48.dp))
                             .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -409,7 +519,7 @@ fun HomeContent(
                     ) {
                         Text(
                             text = homeData.coinBalance.toString(),
-                            style = DitoCustomTextStyles.titleDLarge, // 22sp
+                            style = DitoCustomTextStyles.titleDLarge,
                             color = Color.Black
                         )
                         Image(
@@ -425,6 +535,7 @@ fun HomeContent(
                     }
                 }
             }
+
             // 프로그레스 바 섹션
             Column(
                 modifier = Modifier
@@ -433,7 +544,6 @@ fun HomeContent(
                     .background(Color.White),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // border-top
                 Spacer(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -445,9 +555,8 @@ fun HomeContent(
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center // Center the content vertically
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    // Add a nested column to group the items with their own spacing
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -481,7 +590,6 @@ fun HomeContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 닉네임 영역
             Column(
                 modifier = Modifier
                     .width(252.dp)
@@ -490,11 +598,11 @@ fun HomeContent(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = homeData.nickname, style = DitoTypography.headlineMedium, // 28sp
+                    text = homeData.nickname,
+                    style = DitoTypography.headlineMedium,
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                // border-bottom
                 Spacer(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -503,12 +611,12 @@ fun HomeContent(
                 )
             }
 
-            // 원형 버튼
             BounceClickable(
                 onClick = {
                     playPopSound(context)
                     showDitoFaceDialog = true
-                }, modifier = Modifier.size(60.dp)
+                },
+                modifier = Modifier.size(60.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.face_dialog_btn),
@@ -522,27 +630,233 @@ fun HomeContent(
 }
 
 @Composable
+fun OceanEffect(
+    modifier: Modifier = Modifier,
+    bottomStopRatio: Float = 0.88f
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "ocean_effect")
+
+    val waveProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wave_progress"
+    )
+
+    val shimmer by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer"
+    )
+
+    val sparkles = remember {
+        List(30) { Pair(Random.nextFloat(), Random.nextFloat()) }
+    }
+
+    Box(
+        modifier = modifier.drawWithContent {
+            drawContent()
+
+            val oceanStartY = size.height * 0.52f
+            val oceanEndY = size.height * bottomStopRatio
+            val oceanHeight = (oceanEndY - oceanStartY).coerceAtLeast(0f)
+
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0x0000CFFF),
+                        Color(0x3300CFFF),
+                        Color(0x1100CFFF)
+                    ),
+                    startY = oceanStartY,
+                    endY = oceanEndY
+                )
+            )
+
+            val twoPi = (Math.PI * 2f).toFloat()
+
+            fun drawCurvedWaveBand(
+                progress: Float,
+                phase: Float,
+                intensity: Float
+            ) {
+                if (oceanHeight <= 0f) return
+
+                val thicknessFactor = 1f - (progress * 0.7f)
+                val alphaFactor = 1f - (progress * 0.6f)
+
+                val baseCenterY = oceanStartY + oceanHeight * progress
+                val bandHeight = oceanHeight * 0.12f * thicknessFactor
+
+                val bandTopBase = (baseCenterY - bandHeight / 2f)
+                val bandBottomBase = (baseCenterY + bandHeight / 2f)
+
+                val amplitude = oceanHeight * 0.05f * thicknessFactor
+
+                val waveLength = size.width / 4f
+                val step = size.width / 40f
+
+                val path = Path()
+
+                // 아래쪽 곡선
+                path.moveTo(0f, bandBottomBase)
+                var x = 0f
+                while (x <= size.width) {
+                    val t = (x / waveLength) + (waveProgress * 1.5f) + phase
+                    val offset = (kotlin.math.sin(t * twoPi) * amplitude).toFloat()
+                    val y = (bandBottomBase + offset).coerceIn(oceanStartY, oceanEndY)
+                    path.lineTo(x, y)
+                    x += step
+                }
+
+                // 위쪽 곡선
+                x = size.width
+                while (x >= 0f) {
+                    val t = (x / waveLength) + (waveProgress * 1.5f) + phase + 0.7f
+                    val offset = (kotlin.math.sin(t * twoPi) * amplitude).toFloat()
+                    val y = (bandTopBase + offset).coerceIn(oceanStartY, oceanEndY)
+                    path.lineTo(x, y)
+                    x -= step
+                }
+
+                path.close()
+
+                drawPath(
+                    path = path,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0f),
+                            Color.White.copy(alpha = 0.8f * intensity * alphaFactor),
+                            Color.White.copy(alpha = 0.95f * intensity * alphaFactor),
+                            Color.White.copy(alpha = 0f)
+                        ),
+                        startY = bandTopBase.coerceIn(oceanStartY, oceanEndY),
+                        endY = bandBottomBase.coerceIn(oceanStartY, oceanEndY)
+                    )
+                )
+            }
+
+            drawCurvedWaveBand(progress = waveProgress, phase = 0f, intensity = 1f)
+            drawCurvedWaveBand(progress = (waveProgress + 0.35f) % 1f, phase = 0.4f, intensity = 0.8f)
+            drawCurvedWaveBand(progress = (waveProgress + 0.7f) % 1f, phase = 0.9f, intensity = 0.6f)
+
+            sparkles.forEach { (nx, ny) ->
+                val baseY = oceanStartY + ny * oceanHeight
+                val localPhase = (shimmer + nx + ny) % 1f
+                val offsetY = (kotlin.math.sin(localPhase * twoPi) * 6f).toFloat()
+
+                val y = (baseY + offsetY).coerceIn(oceanStartY, oceanEndY)
+                val alpha = (kotlin.math.sin(localPhase * Math.PI).coerceAtLeast(0.0) * 0.9).toFloat()
+                val radius = (3f + kotlin.math.sin(localPhase * Math.PI) * 2f).toFloat()
+
+                drawCircle(
+                    color = Color.White.copy(alpha = alpha),
+                    radius = radius,
+                    center = androidx.compose.ui.geometry.Offset(
+                        x = nx * this.size.width,
+                        y = y
+                    )
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun BaseballEffect(modifier: Modifier = Modifier) {
+    val ballPainter = painterResource(id = R.drawable.baseball_ball)
+
+    val progress = remember { Animatable(0f) }
+    val rotation = remember { Animatable(0f) }
+
+    // HomeScreen에 들어갈 때마다 한 번만 실행
+    LaunchedEffect(Unit) {
+        launch {
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(2600, easing = LinearEasing)
+            )
+        }
+
+        launch {
+            val flightDuration = 2600f
+            val rotationDuration = 500f
+            val totalRotations = flightDuration / rotationDuration
+            rotation.animateTo(
+                targetValue = 360f * totalRotations,
+                animationSpec = tween(flightDuration.toInt(), easing = LinearEasing)
+            )
+        }
+    }
+
+    Canvas(modifier = modifier) {
+        // 애니메이션이 끝나면 그리지 않음
+        if ((progress.value == 0f || progress.value == 1f) && !progress.isRunning) {
+            return@Canvas
+        }
+
+        val w = size.width
+        val h = size.height
+
+        val startX = -0.15f * w
+        val endX = 1.15f * w
+
+        val baseY = h * 0.42f
+        val arcHeight = h * 0.18f
+
+        fun parabola(t: Float): Float =
+            (-4f * (t - 0.5f) * (t - 0.5f) + 1f).coerceAtLeast(0f)
+
+        val x = startX + (endX - startX) * progress.value
+        val y = baseY - arcHeight * parabola(progress.value)
+
+        // 야구공 크기 두 배로
+        val startSize = w * 0.10f
+        val endSize = w * 0.24f
+        val currentSize = startSize + (endSize - startSize) * progress.value
+
+        val center = androidx.compose.ui.geometry.Offset(x, y)
+        val topLeft = androidx.compose.ui.geometry.Offset(
+            x = center.x - currentSize / 2,
+            y = center.y - currentSize / 2
+        )
+
+        rotate(degrees = rotation.value, pivot = center) {
+            translate(left = topLeft.x, top = topLeft.y) {
+                with(ballPainter) {
+                    draw(
+                        size = androidx.compose.ui.geometry.Size(currentSize, currentSize)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun getWiggleDrawable(costumeUrl: String): Int {
     val context = LocalContext.current
     val resources = context.resources
     val packageName = context.packageName
 
-    // costumeUrl에서 파일 이름 추출 (예: "tomato_1.png")
     val fileName = costumeUrl.substringAfterLast('/')
-    // 파일 이름에서 캐릭터 이름 추출 (예: "tomato")
     val characterName = fileName.substringBefore('_')
 
     if (characterName.isNotEmpty()) {
-        // wiggle 이미지 리소스 이름 생성 (예: "tomato_wiggle")
         val wiggleDrawableName = "${characterName}_wiggle"
-        // 리소스 ID 동적 조회
         val resourceId = resources.getIdentifier(wiggleDrawableName, "drawable", packageName)
         if (resourceId != 0) {
-            return resourceId // 리소스가 존재하면 해당 ID 반환
+            return resourceId
         }
     }
 
-    // 해당하는 wiggle 이미지가 없거나 URL이 비정상적인 경우 기본 이미지 반환
     return R.drawable.lemon_wiggle
 }
 
@@ -552,7 +866,6 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
     val animatedProgress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    // Animate on entry and when progress value changes
     LaunchedEffect(animationKey) {
         animatedProgress.stop()
         animatedProgress.snapTo(0f)
@@ -566,7 +879,6 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
     val scale by animateFloatAsState(if (isPressed) 0.95f else 1f, label = "progress_bar_scale")
 
     Box {
-        // Frame 172/177/178
         Row(
             modifier = Modifier
                 .graphicsLayer {
@@ -578,32 +890,36 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
                 .background(Color.Black)
                 .padding(horizontal = 16.dp)
                 .pointerInput(Unit) {
-                    detectTapGestures(onPress = {
-                        isPressed = true
-                        try {
-                            awaitRelease()
-                        } finally {
-                            isPressed = false
-                        }
-                    }, onTap = {
-                        scope.launch {
-                            animatedProgress.stop()
-                            animatedProgress.snapTo(0f)
-                            animatedProgress.animateTo(
-                                targetValue = progress, animationSpec = tween(
-                                    durationMillis = 800, easing = FastOutSlowInEasing
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            try {
+                                awaitRelease()
+                            } finally {
+                                isPressed = false
+                            }
+                        },
+                        onTap = {
+                            scope.launch {
+                                animatedProgress.stop()
+                                animatedProgress.snapTo(0f)
+                                animatedProgress.animateTo(
+                                    targetValue = progress,
+                                    animationSpec = tween(
+                                        durationMillis = 800,
+                                        easing = FastOutSlowInEasing
+                                    )
                                 )
-                            )
-                            showValue = true
-                            delay(500)
-                            showValue = false
+                                showValue = true
+                                delay(500)
+                                showValue = false
+                            }
                         }
-                    })
+                    )
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            // Frame 173
             Row(
                 modifier = Modifier
                     .width(80.dp)
@@ -613,25 +929,24 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = label, style = DitoCustomTextStyles.titleKMedium, // 16sp Bold
+                    text = label,
+                    style = DitoCustomTextStyles.titleKMedium,
                     color = Color.White
                 )
             }
 
-            // Frame 174 - 프로그레스 바
             Box(
                 modifier = Modifier
                     .width(171.dp)
                     .height(24.dp)
                     .border(1.dp, Color.White, RectangleShape),
-                contentAlignment = Alignment.CenterStart // Align content to center start
+                contentAlignment = Alignment.CenterStart
             ) {
-                // 눈금 선들 (0, 10, 20, ..., 100)
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    repeat(11) { index ->
+                    repeat(11) {
                         Spacer(
                             modifier = Modifier
                                 .width(1.dp)
@@ -641,7 +956,6 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
                     }
                 }
 
-                // Line 1 - 프로그레스 (노란색)
                 Box(
                     modifier = Modifier
                         .height(12.dp)
@@ -651,7 +965,6 @@ private fun ProgressBarItem(label: String, progress: Float, animationKey: Any?) 
             }
         }
 
-        // Tooltip that appears on press
         AnimatedVisibility(
             visible = showValue,
             modifier = Modifier
@@ -693,5 +1006,10 @@ fun HomeScreenPreview() {
         focusStatus = 50,
         sleepStatus = 90
     )
-    HomeContent(homeData = fakeHomeData, onCartClick = {}, onClosetClick = {}, onSettingsClick = {})
+    HomeContent(
+        homeData = fakeHomeData,
+        onCartClick = {},
+        onClosetClick = {},
+        onSettingsClick = {}
+    )
 }
