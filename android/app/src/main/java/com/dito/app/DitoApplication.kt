@@ -44,7 +44,7 @@ class DitoApplication : Application(), Configuration.Provider {
         // AI API 서비스 설정
         EducationalContentDetector.aiApiService = aiApiService
         // AI API 사용 여부 설정 (true: AI API 사용, false: 하드코딩 사용)
-        EducationalContentDetector.useAIApi = false  // 기본값: 하드코딩 사용
+        EducationalContentDetector.useAIApi = false
         Log.i(TAG, "✅ AI API 서비스 설정 완료 (useAIApi: ${EducationalContentDetector.useAIApi})")
 
         // 1. Realm 초기화

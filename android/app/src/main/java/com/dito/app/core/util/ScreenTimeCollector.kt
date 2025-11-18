@@ -45,7 +45,7 @@ class ScreenTimeCollector(private val context: Context) {
                 RealmConfig.getInstance()
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Realm 초기화 실패", e)
-                return 0
+                return getYouTubeUsageFromUsageStats() // 폴백: UsageStatsManager 사용
             }
 
             val sessions = realm.query<MediaSessionEvent>(
@@ -79,13 +79,57 @@ class ScreenTimeCollector(private val context: Context) {
             }
 
             val totalWatchTimeMillis = savedWatchTimeMillis + currentSessionTime
-            val totalMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
+            val realmMinutes = TimeUnit.MILLISECONDS.toMinutes(totalWatchTimeMillis).toInt()
 
-            Log.d(TAG, "YouTube 사용시간 (Realm): ${totalMinutes}분 (${totalWatchTimeMillis}ms, 교육: ${educationalCount}개 제외, 비교육: ${nonEducationalCount}개)")
+            Log.d(TAG, "YouTube 사용시간 (Realm): ${realmMinutes}분 (${totalWatchTimeMillis}ms, 교육: ${educationalCount}개 제외, 비교육: ${nonEducationalCount}개)")
 
-            return totalMinutes
+            // Realm 데이터가 없거나 0이면 UsageStatsManager로 폴백
+            if (realmMinutes == 0) {
+                val usageStatsMinutes = getYouTubeUsageFromUsageStats()
+                if (usageStatsMinutes > 0) {
+                    Log.d(TAG, "📊 Realm 데이터 없음 → UsageStatsManager 폴백: ${usageStatsMinutes}분")
+                    return usageStatsMinutes
+                }
+            }
+
+            return realmMinutes
         } catch (e: Exception) {
             Log.e(TAG, "❌ YouTube 사용시간 조회 실패", e)
+            return getYouTubeUsageFromUsageStats() // 폴백: UsageStatsManager 사용
+        }
+    }
+
+    /**
+     * UsageStatsManager를 사용하여 YouTube 사용 시간 조회 (폴백용)
+     * Realm 데이터가 없을 때 시스템 레벨의 사용 통계를 사용
+     */
+    private fun getYouTubeUsageFromUsageStats(): Int {
+        try {
+            val (startTime, endTime) = getTodayRange()
+            val usageStats = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                startTime,
+                endTime
+            )
+
+            if (usageStats == null || usageStats.isEmpty()) {
+                Log.w(TAG, "UsageStats가 비어있습니다")
+                return 0
+            }
+
+            // YouTube 패키지의 사용 시간 찾기
+            val youtubeStats = usageStats.find {
+                it.packageName == "com.google.android.youtube"
+            }
+
+            val youtubeMillis = youtubeStats?.totalTimeInForeground ?: 0L
+            val youtubeMinutes = (youtubeMillis / (1000 * 60)).toInt()
+
+            Log.d(TAG, "YouTube 사용시간 (UsageStats 폴백): ${youtubeMinutes}분")
+            return youtubeMinutes
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ UsageStats YouTube 조회 실패", e)
             return 0
         }
     }

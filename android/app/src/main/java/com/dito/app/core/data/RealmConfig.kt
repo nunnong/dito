@@ -27,7 +27,8 @@ object RealmConfig {
             )
                 .name("dito.realm")                     // 파일명
                 .schemaVersion(1)                       // 스키마 버전
-                .deleteRealmIfMigrationNeeded()         // 개발 중: 스키마 변경 시 DB 삭제
+                // .deleteRealmIfMigrationNeeded()      // 제거: 데이터 보존을 위해
+                // 스키마 변경 시 schemaVersion을 올리고, 필요하면 migration 블록 추가
                 .build()
 
             realm = Realm.open(config)
