@@ -29,7 +29,7 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
 
     @Field("date")
     @Indexed
-    private LocalDate date;
+    private String date;
 
     @Field("user_id")
     @Indexed
