@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/ai")
 @RequiredArgsConstructor
-@Tag(name = "AI Report", description = "AI 리포트 생성 요청 API")
+@Tag(name = "에이전트서버로 보냄", description = "AI 에이전트 서버 통신 API")
 public class AIReportController {
 
     private final DailyUserActivityService dailyUserActivityService;
