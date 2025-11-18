@@ -271,30 +271,34 @@ private fun CoinDisplay(
                     }
                 }
             )
-            .widthIn(min = 81.dp)
+            .width(81.dp)
             .height(36.dp)
             .hardShadow(DitoHardShadow.ButtonSmall.copy(cornerRadius = 48.dp))
             .background(Primary, CircleShape)
             .border(2.dp, Color.Black, CircleShape)
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        // Removed horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text(
-            text = coins.toString(),
-            style = DitoCustomTextStyles.titleDMedium,
-            color = Color.Black
-        )
-        Image(
-            painter = painterResource(id = R.drawable.lemon),
-            contentDescription = "Coin",
-            modifier = Modifier
-                .size(20.dp)
-                .graphicsLayer {
-                    rotationZ = lemonRotation.value
-                },
-            contentScale = ContentScale.Fit
-        )
+        Box(modifier = Modifier.fillMaxSize()) { // Use a Box to manage internal alignment
+            Text(
+                text = coins.toString(),
+                style = DitoCustomTextStyles.titleDMedium,
+                color = Color.Black,
+                modifier = Modifier.align(Alignment.CenterStart) // Align text to start
+            )
+            Image(
+                painter = painterResource(id = R.drawable.lemon),
+                contentDescription = "Coin",
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        rotationZ = lemonRotation.value
+                    }
+                    .align(Alignment.CenterEnd), // Align image to end
+                contentScale = ContentScale.Fit
+            )
+        }
     }
 }
 
