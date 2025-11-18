@@ -674,10 +674,10 @@ class SessionStateManager(
         val trackType = "TRACK_2"
         val eventIds = mutableListOf<String>()
 
-        // 교육 콘텐츠 여부 판단 (하드코딩 방식 - 동기식)
+        // 교육 콘텐츠 여부 판단
         val isEducational = EducationalContentDetector.isEducationalContent(session.title, finalChannel)
         if (isEducational) {
-            Log.d(TAG, "📚 교육 콘텐츠로 판단됨 (하드코딩) → 챌린지 시간에서 제외")
+            Log.d(TAG, "📚 교육 콘텐츠로 판단됨 → 챌린지 시간에서 제외")
         }
 
         try {

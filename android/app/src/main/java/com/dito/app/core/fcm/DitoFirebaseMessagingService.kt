@@ -71,14 +71,34 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
 
             // mission_id 존재 여부로 미션/일반 알림 구분 (AI 팀 FCM 구조에 맞춤)
             if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
-                // 미션 알림 - 미션 추적 시작
-                Log.d(TAG, "미션 알림 감지: mission_id=${data["mission_id"]}")
+                val missionId = data["mission_id"]!!
 
-                // AI 팀에서 보내는 deep_link 활용
-                val deepLink = data["deep_link"] ?: "dito://mission/${data["mission_id"]}"
-                Log.d(TAG, "딥링크: $deepLink")
+                // notification_type으로 미션 시작 vs 평가 결과 구분
+                val notificationType = data["notification_type"] ?: "mission_start"
 
-                handleMissionMessage(data, deepLink)
+                when (notificationType) {
+                    "mission_evaluation" -> {
+                        // 미션 평가 결과 알림
+                        Log.d(TAG, "미션 평가 결과 알림 감지: mission_id=$missionId")
+                        val deepLink = "dito://mission/$missionId?openDetail=true"
+                        val title = data["title"] ?: "미션 평가 완료!"
+                        val body = data["message"] ?: "AI가 당신의 미션을 평가했어요!"
+
+                        showNotification(
+                            title = title,
+                            body = body,
+                            deepLink = deepLink
+                        )
+                    }
+                    else -> {
+                        // 미션 시작 알림 - 미션 추적 시작
+                        Log.d(TAG, "미션 시작 알림 감지: mission_id=$missionId")
+                        val deepLink = data["deep_link"] ?: "dito://mission/$missionId"
+                        Log.d(TAG, "딥링크: $deepLink")
+
+                        handleMissionMessage(data, deepLink)
+                    }
+                }
             } else {
                 // 일반 알림 - 격려 메시지
                 Log.d(TAG, "일반 알림 감지 (mission_id 없음)")

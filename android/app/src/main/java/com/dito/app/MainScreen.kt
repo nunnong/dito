@@ -40,7 +40,8 @@ fun MainScreen(
     outerNavController: NavController? = null,
     // FCM 알림에서 전달된 navigation 정보
     initialNavigateTo: String? = null,
-    initialMissionId: String? = null
+    initialMissionId: String? = null,
+    initialOpenMissionDetail: Boolean = false
 ) {
     val innerNavController = rememberNavController()
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
@@ -159,7 +160,11 @@ fun MainScreen(
                 ClosetScreen(onBackClick = { innerNavController.popBackStack() })
             }
             composable("mission_notification") {
-                MissionNotificationScreen(onBackClick = { innerNavController.popBackStack() })
+                MissionNotificationScreen(
+                    onBackClick = { innerNavController.popBackStack() },
+                    initialMissionId = if (initialNavigateTo == "mission_notifications") initialMissionId else null,
+                    initialOpenDetail = initialOpenMissionDetail
+                )
             }
             composable(Route.GroupRoot.path) {
                 GroupScreen(navController = innerNavController)

@@ -1,5 +1,6 @@
 package com.dito.app.feature.missionNotification
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -115,13 +116,27 @@ fun MissionNotificationScaffold(
 fun MissionNotificationScreen(
     modifier: Modifier = Modifier,
     viewModel: MissionNotificationViewModel = hiltViewModel(),
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    initialMissionId: String? = null,
+    initialOpenDetail: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
     // 설명 다이얼로그 상태
     var showInfoDialog by remember { mutableStateOf(false) }
+
+    // FCM 알림에서 넘어왔을 때 자동으로 모달 열기
+    LaunchedEffect(initialMissionId, initialOpenDetail, uiState.notifications) {
+        if (initialOpenDetail && initialMissionId != null && uiState.notifications.isNotEmpty()) {
+            // 미션 리스트에서 해당 미션 찾기
+            val targetMission = uiState.notifications.find { it.id.toString() == initialMissionId }
+            if (targetMission != null) {
+                Log.d("MissionNotificationScreen", "🎯 자동 모달 열기: mission_id=$initialMissionId")
+                viewModel.onMissionClick(targetMission)
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -272,13 +287,20 @@ fun NotificationItem(
     // 진행률 계산 (실시간)
     var progress by remember { mutableFloatStateOf(0f) }
 
+    // 미션 시간이 끝났는지 확인 (평가 대기 상태)
+    var isWaitingForEvaluation by remember { mutableStateOf(false) }
+
     LaunchedEffect(notification.triggerTime, notification.duration) {
         while (notification.status == MissionStatus.IN_PROGRESS) {
             progress = calculateProgress(notification.triggerTime, notification.duration)
-            delay(1000L)  // 1초마다 업데이트
 
-            // 100% 완료되면 루프 종료
-            if (progress >= 1f) break
+            // 진행률이 100%에 도달하면 평가 대기 상태로 전환
+            if (progress >= 1f) {
+                isWaitingForEvaluation = true
+                break
+            }
+
+            delay(1000L)  // 1초마다 업데이트
         }
     }
 
@@ -320,74 +342,97 @@ fun NotificationItem(
                     .weight(1f)
                     .padding(vertical = 8.dp, horizontal = 6.dp)
             ) {
-                // AI가 준 미션 내용 (크게)
-                Text(
-                    text = notification.title,
-                    color = OnSurface,
-                    style = DitoCustomTextStyles.titleKSmall
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 스탯 변화 표시 (pill 버튼 형태)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (notification.statChangeSelfCare > 0) {
-                        StatPill(
-                            label = "자기관리 +${notification.statChangeSelfCare}",
-                            backgroundColor = Primary
+                if (isWaitingForEvaluation) {
+                    // 평가 대기 중 상태
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = Primary,
+                            strokeWidth = 3.dp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "평가를 기다려주세요...",
+                            color = OnSurface,
+                            style = DitoCustomTextStyles.titleDMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
-                    if (notification.statChangeFocus > 0) {
-                        StatPill(
-                            label = "집중 +${notification.statChangeFocus}",
-                            backgroundColor = Secondary
-                        )
-                    }
-                    if (notification.statChangeSleep > 0) {
-                        StatPill(
-                            label = "수면 +${notification.statChangeSleep}",
-                            backgroundColor = Tertiary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // 레몬 이미지 + 개수
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.lemon),
-                        contentDescription = "Lemon",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                } else {
+                    // 일반 미션 정보 표시
+                    // AI가 준 미션 내용 (크게)
                     Text(
-                        text = "${notification.coinReward}",
+                        text = notification.title,
                         color = OnSurface,
-                        style = DitoCustomTextStyles.titleDMedium
+                        style = DitoCustomTextStyles.titleKSmall
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                // 진행바 (진행 중일 때만)
-                if (notification.status == MissionStatus.IN_PROGRESS) {
-                    LinearProgressIndicator(
-                        progress = progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp)
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = Primary,  // 보라색
-                        trackColor = Color(0xFF2A2A2A)
-                    )
+                    // 스탯 변화 표시 (pill 버튼 형태)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (notification.statChangeSelfCare > 0) {
+                            StatPill(
+                                label = "자기관리 +${notification.statChangeSelfCare}",
+                                backgroundColor = Primary
+                            )
+                        }
+                        if (notification.statChangeFocus > 0) {
+                            StatPill(
+                                label = "집중 +${notification.statChangeFocus}",
+                                backgroundColor = Secondary
+                            )
+                        }
+                        if (notification.statChangeSleep > 0) {
+                            StatPill(
+                                label = "수면 +${notification.statChangeSleep}",
+                                backgroundColor = Tertiary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // 레몬 이미지 + 개수
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.lemon),
+                            contentDescription = "Lemon",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${notification.coinReward}",
+                            color = OnSurface,
+                            style = DitoCustomTextStyles.titleDMedium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 진행바 (진행 중일 때만)
+                    if (notification.status == MissionStatus.IN_PROGRESS) {
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 16.dp)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = Primary,  // 보라색
+                            trackColor = Color(0xFF2A2A2A)
+                        )
+                    }
                 }
             }
 

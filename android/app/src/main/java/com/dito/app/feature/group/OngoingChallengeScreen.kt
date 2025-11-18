@@ -220,7 +220,7 @@ fun StatisticsCard(
 
 
             // 친구 상태 (스크롤 가능)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             val youtubeUsers = uiState.rankings.filter {
                 !it.isMe && it.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true
@@ -229,7 +229,7 @@ fun StatisticsCard(
             if (youtubeUsers.isNotEmpty()) {
                 Text(
                     text = "👥 지금 YouTube 사용 중:",
-                    style = DitoTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    style = DitoTypography.labelLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -238,7 +238,7 @@ fun StatisticsCard(
                     val timeStr = formatSecondsToTime(seconds)
                     Text(
                         text = "🔥 ${user.nickname} - ${timeStr}",
-                        style = DitoTypography.bodySmall,
+                        style = DitoTypography.bodyMedium,
                         color = Color(0xFFFF5252)
                     )
                 }

@@ -342,7 +342,7 @@ class OngoingChallengeViewModel @Inject constructor(
             val sec = times[user.userId] ?: 0
             val min = sec / 60
             messages.add(
-                "지금 ${user.nickname}가, YouTube를 달리고 있어.\n" +
+                "지금 ${user.nickname}님이, YouTube를 달리고 있어.\n" +
                         "한 번 찔러서 숨 고르게 해볼까? 👀 (${min}분 사용)"
             )
         }
@@ -355,8 +355,8 @@ class OngoingChallengeViewModel @Inject constructor(
 
             if (gapMin <= 5) {
                 messages.add(
-                    "지금 ${first.nickname}이 1위!\n" +
-                            "${second.nickname}가 바로 뒤를 쫓는 중 🔥\n"
+                    "지금 ${first.nickname}님이 1위!\n" +
+                            "${second.nickname}님이 바로 뒤를 쫓는 중 🔥\n"
                 )
             } else {
                 messages.add(

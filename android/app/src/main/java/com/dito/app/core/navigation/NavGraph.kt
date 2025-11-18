@@ -26,7 +26,6 @@ import kotlinx.coroutines.delay
 fun DitoNavGraph(
     navController: NavHostController,
     startDestination: String = Route.Splash.path,
-
     deepLinkUri: Uri? = null
 ) {
     NavHost(
@@ -195,8 +194,7 @@ fun DitoNavGraph(
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
 
-
-            val (navigateTo, missionId) = parseDeepLink(deepLinkUri)
+            val deepLinkInfo = parseDeepLink(deepLinkUri)
 
             MainScreen(
                 onLogout = {
@@ -213,8 +211,9 @@ fun DitoNavGraph(
                 },
                 outerNavController = navController,
                 // 딥링크에서 파싱한 navigation 정보
-                initialNavigateTo = navigateTo,
-                initialMissionId = missionId
+                initialNavigateTo = deepLinkInfo.navigateTo,
+                initialMissionId = deepLinkInfo.missionId,
+                initialOpenMissionDetail = deepLinkInfo.openDetail
             )
         }
 
@@ -243,24 +242,39 @@ fun DitoNavGraph(
 }
 
 /**
+ * 딥링크 파싱 결과를 담는 데이터 클래스
+ */
+data class DeepLinkInfo(
+    val navigateTo: String? = null,
+    val missionId: String? = null,
+    val openDetail: Boolean = false
+)
+
+/**
  * 딥링크 URI를 파싱하여 navigation 정보 추출
  *
- * @param deepLinkUri 딥링크 URI (예: dito://mission/7)
- * @return Pair<navigateTo, missionId>
+ * @param deepLinkUri 딥링크 URI (예: dito://mission/7 또는 dito://mission/7?openDetail=true)
+ * @return DeepLinkInfo
  *
  * 지원하는 딥링크:
- * - dito://mission/{missionId} → ("mission_notifications", missionId)
+ * - dito://mission/{missionId} → 미션 알림 화면으로 이동
+ * - dito://mission/{missionId}?openDetail=true → 미션 알림 화면 + 모달 자동 열기
  */
-private fun parseDeepLink(deepLinkUri: Uri?): Pair<String?, String?> {
+private fun parseDeepLink(deepLinkUri: Uri?): DeepLinkInfo {
     if (deepLinkUri == null) {
-        return Pair(null, null)
+        return DeepLinkInfo()
     }
 
     return when (deepLinkUri.host) {
         "mission" -> {
             val missionId = deepLinkUri.lastPathSegment  // "7"
-            Pair("mission_notifications", missionId)
+            val openDetail = deepLinkUri.getQueryParameter("openDetail") == "true"
+            DeepLinkInfo(
+                navigateTo = "mission_notifications",
+                missionId = missionId,
+                openDetail = openDetail
+            )
         }
-        else -> Pair(null, null)
+        else -> DeepLinkInfo()
     }
 }
