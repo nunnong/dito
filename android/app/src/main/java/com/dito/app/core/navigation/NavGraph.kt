@@ -199,7 +199,9 @@ fun DitoNavGraph(
             val authViewModel: AuthViewModel = hiltViewModel()
             val context = LocalContext.current
 
+            Log.d("NavGraph", "🔍 Home composable - deepLinkUri: $deepLinkUri")
             val (navigateTo, missionId, missionType) = parseDeepLink(deepLinkUri)
+            Log.d("NavGraph", "   파싱 결과 - navigateTo: $navigateTo, missionId: $missionId, missionType: $missionType")
 
             // MainActivity에서 WearableMessageService 가져오기
             val wearableMessageService = (context as? MainActivity)?.let { activity ->

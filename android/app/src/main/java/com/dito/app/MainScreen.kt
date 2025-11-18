@@ -98,6 +98,13 @@ fun MainScreen(
 
     // FCM 알림에서 전달된 navigation 처리
     LaunchedEffect(initialNavigateTo, initialMissionId, initialMissionType) {
+        Log.d("MainScreen", "🔍 LaunchedEffect 호출됨")
+        Log.d("MainScreen", "   initialNavigateTo: $initialNavigateTo")
+        Log.d("MainScreen", "   initialMissionId: $initialMissionId")
+        Log.d("MainScreen", "   initialMissionType: $initialMissionType")
+        Log.d("MainScreen", "   hasHandledNotification: $hasHandledNotification")
+        Log.d("MainScreen", "   wearableMessageService null 여부: ${wearableMessageService == null}")
+
         if (!hasHandledNotification && initialNavigateTo == "mission_notifications") {
             Log.d("MainScreen", "🎯 FCM 알림 감지: mission_id=$initialMissionId, type=$initialMissionType")
 
@@ -124,6 +131,8 @@ fun MainScreen(
 
             hasHandledNotification = true
             Log.d("MainScreen", "✅ 미션 알림 화면으로 이동 완료")
+        } else {
+            Log.d("MainScreen", "❌ 알림 처리 조건 불만족")
         }
     }
 
