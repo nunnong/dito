@@ -11,6 +11,7 @@ Workflow:
 
 from typing import NotRequired, TypedDict
 
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
 # ============================================================================
@@ -213,8 +214,6 @@ def analyze_sleep_pattern_node(state: ReportState) -> dict:
     import json
     from datetime import datetime
 
-    from langchain_core.messages import HumanMessage, SystemMessage
-
     from agent.utils import llm
 
     print("🌙 [병렬 1/3] 수면 패턴 분석 중...")
@@ -288,8 +287,6 @@ def analyze_focus_level_node(state: ReportState) -> dict:
     - 총 디지털 사용 시간
     - 앱 사용 집중도
     """
-    from langchain_core.messages import HumanMessage, SystemMessage
-
     from agent.utils import llm
 
     print("🎯 [병렬 2/3] 집중력 분석 중...")
@@ -342,8 +339,6 @@ def analyze_self_control_node(state: ReportState) -> dict:
     - 미션 성공률
     - 미션 성공/실패 개수
     """
-    from langchain_core.messages import HumanMessage, SystemMessage
-
     from agent.utils import llm
 
     print("💪 [병렬 3/3] 자기 조절력 분석 중...")
@@ -514,8 +509,6 @@ def update_report_node(state: ReportState) -> dict:
     }
     """
     import json
-
-    from langchain_core.messages import HumanMessage, SystemMessage
 
     from agent.utils import report_summary_generator, update_report
 

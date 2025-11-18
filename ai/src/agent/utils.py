@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 import httpx
 from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import MemorySaver
 
 from agent.schemas import (
@@ -503,8 +504,6 @@ def evaluate_mission_with_llm(
     evaluation_result = "FAILURE" if has_violation else "SUCCESS"
 
     # LLM으로 피드백 생성
-    from langchain_core.messages import HumanMessage, SystemMessage
-
     system_prompt = """당신은 디지털 디톡스 앱 '디토'의 미션 평가 AI입니다.
 사용자의 미션 수행 결과를 분석하고, 친근하고 격려하는 피드백을 제공합니다.
 
