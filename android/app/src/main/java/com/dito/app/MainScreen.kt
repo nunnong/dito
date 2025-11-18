@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
@@ -18,6 +19,7 @@ import com.dito.app.core.navigation.Route
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.util.PermissionHelper
+import com.dito.app.core.wearable.WearableMessageService
 import com.dito.app.feature.closet.ClosetScreen
 import com.dito.app.feature.group.GroupScreen
 import com.dito.app.feature.group.GroupWaitingScreen
@@ -30,6 +32,9 @@ import com.dito.app.feature.settings.ChangeNickName
 import com.dito.app.feature.settings.TermsOfServiceDialog
 import com.dito.app.feature.settings.PrivacyPoicyDialog
 import com.dito.app.feature.shop.ShopScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -40,7 +45,9 @@ fun MainScreen(
     outerNavController: NavController? = null,
     // FCM 알림에서 전달된 navigation 정보
     initialNavigateTo: String? = null,
-    initialMissionId: String? = null
+    initialMissionId: String? = null,
+    initialMissionType: String? = null,
+    wearableMessageService: WearableMessageService? = null
 ) {
     val innerNavController = rememberNavController()
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
@@ -90,9 +97,22 @@ fun MainScreen(
     }
 
     // FCM 알림에서 전달된 navigation 처리
-    LaunchedEffect(initialNavigateTo, initialMissionId) {
+    LaunchedEffect(initialNavigateTo, initialMissionId, initialMissionType) {
         if (!hasHandledNotification && initialNavigateTo == "mission_notifications") {
-            Log.d("MainScreen", "🎯 FCM 알림 감지: mission_id=$initialMissionId")
+            Log.d("MainScreen", "🎯 FCM 알림 감지: mission_id=$initialMissionId, type=$initialMissionType")
+
+            // MEDITATION 미션일 때 워치 앱 자동 실행
+            if (initialMissionType == "MEDITATION" && wearableMessageService != null) {
+                Log.d("MainScreen", "🧘 명상 미션 감지 - 워치 앱 실행 시작")
+                CoroutineScope(Dispatchers.IO).launch {
+                    val result = wearableMessageService.startBreathingOnWatch()
+                    if (result.isSuccess) {
+                        Log.d("MainScreen", "✅ 워치 앱 실행 성공")
+                    } else {
+                        Log.e("MainScreen", "❌ 워치 앱 실행 실패: ${result.exceptionOrNull()?.message}")
+                    }
+                }
+            }
 
             // Home 화면이 완전히 로드된 후 mission_notification으로 이동
             // 약간의 딜레이를 주어 innerNavController가 준비되도록 함
