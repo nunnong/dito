@@ -64,6 +64,8 @@ import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.playWiggleSound
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.rotate
+import androidx.core.graphics.rotationMatrix
 import com.dito.app.core.ui.designsystem.DitoShapes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -128,6 +130,48 @@ fun OngoingChallengeScreen(
                     contentScale = ContentScale.Fit,
                     colorFilter = ColorFilter.tint(Color.Black)
                 )
+            }
+
+            // 나무 팻말 (우측 로프 상단)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 20.dp, y = 150.dp)
+                    .width(210.dp)
+                    .height(140.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.wooden_sign),
+                    contentDescription = "Betting Sign",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(x = 10.dp, y = (-18).dp).rotate(20f),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.lemon),
+                        contentDescription = "Lemon",
+                        modifier = Modifier.size(24.dp),
+                        contentScale = ContentScale.Fit
+                    )
+//                    Spacer(modifier = Modifier.width(4.dp))
+                    StrokeText(
+                        text = "x${uiState.totalBetting}",
+                        style = DitoTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        fillColor = Color(0xFFFFF8DC),
+                        strokeColor = Color(0xFF3E2723),
+                        strokeWidth = 1.dp,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             // 그룹 정보
@@ -766,7 +810,7 @@ fun CharacterView(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .offset(y = (-60).dp)
-                            .size(if (showChain) 90.dp else 70.dp, 100.dp),
+                            .size(if (showChain) 90.dp else 70.dp, 120.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
