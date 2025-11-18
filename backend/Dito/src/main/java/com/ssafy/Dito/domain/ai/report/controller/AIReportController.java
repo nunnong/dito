@@ -33,7 +33,7 @@ public class AIReportController {
      * POST /ai/report
      * Request AI to generate report based on daily data
      *
-     * @param req Report request (user_id, date)
+     * @param req Report request (personalId, date)
      * @return AI response (run_id, thread_id, status)
      */
     @PostMapping("/report")
@@ -42,9 +42,11 @@ public class AIReportController {
         description = """
             MongoDB에서 일일 데이터를 조회하여 AI 서버에 리포트 생성을 요청합니다.
 
+            user_id는 사용자 로그인 ID(personalId)를 사용합니다.
+
             요청 Body 예시:
             {
-              "user_id": 23,
+              "user_id": "catch",
               "date": "2025-11-17"
             }
 
@@ -61,7 +63,7 @@ public class AIReportController {
     public ResponseEntity<SingleResult<ReportRequestRes>> requestReport(
         @Valid @RequestBody ReportRequestReq req
     ) {
-        log.info("Received report request - userId: {}, date: {}", req.userId(), req.date());
+        log.info("Received report request - personalId: {}, date: {}", req.userId(), req.date());
 
         ReportRequestRes res = dailyUserActivityService.requestAiReport(req);
 

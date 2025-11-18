@@ -6,6 +6,8 @@ import com.ssafy.Dito.domain.ai.report.dto.DailyActivityRes;
 import com.ssafy.Dito.domain.ai.report.dto.ReportRequestReq;
 import com.ssafy.Dito.domain.ai.report.dto.ReportRequestRes;
 import com.ssafy.Dito.domain.ai.report.repository.DailyUserActivityRepository;
+import com.ssafy.Dito.domain.user.entity.User;
+import com.ssafy.Dito.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 public class DailyUserActivityService {
 
     private final DailyUserActivityRepository dailyUserActivityRepository;
+    private final UserRepository userRepository;
     private final RestTemplate restTemplate;
 
     @Value("${ai.server.url:http://52.78.96.102:8000}")
@@ -132,15 +135,19 @@ public class DailyUserActivityService {
      * 3. Generate report analysis
      * 4. Update PostgreSQL Report with results
      *
-     * @param req Report request (user_id, date)
+     * @param req Report request (personalId, date)
      * @return AI server response with run_id, thread_id, status
      */
     public ReportRequestRes requestAiReport(ReportRequestReq req) {
-        log.info("Requesting AI report for user {} on date {}", req.userId(), req.date());
+        log.info("Requesting AI report for personalId {} on date {}", req.userId(), req.date());
 
-        // Prepare AI request payload (only user_id and date)
+        // Convert personalId to User entity
+        User user = userRepository.getByPersonalId(req.userId());
+        log.info("Found user with DB ID {} for personalId {}", user.getId(), req.userId());
+
+        // Prepare AI request payload (user DB ID and date)
         Map<String, Object> inputData = Map.of(
-            "user_id", req.userId(),
+            "user_id", user.getId(),
             "date", req.date()
         );
 
