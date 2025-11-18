@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.ai.report.service;
 
 import com.ssafy.Dito.domain.ai.report.document.DailyUserActivityDocument;
+import com.ssafy.Dito.domain.ai.report.dto.DailyActivityQueryRes;
 import com.ssafy.Dito.domain.ai.report.dto.DailyActivityReq;
 import com.ssafy.Dito.domain.ai.report.dto.DailyActivityRes;
 import com.ssafy.Dito.domain.ai.report.dto.ReportRequestReq;
@@ -8,6 +9,7 @@ import com.ssafy.Dito.domain.ai.report.dto.ReportRequestRes;
 import com.ssafy.Dito.domain.ai.report.repository.DailyUserActivityRepository;
 import com.ssafy.Dito.domain.user.entity.User;
 import com.ssafy.Dito.domain.user.repository.UserRepository;
+import com.ssafy.Dito.global.exception.PageNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -186,5 +189,25 @@ public class DailyUserActivityService {
             log.error("Failed to call AI server", e);
             throw new RuntimeException("Failed to request AI report: " + e.getMessage());
         }
+    }
+
+    /**
+     * Get daily user activity by userId and date
+     * Retrieves activity data from MongoDB including summary, app usage stats, and media sessions
+     *
+     * @param userId User ID
+     * @param date Activity date
+     * @return Daily activity response with complete data
+     * @throws PageNotFoundException if activity data not found
+     */
+    public DailyActivityQueryRes getActivity(Long userId, LocalDate date) {
+        log.info("Querying daily activity for user {} on date {}", userId, date);
+
+        return dailyUserActivityRepository.findByUserIdAndDate(userId, date)
+            .map(DailyActivityQueryRes::from)
+            .orElseThrow(() -> {
+                log.warn("Activity data not found for user {} on date {}", userId, date);
+                return new PageNotFoundException("활동 데이터를 찾을 수 없습니다");
+            });
     }
 }
