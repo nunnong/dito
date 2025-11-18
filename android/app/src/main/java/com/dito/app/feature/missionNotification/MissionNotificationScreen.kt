@@ -126,14 +126,45 @@ fun MissionNotificationScreen(
     // 설명 다이얼로그 상태
     var showInfoDialog by remember { mutableStateOf(false) }
 
+    // 화면이 보이는 동안 주기적으로 새로고침 (진행 중인 미션이 있을 때)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5000L) // 5초마다 새로고침
+
+            // 진행 중인 미션이 있는지 확인
+            val hasInProgressMission = uiState.notifications.any {
+                it.status == MissionStatus.IN_PROGRESS
+            }
+
+            if (hasInProgressMission) {
+                Log.d("MissionNotificationScreen", "🔄 자동 새로고침 - 진행 중인 미션 있음")
+                viewModel.refresh()
+            }
+        }
+    }
+
     // FCM 알림에서 넘어왔을 때 자동으로 모달 열기
+    var hasProcessedDeepLink by remember { mutableStateOf(false) }
+
     LaunchedEffect(initialMissionId, initialOpenDetail, uiState.notifications) {
-        if (initialOpenDetail && initialMissionId != null && uiState.notifications.isNotEmpty()) {
+        if (initialOpenDetail && initialMissionId != null && uiState.notifications.isNotEmpty() && !hasProcessedDeepLink) {
+            Log.d("MissionNotificationScreen", "🎯 FCM 딥링크 처리 시도")
+            Log.d("MissionNotificationScreen", "   missionId: $initialMissionId")
+            Log.d("MissionNotificationScreen", "   openDetail: $initialOpenDetail")
+            Log.d("MissionNotificationScreen", "   notifications count: ${uiState.notifications.size}")
+
+            // 약간의 딜레이를 주어 UI가 완전히 로드되도록 함
+            delay(300)
+
             // 미션 리스트에서 해당 미션 찾기
             val targetMission = uiState.notifications.find { it.id.toString() == initialMissionId }
             if (targetMission != null) {
-                Log.d("MissionNotificationScreen", "🎯 자동 모달 열기: mission_id=$initialMissionId")
+                Log.d("MissionNotificationScreen", "✅ 미션 찾음 - 모달 열기")
                 viewModel.onMissionClick(targetMission)
+                hasProcessedDeepLink = true
+            } else {
+                Log.w("MissionNotificationScreen", "⚠️ 미션을 찾을 수 없음: mission_id=$initialMissionId")
+                Log.d("MissionNotificationScreen", "현재 미션 목록 IDs: ${uiState.notifications.map { it.id }}")
             }
         }
     }
@@ -349,11 +380,11 @@ fun NotificationItem(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(28.dp),
-                            color = Primary,
-                            strokeWidth = 3.dp
-                        )
+//                        CircularProgressIndicator(
+//                            modifier = Modifier.size(28.dp),
+//                            color = Primary,
+//                            strokeWidth = 3.dp
+//                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "평가를 기다려주세요...",

@@ -50,6 +50,13 @@ class MissionNotificationViewModel @Inject constructor(
         _uiState.update { it.copy(selectedMission = mission) }
     }
 
+    fun openMissionById(missionId: String) {
+        val mission = _uiState.value.notifications.find { it.id.toString() == missionId }
+        if (mission != null) {
+            _uiState.update { it.copy(selectedMission = mission) }
+        }
+    }
+
     fun dismissModal() {
         _uiState.update { it.copy(selectedMission = null) }
     }

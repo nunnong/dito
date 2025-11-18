@@ -112,12 +112,15 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, "   scheme: ${uri.scheme}")  // dito
             Log.d(TAG, "   host: ${uri.host}")      // mission
             Log.d(TAG, "   path: ${uri.path}")      // /9
+            Log.d(TAG, "   query: ${uri.query}")    // openDetail=true
 
             // 딥링크 파싱
             when (uri.host) {
                 "mission" -> {
                     val missionId = uri.lastPathSegment
+                    val openDetail = uri.getQueryParameter("openDetail")
                     Log.d(TAG, "   📋 미션 ID: $missionId")
+                    Log.d(TAG, "   🔓 자동 열기: $openDetail")
                 }
             }
 
