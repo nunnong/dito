@@ -47,6 +47,10 @@ public class Report extends IdentifiableEntity {
     @Comment("미션 성공률(%)")
     private Integer missionSuccessRate;
 
+    @Column(name = "status", length = 20)
+    @Comment("리포트 상태")
+    private String status;
+
     @Column(name = "created_at", nullable = false)
     @Comment("생성일")
     private Instant createdAt;

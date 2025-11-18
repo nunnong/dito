@@ -9,6 +9,9 @@ import com.ssafy.Dito.domain.mission.dto.response.MissionCreateRes;
 import com.ssafy.Dito.domain.mission.service.MissionService;
 import com.ssafy.Dito.domain.missionResult.dto.request.MissionResultReq;
 import com.ssafy.Dito.domain.missionResult.service.MissionResultService;
+import com.ssafy.Dito.domain.report.dto.request.ReportReq;
+import com.ssafy.Dito.domain.report.dto.response.ReportRes;
+import com.ssafy.Dito.domain.report.service.ReportService;
 import com.ssafy.Dito.domain.user.dto.response.UserInfoRes;
 import com.ssafy.Dito.domain.user.service.UserService;
 import com.ssafy.Dito.domain.weaklyGoal.dto.request.UserWeeklyGoalReq;
@@ -44,6 +47,7 @@ public class AiController {
     private final MissionResultService missionResultService;
     private final UserService userService;
     private final WeeklyGoalService weeklyGoalService;
+    private final ReportService reportService;
 
     @Operation(summary = "미션 등록")
     @PostMapping("/mission")
@@ -96,6 +100,15 @@ public class AiController {
         @PathVariable String personalId
     ) {
         UserInfoRes res = userService.getUserInfoForAi(personalId);
+        return ApiResponse.ok(res);
+    }
+
+    @Operation(summary = "AI 리포트 저장 (PostgreSQL)")
+    @PostMapping("/ai/report")
+    public ResponseEntity<SingleResult<ReportRes>> saveReport(
+        @Valid @RequestBody ReportReq req
+    ) {
+        ReportRes res = reportService.createReportForAi(req);
         return ApiResponse.ok(res);
     }
 
