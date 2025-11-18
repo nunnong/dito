@@ -115,13 +115,22 @@ fun MissionNotificationScaffold(
 fun MissionNotificationScreen(
     modifier: Modifier = Modifier,
     viewModel: MissionNotificationViewModel = hiltViewModel(),
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    initialMissionId: String? = null  // 딥링크에서 전달된 missionId
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
     // 설명 다이얼로그 상태
     var showInfoDialog by remember { mutableStateOf(false) }
+
+    // 딥링크로 특정 미션 모달 자동 열기
+    LaunchedEffect(initialMissionId, uiState.notifications) {
+        if (initialMissionId != null && uiState.notifications.isNotEmpty()) {
+            delay(300)  // 화면 로드 대기
+            viewModel.openMissionById(initialMissionId.toLongOrNull())
+        }
+    }
 
     Column(
         modifier = modifier

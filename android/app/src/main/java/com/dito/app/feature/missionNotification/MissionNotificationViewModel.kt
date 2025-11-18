@@ -54,6 +54,24 @@ class MissionNotificationViewModel @Inject constructor(
         _uiState.update { it.copy(selectedMission = null) }
     }
 
+    /**
+     * 미션 ID로 모달 열기 (딥링크용)
+     * Evaluation FCM 딥링크를 통해 특정 미션 상세 모달을 자동으로 엽니다.
+     *
+     * @param missionId 열고자 하는 미션의 ID
+     */
+    fun openMissionById(missionId: Long?) {
+        if (missionId == null) return
+
+        val mission = _uiState.value.notifications.find { it.id == missionId }
+        if (mission != null) {
+            _uiState.update { it.copy(selectedMission = mission) }
+            android.util.Log.d("MissionNotificationVM", "🎯 딥링크로 미션 모달 자동 오픈: ID=$missionId")
+        } else {
+            android.util.Log.w("MissionNotificationVM", "⚠️ 미션을 찾을 수 없음: ID=$missionId")
+        }
+    }
+
     fun onRewardConfirm() {
         // 백엔드에서 이미 자동으로 코인 지급 완료
         // 여기서는 애니메이션 트리거만 하고 모달 닫기
