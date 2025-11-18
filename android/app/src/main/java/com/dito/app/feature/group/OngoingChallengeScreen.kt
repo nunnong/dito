@@ -262,10 +262,12 @@ fun OngoingChallengeScreen(
                 if (index < displayOrder.size) {
                     val userId = displayOrder[index]
                     val rankingItem = rankings.find { it.userId == userId }
+                    val realTimeSeconds = uiState.realTimeScreenTimes[userId] ?: 0
+                    val formattedTime = formatSecondsToTime(realTimeSeconds)
                     UserInfoCard(
                         nickname = rankingItem?.nickname ?: "",
                         profileImage = rankingItem?.profileImage,
-                        screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
+                        screenTime = formattedTime,
                         isEmpty = rankingItem == null,
                         isMe = rankingItem?.isMe ?: false,
                         modifier = Modifier.weight(1f)
@@ -561,18 +563,20 @@ fun UserInfoCard(
                         )
                     }
 
+
                     // 사용시간 텍스트 (이미지 위에 overlay)
                     StrokeText(
                         text = screenTime,
-                        style = DitoTypography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        fillColor = Color.White,
+                        style = DitoTypography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                        fillColor = Color(0xFFFFD700),  // 골드색
                         strokeColor = Color.Black,
-                        strokeWidth = 1.dp,
+                        strokeWidth = 2.dp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-//                            .padding(top = 4.dp)
+                            .padding(top = 1.dp)
                     )
+
                 }
             } else {
                 Spacer(
@@ -609,6 +613,21 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
         4 -> "melon"
         6 -> "tomato"
         else -> "lemon"
+    }
+}
+
+/**
+ * 초 단위를 mm:ss 또는 h:mm:ss 형식으로 변환
+ */
+fun formatSecondsToTime(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
