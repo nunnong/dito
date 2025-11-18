@@ -102,14 +102,6 @@ fun GroupLeaderScreen(
             .background(Color(0xFFD9D9D9))
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        // 배경 도로 이미지
-        Image(
-            painter = painterResource(id = R.drawable.race4),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-            alpha = 0.8f
-        )
 
         Column(
             modifier = Modifier

@@ -64,6 +64,8 @@ import com.dito.app.core.ui.designsystem.DitoTypography
 import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.playWiggleSound
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.rotate
+import androidx.core.graphics.rotationMatrix
 import com.dito.app.core.ui.designsystem.DitoShapes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -128,6 +130,48 @@ fun OngoingChallengeScreen(
                     contentScale = ContentScale.Fit,
                     colorFilter = ColorFilter.tint(Color.Black)
                 )
+            }
+
+            // 나무 팻말 (우측 로프 상단)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 20.dp, y = 150.dp)
+                    .width(210.dp)
+                    .height(140.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.wooden_sign),
+                    contentDescription = "Betting Sign",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(x = 10.dp, y = (-18).dp).rotate(20f),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.lemon),
+                        contentDescription = "Lemon",
+                        modifier = Modifier.size(24.dp),
+                        contentScale = ContentScale.Fit
+                    )
+//                    Spacer(modifier = Modifier.width(4.dp))
+                    StrokeText(
+                        text = "x${uiState.totalBetting}",
+                        style = DitoTypography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        fillColor = Color(0xFFFFF8DC),
+                        strokeColor = Color(0xFF3E2723),
+                        strokeWidth = 1.dp,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             // 그룹 정보
@@ -218,10 +262,12 @@ fun OngoingChallengeScreen(
                 if (index < displayOrder.size) {
                     val userId = displayOrder[index]
                     val rankingItem = rankings.find { it.userId == userId }
+                    val realTimeSeconds = uiState.realTimeScreenTimes[userId] ?: 0
+                    val formattedTime = formatSecondsToTime(realTimeSeconds)
                     UserInfoCard(
                         nickname = rankingItem?.nickname ?: "",
                         profileImage = rankingItem?.profileImage,
-                        screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
+                        screenTime = formattedTime,
                         isEmpty = rankingItem == null,
                         isMe = rankingItem?.isMe ?: false,
                         modifier = Modifier.weight(1f)
@@ -517,18 +563,20 @@ fun UserInfoCard(
                         )
                     }
 
+
                     // 사용시간 텍스트 (이미지 위에 overlay)
                     StrokeText(
                         text = screenTime,
-                        style = DitoTypography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        fillColor = Color.White,
+                        style = DitoTypography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                        fillColor = Color(0xFFFFD700),  // 골드색
                         strokeColor = Color.Black,
-                        strokeWidth = 1.dp,
+                        strokeWidth = 2.dp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-//                            .padding(top = 4.dp)
+                            .padding(top = 1.dp)
                     )
+
                 }
             } else {
                 Spacer(
@@ -565,6 +613,21 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
         4 -> "melon"
         6 -> "tomato"
         else -> "lemon"
+    }
+}
+
+/**
+ * 초 단위를 mm:ss 또는 h:mm:ss 형식으로 변환
+ */
+fun formatSecondsToTime(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -766,7 +829,7 @@ fun CharacterView(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .offset(y = (-60).dp)
-                            .size(if (showChain) 90.dp else 70.dp, 100.dp),
+                            .size(if (showChain) 90.dp else 70.dp, 120.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(

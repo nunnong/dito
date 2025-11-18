@@ -30,7 +30,8 @@ data class OngoingChallengeUiState(
     val rankings: List<RankingItem> = emptyList(),
     val initialUserOrder: List<Long> = emptyList(),  // 처음 위치 순서 (userId)
     val errorMessage: String? = null,
-    val pokedUserIds: Set<Long> = emptySet()  // 찔린 사용자 ID들
+    val pokedUserIds: Set<Long> = emptySet(),  // 찔린 사용자 ID들
+    val realTimeScreenTimes: Map<Long, Int> = emptyMap()  // userId -> 초 단위 스크린타임
 )
 
 @HiltViewModel
@@ -44,6 +45,7 @@ class OngoingChallengeViewModel @Inject constructor(
     val uiState: StateFlow<OngoingChallengeUiState> = _uiState.asStateFlow()
 
     private var autoRefreshJob: Job? = null
+    private var realTimeTickerJob: Job? = null
     private val pokeBubbleJobs = mutableMapOf<Long, Job>()
 
     init {
@@ -53,6 +55,7 @@ class OngoingChallengeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
+        stopRealTimeTicker()
     }
 
     private fun refreshGroupDetails() {
@@ -106,11 +109,44 @@ class OngoingChallengeViewModel @Inject constructor(
                 delay(9_500L) // 총 10초 주기
             }
         }
+        startRealTimeTicker()
     }
 
     fun stopAutoRefresh() {
         autoRefreshJob?.cancel()
         autoRefreshJob = null
+        stopRealTimeTicker()
+    }
+
+    private fun startRealTimeTicker() {
+        stopRealTimeTicker()
+        realTimeTickerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000L) // 1초마다 업데이트
+                incrementScreenTimes()
+            }
+        }
+    }
+
+    private fun stopRealTimeTicker() {
+        realTimeTickerJob?.cancel()
+        realTimeTickerJob = null
+    }
+
+    private fun incrementScreenTimes() {
+        val currentTimes = _uiState.value.realTimeScreenTimes.toMutableMap()
+        val rankings = _uiState.value.rankings
+
+        // YouTube를 사용 중인 사용자만 스크린타임 1초씩 증가
+        rankings.forEach { ranking ->
+            val isUsingYouTube = ranking.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true
+            if (isUsingYouTube) {
+                val currentSeconds = currentTimes[ranking.userId] ?: 0
+                currentTimes[ranking.userId] = currentSeconds + 1
+            }
+        }
+
+        _uiState.value = _uiState.value.copy(realTimeScreenTimes = currentTimes)
     }
 
     fun loadRanking() {
@@ -129,9 +165,25 @@ class OngoingChallengeViewModel @Inject constructor(
                         currentOrder
                     }
 
+                    // 백엔드에서 받은 스크린타임을 초 단위로 파싱
+                    val currentTimes = _uiState.value.realTimeScreenTimes.toMutableMap()
+
+                    response.rankings.forEach { ranking ->
+                        val serverSeconds = parseScreenTimeToSeconds(ranking.totalScreenTimeFormatted)
+                        val clientSeconds = currentTimes[ranking.userId] ?: 0
+
+                        // 서버 값이 클라이언트 값보다 크면 서버 값으로 업데이트 (보정)
+                        // 그렇지 않으면 클라이언트 값 유지 (실시간 증가분 보존)
+                        if (serverSeconds > clientSeconds) {
+                            currentTimes[ranking.userId] = serverSeconds
+                        }
+                        // 서버 값이 더 작으면 클라이언트 값 유지 (이미 증가한 초 보존)
+                    }
+
                     _uiState.value = _uiState.value.copy(
                         rankings = response.rankings,
-                        initialUserOrder = initialOrder
+                        initialUserOrder = initialOrder,
+                        realTimeScreenTimes = currentTimes
                     )
                 },
                 onFailure = { error ->
@@ -141,6 +193,29 @@ class OngoingChallengeViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    /**
+     * "10m", "1h 30m", "2h", "45m" 등의 문자열을 초 단위로 변환
+     */
+    private fun parseScreenTimeToSeconds(formatted: String): Int {
+        var totalSeconds = 0
+
+        // 시간 파싱 (예: "1h", "2h")
+        val hourRegex = """(\d+)h""".toRegex()
+        hourRegex.find(formatted)?.let { match ->
+            val hours = match.groupValues[1].toIntOrNull() ?: 0
+            totalSeconds += hours * 3600
+        }
+
+        // 분 파싱 (예: "30m", "45m")
+        val minuteRegex = """(\d+)m""".toRegex()
+        minuteRegex.find(formatted)?.let { match ->
+            val minutes = match.groupValues[1].toIntOrNull() ?: 0
+            totalSeconds += minutes * 60
+        }
+
+        return totalSeconds
     }
 
     fun pokeMember(targetUserId: Long) {
