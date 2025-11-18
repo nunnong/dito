@@ -39,6 +39,7 @@ fun DailyReportScreen(
     viewModel: DailyReportViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isPolling by viewModel.isPolling.collectAsStateWithLifecycle()
     val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(Unit) {
@@ -59,8 +60,8 @@ fun DailyReportScreen(
     }
 
     // 폴링 완료 시 refresh 종료
-    LaunchedEffect(uiState) {
-        if (uiState is DailyReportUiState.Success) {
+    LaunchedEffect(isPolling) {
+        if (!isPolling && pullToRefreshState.isRefreshing) {
             pullToRefreshState.endRefresh()
         }
     }
@@ -72,9 +73,8 @@ fun DailyReportScreen(
     ) {
         when (val state = uiState) {
             is DailyReportUiState.Loading -> {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                // 빈 화면 표시 (pull-to-refresh 인디케이터만 상단에 표시됨)
+                Box(modifier = Modifier.fillMaxSize())
             }
             is DailyReportUiState.Success -> {
                 DailyReportContent(

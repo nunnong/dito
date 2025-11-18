@@ -11,13 +11,13 @@ data class DailyReportResponse(
     val id: Int,
     val status: String,
     @SerialName("reportOverview")
-    val reportOverview: String,
-    val insights: List<InsightItem>,
-    val advice: String,
+    val reportOverview: String? = null,
+    val insights: List<InsightItem>? = null,
+    val advice: String? = null,
     @SerialName("missionSuccessRate")
-    val missionSuccessRate: Int,
+    val missionSuccessRate: Int? = null,
     @SerialName("createdAt")
-    val createdAt: String
+    val createdAt: String? = null
 )
 
 @Serializable
