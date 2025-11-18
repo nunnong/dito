@@ -68,13 +68,7 @@ fun GroupMemberScreen(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.race4),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
-            alpha = 0.8f
-        )
+
 
         Column(
             modifier = Modifier
