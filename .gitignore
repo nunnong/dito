@@ -1,1 +1,7 @@
 /.idea/
+ai/debug/
+.mcp.json
+CLAUDE.md
+TECH_SPEC.md
+.claude/skills/
+ai/AGENT_ARCHITECTURE.txt
