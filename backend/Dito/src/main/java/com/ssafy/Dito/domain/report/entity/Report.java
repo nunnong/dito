@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -51,22 +52,27 @@ public class Report extends IdentifiableEntity {
     @Comment("리포트 상태")
     private String status;
 
+    @Column(name = "report_date")
+    @Comment("리포트 대상 날짜")
+    private LocalDate reportDate;
+
     @Column(name = "created_at", nullable = false)
     @Comment("생성일")
     private Instant createdAt;
 
     private Report(User user, String reportOverview, List<InsightDto> insights,
-                   String advice, Integer missionSuccessRate) {
+                   String advice, Integer missionSuccessRate, LocalDate reportDate) {
         this.user = user;
         this.reportOverview = reportOverview;
         this.insights = insights;
         this.advice = advice;
         this.missionSuccessRate = missionSuccessRate;
+        this.reportDate = reportDate != null ? reportDate : LocalDate.now();
         this.createdAt = Instant.now();
     }
 
     public static Report of(User user, String reportOverview, List<InsightDto> insights,
-                            String advice, Integer missionSuccessRate) {
-        return new Report(user, reportOverview, insights, advice, missionSuccessRate);
+                            String advice, Integer missionSuccessRate, LocalDate reportDate) {
+        return new Report(user, reportOverview, insights, advice, missionSuccessRate, reportDate);
     }
 }

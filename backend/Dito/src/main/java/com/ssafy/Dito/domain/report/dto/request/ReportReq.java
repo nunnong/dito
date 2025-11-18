@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDate;
 import java.util.List;
 
 public record ReportReq(
@@ -24,6 +25,9 @@ public record ReportReq(
     @JsonProperty("mission_success_rate")
     @Min(value = 0, message = "Success rate must be >= 0")
     @Max(value = 100, message = "Success rate must be <= 100")
-    Integer missionSuccessRate
+    Integer missionSuccessRate,
+
+    @JsonProperty("report_date")
+    LocalDate reportDate
 ) {
 }
