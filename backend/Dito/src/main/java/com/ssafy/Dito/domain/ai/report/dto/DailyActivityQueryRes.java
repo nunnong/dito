@@ -3,7 +3,6 @@ package com.ssafy.Dito.domain.ai.report.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.Dito.domain.ai.report.document.DailyUserActivityDocument;
 
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,7 +13,7 @@ import java.util.stream.Collectors;
  */
 public record DailyActivityQueryRes(
     @JsonProperty("date")
-    LocalDate date,
+    String date,  // Format: "yyyy-MM-dd"
 
     @JsonProperty("user_id")
     Long userId,
@@ -34,7 +33,7 @@ public record DailyActivityQueryRes(
      */
     public static DailyActivityQueryRes from(DailyUserActivityDocument document) {
         return new DailyActivityQueryRes(
-            document.getDate(),
+            document.getDate(),  // Already String format
             document.getUserId(),
             document.getSummary() != null ? SummaryRes.from(document.getSummary()) : null,
             document.getAppUsageStats() != null

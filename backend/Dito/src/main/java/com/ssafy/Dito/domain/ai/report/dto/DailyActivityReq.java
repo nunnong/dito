@@ -5,7 +5,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -15,7 +14,7 @@ import java.util.List;
 public record DailyActivityReq(
     @JsonProperty("date")
     @NotNull(message = "날짜는 필수입니다")
-    LocalDate date,
+    String date,  // Format: "yyyy-MM-dd"
 
     @JsonProperty("user_id")
     @NotNull(message = "유저 ID는 필수입니다")

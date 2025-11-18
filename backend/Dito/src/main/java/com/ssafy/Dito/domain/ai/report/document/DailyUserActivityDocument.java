@@ -45,10 +45,10 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
     private List<MediaSession> mediaSessions;
 
     @Builder
-    private DailyUserActivityDocument(String id, LocalDate date, Long userId, Summary summary,
+    private DailyUserActivityDocument(String id, String date, Long userId, Summary summary,
                                    List<AppUsageStat> appUsageStats, List<MediaSession> mediaSessions) {
         this.setId(id);  // Custom ID format: "YYYYMMDD_userId"
-        this.date = date;
+        this.date = date;  // Format: "yyyy-MM-dd" (e.g., "2025-11-17")
         this.userId = userId;
         this.summary = summary;
         this.appUsageStats = appUsageStats;

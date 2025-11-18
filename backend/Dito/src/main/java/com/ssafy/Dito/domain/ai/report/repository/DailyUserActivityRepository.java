@@ -17,19 +17,19 @@ public interface DailyUserActivityRepository extends MongoRepository<DailyUserAc
     /**
      * Find activity by user ID and date
      * @param userId User ID
-     * @param date Activity date
+     * @param date Activity date (format: "yyyy-MM-dd")
      * @return Optional DailyUserActivityDocument
      */
-    Optional<DailyUserActivityDocument> findByUserIdAndDate(Long userId, LocalDate date);
+    Optional<DailyUserActivityDocument> findByUserIdAndDate(Long userId, String date);
 
     /**
      * Find all activities for a user within date range
      * @param userId User ID
-     * @param startDate Start date (inclusive)
-     * @param endDate End date (inclusive)
+     * @param startDate Start date (inclusive, format: "yyyy-MM-dd")
+     * @param endDate End date (inclusive, format: "yyyy-MM-dd")
      * @return List of activities
      */
-    List<DailyUserActivityDocument> findByUserIdAndDateBetween(Long userId, LocalDate startDate, LocalDate endDate);
+    List<DailyUserActivityDocument> findByUserIdAndDateBetween(Long userId, String startDate, String endDate);
 
     /**
      * Find all activities for a user ordered by date descending

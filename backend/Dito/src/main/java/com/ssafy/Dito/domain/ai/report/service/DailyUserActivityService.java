@@ -51,12 +51,14 @@ public class DailyUserActivityService {
      */
     public DailyActivityRes saveActivity(DailyActivityReq req) {
         // Generate custom ID: "20251117_23"
-        String activityId = generateActivityId(req.date().format(ID_DATE_FORMATTER), req.userId());
+        // Convert "yyyy-MM-dd" to "yyyyMMdd" format for ID
+        String dateForId = req.date().replace("-", "");
+        String activityId = generateActivityId(dateForId, req.userId());
 
         // Convert request DTO to MongoDB document
         DailyUserActivityDocument document = DailyUserActivityDocument.builder()
             .id(activityId)
-            .date(req.date())
+            .date(req.date())  // Already String format "yyyy-MM-dd"
             .userId(req.userId())
             .summary(convertSummary(req.summary()))
             .appUsageStats(convertAppUsageStats(req.appUsageStats()))
@@ -203,7 +205,7 @@ public class DailyUserActivityService {
     public DailyActivityQueryRes getActivity(Long userId, LocalDate date) {
         log.info("Querying daily activity for user {} on date {}", userId, date);
 
-        return dailyUserActivityRepository.findByUserIdAndDate(userId, date)
+        return dailyUserActivityRepository.findByUserIdAndDate(userId, date.toString())
             .map(DailyActivityQueryRes::from)
             .orElseThrow(() -> {
                 log.warn("Activity data not found for user {} on date {}", userId, date);
