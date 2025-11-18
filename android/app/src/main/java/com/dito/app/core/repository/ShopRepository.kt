@@ -68,4 +68,32 @@ class ShopRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun equipItem(itemId: Long): Result<PurchaseResponse> = withContext(Dispatchers.IO) {
+        try {
+            val accessToken = authTokenManager.getAccessToken()
+            if (accessToken == null) {
+                return@withContext Result.failure(Exception("로그인이 필요합니다"))
+            }
+
+            val request = PurchaseRequest(itemId = itemId)
+            val response = apiService.equipItem(
+                token = "Bearer $accessToken",
+                request = request
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                if (response.body()!!.error == false) {
+                    Result.success(response.body()!!)
+                } else {
+                    Result.failure(Exception(response.body()!!.message ?: "아이템 적용 실패"))
+                }
+            } else {
+                val errorMessage = "아이템 적용 실패 (code: ${response.code()})"
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

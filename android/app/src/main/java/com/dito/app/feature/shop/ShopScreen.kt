@@ -101,8 +101,11 @@ fun ShopScreen(
                 selectedItemForPurchase?.let { item ->
                     viewModel.purchaseItem(item.itemId)
                 }
-                showPurchaseConfirmDialog = false
-                selectedItemForPurchase = null
+            },
+            onApply = {
+                selectedItemForPurchase?.let { item ->
+                    viewModel.equipItem(item.itemId)
+                }
             },
             onDismiss = {
                 showPurchaseConfirmDialog = false
