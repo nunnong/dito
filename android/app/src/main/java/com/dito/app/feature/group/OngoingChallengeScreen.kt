@@ -1,6 +1,5 @@
 package com.dito.app.feature.group
 
-import android.R.attr.y
 import android.graphics.Bitmap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -67,8 +66,8 @@ import com.dito.app.core.ui.designsystem.StrokeText
 import com.dito.app.core.ui.designsystem.playWiggleSound
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.rotate
-import androidx.core.graphics.rotationMatrix
 import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.Primary
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -541,12 +540,12 @@ fun UserInfoCard(
     Box(
         modifier = modifier
             .background(
-                if (isMe) Color(0xFFFFEB3B).copy(alpha = 0.2f) else Color.White,
+                if (isMe) Primary else Color.White,
                 RoundedCornerShape(8.dp)
             )
             .border(
                 width = if (isMe) 3.dp else 2.dp,
-                color = if (isMe) Color(0xFFFFEB3B) else Color.Black,
+                color = Color.Black,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(4.dp)
