@@ -50,22 +50,11 @@ class MissionNotificationViewModel @Inject constructor(
         _uiState.update { it.copy(selectedMission = mission) }
     }
 
-    fun openMissionById(missionId: String) {
-        val mission = _uiState.value.notifications.find { it.id.toString() == missionId }
-        if (mission != null) {
-            _uiState.update { it.copy(selectedMission = mission) }
-        }
-    }
-
-    fun dismissModal() {
-        _uiState.update { it.copy(selectedMission = null) }
-    }
-
     /**
      * 미션 ID로 모달 열기 (딥링크용)
      * Evaluation FCM 딥링크를 통해 특정 미션 상세 모달을 자동으로 엽니다.
      *
-     * @param missionId 열고자 하는 미션의 ID
+     * @param missionId 열고자 하는 미션의 ID (Long)
      */
     fun openMissionById(missionId: Long?) {
         if (missionId == null) return
@@ -76,7 +65,12 @@ class MissionNotificationViewModel @Inject constructor(
             android.util.Log.d("MissionNotificationVM", "🎯 딥링크로 미션 모달 자동 오픈: ID=$missionId")
         } else {
             android.util.Log.w("MissionNotificationVM", "⚠️ 미션을 찾을 수 없음: ID=$missionId")
+            android.util.Log.d("MissionNotificationVM", "   현재 미션 목록: ${_uiState.value.notifications.map { it.id }}")
         }
+    }
+
+    fun dismissModal() {
+        _uiState.update { it.copy(selectedMission = null) }
     }
 
     fun onRewardConfirm() {

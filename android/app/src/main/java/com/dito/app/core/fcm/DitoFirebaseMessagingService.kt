@@ -74,56 +74,30 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             val body = data["message"] ?: message.notification?.body ?: ""
             val deepLink = data["deep_link"]
 
-            // mission_id 존재 여부로 미션/일반 알림 구분 (AI 팀 FCM 구조에 맞춤)
+            // mission_id 존재 여부로 미션/일반 알림 구분
             if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
+                val missionId = data["mission_id"]!!
+
                 when (type) {
                     "intervention" -> {
-                        // 미션 알림 - 미션 추적 시작 (progress 포함)
-                        Log.d(TAG, "Intervention 알림 감지: mission_id=${data["mission_id"]}")
-                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
-                        Log.d(TAG, "딥링크: $missionDeepLink")
+                        // 미션 시작 알림 - 미션 추적 시작 (progress 포함)
+                        Log.d(TAG, "🎯 Intervention 알림 감지: mission_id=$missionId")
+                        val missionDeepLink = deepLink ?: "dito://mission/$missionId"
+                        Log.d(TAG, "   딥링크: $missionDeepLink")
                         handleMissionMessage(data, missionDeepLink)
                     }
                     "evaluation" -> {
-                        // 평가 결과 알림 - progress 없이 단순 알림만 표시
-                        Log.d(TAG, "Evaluation 알림 감지: mission_id=${data["mission_id"]}")
-                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
-                        Log.d(TAG, "딥링크: $missionDeepLink")
-                        showEvaluationNotification(title, body, missionDeepLink)
+                        // 평가 결과 알림 - 모달 자동 열기용 딥링크
+                        Log.d(TAG, "📊 Evaluation 알림 감지: mission_id=$missionId")
+                        val evaluationDeepLink = "dito://mission/$missionId?openDetail=true"
+                        Log.d(TAG, "   딥링크: $evaluationDeepLink")
+                        showEvaluationNotification(title, body, evaluationDeepLink)
                     }
                     else -> {
-                        // type 없으면 기존 동작 유지 (하위 호환성)
-                        Log.d(TAG, "미션 알림 감지 (type 없음): mission_id=${data["mission_id"]}")
-                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
+                        // type 없으면 intervention으로 처리 (하위 호환성)
+                        Log.d(TAG, "⚠️ type 없는 미션 알림: mission_id=$missionId")
+                        val missionDeepLink = deepLink ?: "dito://mission/$missionId"
                         handleMissionMessage(data, missionDeepLink)
-                    }
-                }
-                val missionId = data["mission_id"]!!
-
-                // notification_type으로 미션 시작 vs 평가 결과 구분
-                val notificationType = data["notification_type"] ?: "mission_start"
-
-                when (notificationType) {
-                    "mission_evaluation" -> {
-                        // 미션 평가 결과 알림
-                        Log.d(TAG, "미션 평가 결과 알림 감지: mission_id=$missionId")
-                        val deepLink = "dito://mission/$missionId?openDetail=true"
-                        val title = data["title"] ?: "미션 평가 완료!"
-                        val body = data["message"] ?: "AI가 당신의 미션을 평가했어요!"
-
-                        showNotification(
-                            title = title,
-                            body = body,
-                            deepLink = deepLink
-                        )
-                    }
-                    else -> {
-                        // 미션 시작 알림 - 미션 추적 시작
-                        Log.d(TAG, "미션 시작 알림 감지: mission_id=$missionId")
-                        val deepLink = data["deep_link"] ?: "dito://mission/$missionId"
-                        Log.d(TAG, "딥링크: $deepLink")
-
-                        handleMissionMessage(data, deepLink)
                     }
                 }
             } else {

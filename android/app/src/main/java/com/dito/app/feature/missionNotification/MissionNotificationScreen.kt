@@ -143,37 +143,23 @@ fun MissionNotificationScreen(
         }
     }
 
-    // FCM 알림에서 넘어왔을 때 자동으로 모달 열기
+    // FCM 평가 알림 딥링크로 모달 자동 열기
     var hasProcessedDeepLink by remember { mutableStateOf(false) }
 
     LaunchedEffect(initialMissionId, initialOpenDetail, uiState.notifications) {
+        // openDetail=true 일 때만 자동으로 모달 열기 (평가 알림)
         if (initialOpenDetail && initialMissionId != null && uiState.notifications.isNotEmpty() && !hasProcessedDeepLink) {
-            Log.d("MissionNotificationScreen", "🎯 FCM 딥링크 처리 시도")
+            Log.d("MissionNotificationScreen", "🎯 FCM 평가 알림 딥링크 처리")
             Log.d("MissionNotificationScreen", "   missionId: $initialMissionId")
             Log.d("MissionNotificationScreen", "   openDetail: $initialOpenDetail")
             Log.d("MissionNotificationScreen", "   notifications count: ${uiState.notifications.size}")
 
-            // 약간의 딜레이를 주어 UI가 완전히 로드되도록 함
+            // UI 로드 대기
             delay(300)
 
-            // 미션 리스트에서 해당 미션 찾기
-            val targetMission = uiState.notifications.find { it.id.toString() == initialMissionId }
-            if (targetMission != null) {
-                Log.d("MissionNotificationScreen", "✅ 미션 찾음 - 모달 열기")
-                viewModel.onMissionClick(targetMission)
-                hasProcessedDeepLink = true
-            } else {
-                Log.w("MissionNotificationScreen", "⚠️ 미션을 찾을 수 없음: mission_id=$initialMissionId")
-                Log.d("MissionNotificationScreen", "현재 미션 목록 IDs: ${uiState.notifications.map { it.id }}")
-            }
-        }
-    }
-
-    // 딥링크로 특정 미션 모달 자동 열기
-    LaunchedEffect(initialMissionId, uiState.notifications) {
-        if (initialMissionId != null && uiState.notifications.isNotEmpty()) {
-            delay(300)  // 화면 로드 대기
+            // ViewModel 메서드로 모달 열기
             viewModel.openMissionById(initialMissionId.toLongOrNull())
+            hasProcessedDeepLink = true
         }
     }
 
@@ -323,16 +309,48 @@ fun NotificationItem(
     // 미션 완료 여부 확인
     val isCompleted = notification.status == MissionStatus.COMPLETED
 
-    // 진행률 계산 (실시간)
+    // 진행률 계산 - 고정 20초 프로그래스바
     var progress by remember { mutableFloatStateOf(0f) }
+    var isWaitingForEvaluation by remember { mutableStateOf(false) }
 
-    LaunchedEffect(notification.triggerTime, notification.duration) {
-        while (notification.status == MissionStatus.IN_PROGRESS) {
-            progress = calculateProgress(notification.triggerTime, notification.duration)
-            delay(1000L)  // 1초마다 업데이트
+    // [기존 코드 - 실제 미션 시간 기반]
+//    LaunchedEffect(notification.triggerTime, notification.duration) {
+//        while (notification.status == MissionStatus.IN_PROGRESS) {
+//            progress = calculateProgress(notification.triggerTime, notification.duration)
+//            delay(1000L)  // 1초마다 업데이트
+//
+//            // 100% 완료되면 루프 종료
+//            if (progress >= 1f) break
+//        }
+//    }
 
-            // 100% 완료되면 루프 종료
-            if (progress >= 1f) break
+    // [새 코드 - 고정 20초 프로그래스바]
+    LaunchedEffect(notification.triggerTime) {
+        if (notification.status == MissionStatus.IN_PROGRESS && notification.triggerTime != null) {
+            try {
+                val zonedDateTime = java.time.ZonedDateTime.parse(
+                    notification.triggerTime,
+                    java.time.format.DateTimeFormatter.ISO_DATE_TIME
+                )
+                val startTime = zonedDateTime.toInstant().toEpochMilli()
+                val fixedDuration = 20000L  // 고정 20초
+
+                while (notification.status == MissionStatus.IN_PROGRESS) {
+                    val now = System.currentTimeMillis()
+                    val elapsed = now - startTime
+                    progress = (elapsed.toFloat() / fixedDuration.toFloat()).coerceIn(0f, 1f)
+
+                    // 20초가 지나면 평가 대기 상태로 전환
+                    if (elapsed >= fixedDuration) {
+                        isWaitingForEvaluation = true
+                        break
+                    }
+
+                    delay(100L)  // 0.1초마다 업데이트 (부드러운 애니메이션)
+                }
+            } catch (e: Exception) {
+                Log.e("NotificationItem", "프로그래스 계산 실패", e)
+            }
         }
     }
 
