@@ -27,19 +27,24 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import com.dito.app.core.ui.util.SoundPlayer
 import com.dito.app.R
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.foundation.Image
 
 /**
  * 상점 구매 확인 모달
+ * @param itemImage 구매할 아이템 이미지
  * @param onConfirm 구매 버튼 클릭 시 호출
  * @param onDismiss 취소 버튼 또는 모달 외부 클릭 시 호출
  */
 @Composable
 fun ShopConfirmDialog(
+    itemImage: Painter,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
         ShopConfirmDialogContent(
+            itemImage = itemImage,
             onConfirm = onConfirm,
             onDismiss = onDismiss
         )
@@ -48,6 +53,7 @@ fun ShopConfirmDialog(
 
 @Composable
 private fun ShopConfirmDialogContent(
+    itemImage: Painter,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -65,12 +71,12 @@ private fun ShopConfirmDialogContent(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .width(228.dp)
-                .height(128.dp)
+                .width(280.dp)
+                .wrapContentHeight()
                 .hardShadow(DitoHardShadow.Modal.copy(cornerRadius = 16.dp))
                 .background(Color.White, RoundedCornerShape(16.dp))
                 .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
-                .padding(horizontal = 32.dp)
+                .padding(horizontal = 16.dp, vertical = 32.dp)
                 .align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -78,9 +84,7 @@ private fun ShopConfirmDialogContent(
         // 제목 영역
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .padding(top = 24.dp, start = 4.dp, end = 4.dp),
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -91,12 +95,24 @@ private fun ShopConfirmDialogContent(
             )
         }
 
+        // 아이템 이미지 영역
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = itemImage,
+                contentDescription = "구매할 아이템",
+                modifier = Modifier.size(160.dp)
+            )
+        }
+
         // 버튼 영역
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .padding(top = 24.dp, bottom = 24.dp, start = 4.dp, end = 4.dp),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -141,8 +157,8 @@ private fun ConfirmButton(
 
     Box(
         modifier = Modifier
-            .width(70.dp)
-            .height(32.dp)
+            .width(80.dp)
+            .height(40.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -183,8 +199,8 @@ private fun CancelButton(
 
     Box(
         modifier = Modifier
-            .width(70.dp)
-            .height(32.dp)
+            .width(80.dp)
+            .height(40.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -218,6 +234,7 @@ fun ShopConfirmDialogPreview() {
         contentAlignment = Alignment.Center
     ) {
         ShopConfirmDialogContent(
+            itemImage = androidx.compose.ui.res.painterResource(R.drawable.ic_launcher_foreground),
             onConfirm = {},
             onDismiss = {}
         )

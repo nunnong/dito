@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import coil.compose.rememberAsyncImagePainter
 
 @Composable
 fun BounceClickable(
@@ -93,8 +94,9 @@ fun ShopScreen(
         }
     }
 
-    if (showPurchaseConfirmDialog) {
+    if (showPurchaseConfirmDialog && selectedItemForPurchase != null) {
         ShopConfirmDialog(
+            itemImage = rememberAsyncImagePainter(selectedItemForPurchase!!.imageUrl),
             onConfirm = {
                 selectedItemForPurchase?.let { item ->
                     viewModel.purchaseItem(item.itemId)
