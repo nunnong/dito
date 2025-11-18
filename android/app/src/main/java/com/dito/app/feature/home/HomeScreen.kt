@@ -27,12 +27,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -42,6 +44,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -49,10 +53,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -149,6 +149,10 @@ fun HomeContent(
     val lifecycleOwner = LocalLifecycleOwner.current
     var animationKey by remember { mutableStateOf(0) }
 
+    // 갈매기 상태
+    var isSeagullFlying by remember { mutableStateOf(false) }
+    var seagullTrigger by remember { mutableStateOf(0) }
+
     // 바다 배경인지 확인 (busan 또는 ocean)
     val isOceanBackground = remember(homeData.backgroundUrl) {
         val isOcean = homeData.backgroundUrl?.let { url ->
@@ -171,14 +175,12 @@ fun HomeContent(
         if (isOceanBackground) {
             try {
                 mediaPlayer = MediaPlayer.create(context, R.raw.busan)
-                if (mediaPlayer != null) {
-                    mediaPlayer.isLooping = true
-                    mediaPlayer.setVolume(1.0f, 1.0f)
-                    mediaPlayer.start()
+                mediaPlayer?.let { mp ->
+                    mp.isLooping = true
+                    mp.setVolume(1.0f, 1.0f)
+                    mp.start()
                     android.util.Log.d("HomeScreen", "파도 소리 재생 시작")
-                } else {
-                    android.util.Log.e("HomeScreen", "MediaPlayer 생성 실패")
-                }
+                } ?: android.util.Log.e("HomeScreen", "MediaPlayer 생성 실패")
             } catch (e: Exception) {
                 android.util.Log.e("HomeScreen", "파도 소리 재생 오류: ${e.message}")
             }
@@ -186,9 +188,7 @@ fun HomeContent(
         onDispose {
             mediaPlayer?.apply {
                 try {
-                    if (isPlaying) {
-                        stop()
-                    }
+                    if (isPlaying) stop()
                     release()
                     android.util.Log.d("HomeScreen", "파도 소리 정지")
                 } catch (e: Exception) {
@@ -198,7 +198,7 @@ fun HomeContent(
         }
     }
 
-    // 야구장 배경일 때 야구공 소리 재생
+    // 야구장 배경일 때 야구공 소리 (한 번)
     DisposableEffect(isBaseballBackground) {
         var mediaPlayer: MediaPlayer? = null
         if (isBaseballBackground) {
@@ -285,7 +285,9 @@ fun HomeContent(
                             painter = painterResource(id = R.drawable.cart),
                             contentDescription = "Cart",
                             modifier = Modifier.fillMaxSize(),
-                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
+                            colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(
+                                Color.White
+                            ),
                             contentScale = ContentScale.Fit
                         )
                     }
@@ -318,19 +320,48 @@ fun HomeContent(
                         painter = painterResource(id = R.drawable.settings),
                         contentDescription = "settings",
                         modifier = Modifier.fillMaxSize(),
-                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(Color.White),
+                        colorFilter = if (isPressed) ColorFilter.tint(Primary) else ColorFilter.tint(
+                            Color.White
+                        ),
                         contentScale = ContentScale.Fit
                     )
                 }
             }
 
-            // Frame 162 - 내부 컨텐츠
+            // Frame 162 - 내부 컨텐츠 (배경 영역)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .clipToBounds()
+                    .pointerInput(isOceanBackground) {
+                        // 배경(상단) 탭 → 갈매기
+                        detectTapGestures(onTap = { offset ->
+                            // 상단 55%만 배경 영역으로 간주 (캐릭터/코인 제외)
+                            if (offset.y < size.height * 0.55f && isOceanBackground && !isSeagullFlying) {
+                                isSeagullFlying = true
+                                seagullTrigger++
+
+                                // 갈매기 소리 재생
+                                try {
+                                    val mp = MediaPlayer.create(context, R.raw.seagulls)
+                                    mp?.apply {
+                                        setVolume(1.0f, 1.0f)
+                                        setOnCompletionListener { player -> player.release() }
+                                        start()
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e(
+                                        "HomeScreen",
+                                        "갈매기 소리 재생 오류: ${e.message}"
+                                    )
+                                }
+                            }
+                        })
+                    },
                 contentAlignment = Alignment.TopCenter
             ) {
+                // 배경 이미지
                 if (!homeData.backgroundUrl.isNullOrEmpty()) {
                     AsyncImage(
                         model = homeData.backgroundUrl,
@@ -353,20 +384,26 @@ fun HomeContent(
                     )
                 }
 
-                // 바다 배경일 때 물결 + 반짝임 효과
+                // 파도 효과
                 if (isOceanBackground) {
                     OceanEffect(modifier = Modifier.fillMaxSize())
                 }
 
-                // 야구장 배경일 때 포물선 야구공 효과 (배경 위, 캐릭터 뒤)
+                // 야구공 효과 (배경 위, 캐릭터 뒤)
                 if (isBaseballBackground) {
-                    BaseballEffect(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clipToBounds()
+                    BaseballEffect(modifier = Modifier.fillMaxSize())
+                }
+
+                // 갈매기 떼 (배경 위, 캐릭터 뒤)
+                if (isSeagullFlying) {
+                    SeagullFlock(
+                        modifier = Modifier.fillMaxSize(),
+                        trigger = seagullTrigger,
+                        onFinished = { isSeagullFlying = false }
                     )
                 }
 
+                // 캐릭터/말풍선
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -419,7 +456,6 @@ fun HomeContent(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    // 캐릭터 이미지
                     WiggleClickable(
                         modifier = Modifier.size(110.dp),
                         onClick = {
@@ -629,6 +665,7 @@ fun HomeContent(
     }
 }
 
+// ===== 파도 효과 =====
 @Composable
 fun OceanEffect(
     modifier: Modifier = Modifier,
@@ -705,7 +742,6 @@ fun OceanEffect(
 
                 val path = Path()
 
-                // 아래쪽 곡선
                 path.moveTo(0f, bandBottomBase)
                 var x = 0f
                 while (x <= size.width) {
@@ -716,7 +752,6 @@ fun OceanEffect(
                     x += step
                 }
 
-                // 위쪽 곡선
                 x = size.width
                 while (x >= 0f) {
                     val t = (x / waveLength) + (waveProgress * 1.5f) + phase + 0.7f
@@ -759,7 +794,7 @@ fun OceanEffect(
                 drawCircle(
                     color = Color.White.copy(alpha = alpha),
                     radius = radius,
-                    center = androidx.compose.ui.geometry.Offset(
+                    center = Offset(
                         x = nx * this.size.width,
                         y = y
                     )
@@ -769,6 +804,7 @@ fun OceanEffect(
     )
 }
 
+// ===== 야구공 효과 (기존) =====
 @Composable
 fun BaseballEffect(modifier: Modifier = Modifier) {
     val ballPainter = painterResource(id = R.drawable.baseball_ball)
@@ -776,7 +812,6 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
     val progress = remember { Animatable(0f) }
     val rotation = remember { Animatable(0f) }
 
-    // HomeScreen에 들어갈 때마다 한 번만 실행
     LaunchedEffect(Unit) {
         launch {
             progress.animateTo(
@@ -797,7 +832,6 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
     }
 
     Canvas(modifier = modifier) {
-        // 애니메이션이 끝나면 그리지 않음
         if ((progress.value == 0f || progress.value == 1f) && !progress.isRunning) {
             return@Canvas
         }
@@ -817,13 +851,12 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
         val x = startX + (endX - startX) * progress.value
         val y = baseY - arcHeight * parabola(progress.value)
 
-        // 야구공 크기 두 배로
         val startSize = w * 0.10f
         val endSize = w * 0.24f
         val currentSize = startSize + (endSize - startSize) * progress.value
 
-        val center = androidx.compose.ui.geometry.Offset(x, y)
-        val topLeft = androidx.compose.ui.geometry.Offset(
+        val center = Offset(x, y)
+        val topLeft = Offset(
             x = center.x - currentSize / 2,
             y = center.y - currentSize / 2
         )
@@ -832,7 +865,7 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
             translate(left = topLeft.x, top = topLeft.y) {
                 with(ballPainter) {
                     draw(
-                        size = androidx.compose.ui.geometry.Size(currentSize, currentSize)
+                        size = Size(currentSize, currentSize)
                     )
                 }
             }
@@ -840,6 +873,96 @@ fun BaseballEffect(modifier: Modifier = Modifier) {
     }
 }
 
+// ===== 갈매기 떼 효과 =====
+@Composable
+fun SeagullFlock(
+    modifier: Modifier = Modifier,
+    trigger: Int,
+    onFinished: () -> Unit
+) {
+    val seagullPainter = painterResource(id = R.drawable.seagull)
+    val progress = remember { Animatable(0f) }
+
+    // 각 갈매기마다 약간씩 다른 위치/딜레이
+    val birdsMeta = remember {
+        val count = 6
+        List(count) {
+            BirdMeta(
+                delay = it * 0.10f,                    // 순차 딜레이
+                xJitter = Random.nextFloat() * 0.08f, // 살짝 좌우 퍼짐
+                yJitter = Random.nextFloat() * 0.08f, // 살짝 상하 퍼짐
+                scale = 0.8f + Random.nextFloat() * 0.4f
+            )
+        }
+    }
+
+    LaunchedEffect(trigger) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 2200, easing = FastOutSlowInEasing)
+        )
+        onFinished()
+    }
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        // 오른쪽 중앙 → 왼쪽 상단
+        val startX = w * 0.9f
+        val startY = h * 0.4f
+        val endX = w * 0.1f
+        val endY = h * 0.1f
+
+        birdsMeta.forEach { bird ->
+            val tRaw = progress.value - bird.delay
+            if (tRaw <= 0f || tRaw >= 1.2f) return@forEach
+            val t = tRaw.coerceIn(0f, 1f)
+
+            val x = startX + (endX - startX) * t - bird.xJitter * w
+            val y = startY + (endY - startY) * t - bird.yJitter * h
+
+            // 멀어질수록 작아지도록
+            val baseSize = w * 0.12f
+            val sizeFactor = bird.scale * (1f - t * 0.3f)
+            val birdWidth = baseSize * sizeFactor
+            val intrinsic = seagullPainter.intrinsicSize
+            val ratio =
+                if (intrinsic.width > 0 && intrinsic.height > 0) intrinsic.height / intrinsic.width else 1f
+            val birdHeight = birdWidth * ratio
+
+            // 날갯짓 느낌: 위아래 살짝 흔들기
+            val flapPhase = (t * 4f * Math.PI).toFloat()
+            val flapOffset = kotlin.math.sin(flapPhase) * (birdHeight * 0.08f)
+
+            val topLeft = Offset(
+                x = x - birdWidth / 2f,
+                y = y - birdHeight / 2f + flapOffset.toFloat()
+            )
+
+            val alpha = 1f - t * 0.3f
+
+            translate(left = topLeft.x, top = topLeft.y) {
+                with(seagullPainter) {
+                    draw(
+                        size = androidx.compose.ui.geometry.Size(birdWidth, birdHeight),
+                        alpha = alpha
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class BirdMeta(
+    val delay: Float,
+    val xJitter: Float,
+    val yJitter: Float,
+    val scale: Float
+)
+
+// ===== 기타 기존 함수들 =====
 @Composable
 private fun getWiggleDrawable(costumeUrl: String): Int {
     val context = LocalContext.current
