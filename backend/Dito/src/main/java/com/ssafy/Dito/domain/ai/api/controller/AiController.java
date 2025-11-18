@@ -110,7 +110,7 @@ public class AiController {
     }
 
     @Operation(summary = "AI 리포트 저장 (PostgreSQL)")
-    @PostMapping("/ai/report")
+    @PostMapping("/report")
     public ResponseEntity<SingleResult<ReportRes>> saveReport(
         @Valid @RequestBody ReportReq req
     ) {
@@ -119,7 +119,7 @@ public class AiController {
     }
 
     @Operation(summary = "일일 사용자 활동 조회 (MongoDB)")
-    @GetMapping("/ai/activity/{userId}")
+    @GetMapping("/activity/{userId}")
     public ResponseEntity<SingleResult<DailyActivityQueryRes>> getDailyActivity(
         @PathVariable Long userId,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
