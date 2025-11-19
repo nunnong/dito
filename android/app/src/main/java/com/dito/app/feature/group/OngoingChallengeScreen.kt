@@ -71,11 +71,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.rotate
 import androidx.core.graphics.rotationMatrix
 import com.dito.app.core.ui.designsystem.DitoShapes
+import com.dito.app.core.ui.designsystem.Primary
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.widget.FrameLayout
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.ui.viewinterop.AndroidView
@@ -250,6 +252,18 @@ fun StatisticsCard(
                 )
             }
         }
+    }
+}
+
+fun formatSecondsToTime(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -638,12 +652,10 @@ fun OngoingChallengeScreen(
                 if (index < displayOrder.size) {
                     val userId = displayOrder[index]
                     val rankingItem = rankings.find { it.userId == userId }
-                    val realTimeSeconds = uiState.realTimeScreenTimes[userId] ?: 0
-                    val formattedTime = formatSecondsToTime(realTimeSeconds)
                     UserInfoCard(
                         nickname = rankingItem?.nickname ?: "",
                         profileImage = rankingItem?.profileImage,
-                        screenTime = formattedTime,
+                        screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
                         isEmpty = rankingItem == null,
                         isMe = rankingItem?.isMe ?: false,
                         modifier = Modifier.weight(1f)
@@ -910,12 +922,12 @@ fun UserInfoCard(
     Box(
         modifier = modifier
             .background(
-                if (isMe) Color(0xFFFFEB3B).copy(alpha = 0.2f) else Color.White,
+                if (isMe) Primary else Color.White,
                 RoundedCornerShape(8.dp)
             )
             .border(
                 width = if (isMe) 3.dp else 2.dp,
-                color = if (isMe) Color(0xFFFFEB3B) else Color.Black,
+                color = Color.Black,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(4.dp)
@@ -940,20 +952,18 @@ fun UserInfoCard(
                         )
                     }
 
-
                     // 사용시간 텍스트 (이미지 위에 overlay)
                     StrokeText(
                         text = screenTime,
-                        style = DitoTypography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        fillColor = Color(0xFFFFD700),  // 골드색
+                        style = DitoTypography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        fillColor = Color.White,
                         strokeColor = Color.Black,
-                        strokeWidth = 2.dp,
+                        strokeWidth = 1.dp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 1.dp)
+//                            .padding(top = 4.dp)
                     )
-
                 }
             } else {
                 Spacer(
@@ -990,21 +1000,6 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
         4 -> "melon"
         6 -> "tomato"
         else -> "lemon"
-    }
-}
-
-/**
- * 초 단위를 mm:ss 또는 h:mm:ss 형식으로 변환
- */
-fun formatSecondsToTime(totalSeconds: Int): String {
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -1221,7 +1216,7 @@ fun CharacterView(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.speech_bubble),
+                            painter = painterResource(id = R.drawable.speech_bubble_2),
                             contentDescription = "Poke Bubble",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
