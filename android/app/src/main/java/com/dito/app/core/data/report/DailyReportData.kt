@@ -23,7 +23,14 @@ data class DailyReportResponse(
 @Serializable
 data class InsightItem(
     val type: ComparisonType,
-    val description: String
+    val description: String,
+    val score: ScoreComparison
+)
+
+@Serializable
+data class ScoreComparison(
+    val before: Int,
+    val after: Int
 )
 
 /**
@@ -37,7 +44,20 @@ data class DailyReportData(
     val currentStatus: StatusDescription,
     val predictions: List<String>,
     val comparisons: List<ComparisonItem>,
+    val radarChartData: RadarChartData? = null,
     val advice: String
+)
+
+/**
+ * 레이더 차트 데이터 (수면, 집중, 조절력 점수)
+ */
+data class RadarChartData(
+    val sleepScore: Int,           // 수면 현재 점수 (0-100)
+    val focusScore: Int,           // 집중 현재 점수 (0-100)
+    val selfControlScore: Int,     // 조절력 현재 점수 (0-100)
+    val sleepBefore: Int = 0,      // 수면 이전 점수 (0-100)
+    val focusBefore: Int = 0,      // 집중 이전 점수 (0-100)
+    val selfControlBefore: Int = 0 // 조절력 이전 점수 (0-100)
 )
 
 data class StatusDescription(

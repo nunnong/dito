@@ -31,6 +31,8 @@ import coil.compose.AsyncImage
 import com.dito.app.R
 import com.dito.app.core.data.report.ComparisonItem
 import com.dito.app.core.data.report.ComparisonType
+import com.dito.app.core.data.report.RadarChartData
+import com.dito.app.core.ui.component.BalanceRadarChart
 import com.dito.app.core.ui.designsystem.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +86,7 @@ fun DailyReportScreen(
                     currentStatus = state.data.currentStatus,
                     predictions = state.data.predictions,
                     comparisons = state.data.comparisons,
+                    radarChartData = state.data.radarChartData,
                     advice = state.data.advice
                 )
             }
@@ -123,6 +126,7 @@ fun DailyReportContent(
     currentStatus: com.dito.app.core.data.report.StatusDescription,
     predictions: List<String>,
     comparisons: List<ComparisonItem>,
+    radarChartData: RadarChartData?,
     advice: String
 ) {
     Box(
@@ -187,18 +191,19 @@ fun DailyReportContent(
                 )
             }
 
+            // 비교 분석 섹션 (종합 밸런스 분석)
+            item {
+                ComparisonCard(
+                    comparisons = comparisons,
+                    radarData = radarChartData
+                )
+            }
+
             // 현재 상태 섹션
             item {
                 CurrentStatusCard(
                     userName = userName,
                     predictions = predictions
-                )
-            }
-
-            // 비교 분석 섹션
-            item {
-                ComparisonCard(
-                    comparisons = comparisons
                 )
             }
 
@@ -286,7 +291,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
                 textAlign = TextAlign.Center,
                 lineHeight = 1.12.em,
                 style = DitoTypography.displayLarge,
-                fontSize = 54.sp
+                fontSize = 42.sp
             )
             Text(
                 text = "%",
@@ -294,7 +299,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
                 textAlign = TextAlign.Center,
                 lineHeight = 1.16.em,
                 style = DitoTypography.displayMedium,
-                fontSize = 54.sp
+                fontSize = 42.sp
             )
         }
     }
@@ -370,7 +375,8 @@ fun CurrentStatusCard(
 
 @Composable
 fun ComparisonCard(
-    comparisons: List<ComparisonItem>
+    comparisons: List<ComparisonItem>,
+    radarData: RadarChartData?
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -403,7 +409,7 @@ fun ComparisonCard(
                 modifier = Modifier.size(24.dp)
             )
             Text(
-                text = "이전과 비교해서",
+                text = "종합 밸런스 분석",
                 color = Color.Black,
                 textAlign = TextAlign.Center,
                 lineHeight = 0.91.em,
@@ -417,12 +423,42 @@ fun ComparisonCard(
                 .background(color = Color.Black)
         )
         Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 27.dp)
+                .padding(horizontal = 24.dp, vertical = 24.dp)
         ) {
+            // Radar Chart 섹션
+            if (radarData != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .align(Alignment.CenterHorizontally)
+                ) {
+                    BalanceRadarChart(
+                        data = radarData,
+                        modifier = Modifier.fillMaxWidth()
+                        // fillColor는 기본값(Primary 노랑색) 사용
+                    )
+                }
+
+                // 차트 설명
+                Text(
+                    text = "파란색은 이전, 빨강색은 현재 상태입니다.",
+                    style = DitoTypography.bodySmall,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+
+                // 구분선
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color.LightGray.copy(alpha = 0.5f)
+                )
+            }
+
+            // 기존 비교 리스트
             comparisons.forEach { comparison ->
                 ComparisonItemCard(comparisonItem = comparison)
             }

@@ -23,7 +23,7 @@ data class MissionNotificationData(
     val coinReward: Int,
     val status: MissionStatus,
     val result: MissionResult? = null,
-    val triggerTime: String? = null,  // 미션 트리거 시각 (ISO 8601)
+    val triggerTime: String? = null,  // 미션 트리거 시각
     val duration: Int? = null,  // 실행되는 시간 (초 단위)
     val feedback: String? = null,  // AI 피드백
     val statChangeSelfCare: Int = 0,  // 자기관리 스탯 변화
