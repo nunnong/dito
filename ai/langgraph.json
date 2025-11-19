@@ -6,7 +6,8 @@
     "evaluation": "./src/agent/evaluation_agent.py:evaluation_agent",
     "youtube": "./src/agent/youtube_agent.py:youtube_agent",
     "debug": "./src/agent/debug_agent.py:debug_agent",
-    "report": "./src/agent/report_agent.py:report_agent"
+    "report": "./src/agent/report_agent.py:report_agent",
+    "debug_report": "./src/agent/debug_report_agent.py:debug_report_agent"
   },
   "env": ".env",
   "python_version": "3.12",
