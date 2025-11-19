@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,12 +68,17 @@ public class EvaluationService {
         validateBehaviorLogs(request.behaviorLogs());
 
         // Step 4: Build AI server request payload
+        // Convert null to empty list for AI server consistency
+        List<BehaviorLog> behaviorLogs = request.behaviorLogs() != null
+                ? request.behaviorLogs()
+                : Collections.emptyList();
+
         Map<String, Object> aiRequest = Map.of(
                 "assistant_id", "evaluation",
                 "input", Map.of(
                         "user_id", user.getId(),  // User DB ID (Long)
                         "mission_id", missionId,  // Mission DB ID (Long)
-                        "behavior_logs", request.behaviorLogs()
+                        "behavior_logs", behaviorLogs  // Always send array (never null)
                 )
         );
 
@@ -110,15 +116,18 @@ public class EvaluationService {
 
     /**
      * Validate behavior logs
+     * Allows null or empty logs - AI server will interpret the meaning
      *
      * @param logs Behavior logs
      */
     private void validateBehaviorLogs(List<BehaviorLog> logs) {
+        // Allow null or empty logs
         if (logs == null || logs.isEmpty()) {
-            throw new BadRequestException("행동 로그는 최소 1개 이상이어야 합니다");
+            log.debug("Behavior logs empty - AI will interpret meaning");
+            return;
         }
 
-        // Validate sequence order
+        // Validate sequence order only when logs exist
         for (int i = 0; i < logs.size(); i++) {
             if (logs.get(i).sequence() != i + 1) {
                 throw new BadRequestException(

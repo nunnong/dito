@@ -30,9 +30,8 @@ public record EvaluationRequest(
         @Valid
         MissionInfo missionInfo,
 
-        @Schema(description = "행동 로그 목록")
+        @Schema(description = "행동 로그 목록 (빈 배열 허용 - AI가 의미 판단)")
         @JsonProperty("behavior_logs")
-        @NotEmpty(message = "행동 로그는 최소 1개 이상이어야 합니다")
         @Valid
         List<BehaviorLog> behaviorLogs
 ) {

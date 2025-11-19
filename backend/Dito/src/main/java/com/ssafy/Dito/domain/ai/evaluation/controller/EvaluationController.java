@@ -50,7 +50,8 @@ public class EvaluationController {
     @Operation(
             summary = "미션 평가 요청",
             description = "사용자의 미션 수행 결과를 AI 기반으로 평가합니다. " +
-                    "요청 즉시 pending 상태로 응답하며, 실제 평가는 비동기로 처리됩니다."
+                    "요청 즉시 pending 상태로 응답하며, 실제 평가는 비동기로 처리됩니다. " +
+                    "behavior_logs는 빈 배열([]) 또는 null 허용 - AI가 의미를 판단합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -132,42 +133,65 @@ public class EvaluationController {
     })
     public ResponseEntity<SingleResult<EvaluationResponse>> evaluateMission(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "미션 평가 요청 데이터",
+                    description = "미션 평가 요청 데이터 (behavior_logs는 빈 배열 또는 null 허용)",
                     required = true,
                     content = @Content(
                             schema = @Schema(implementation = EvaluationRequest.class),
-                            examples = @ExampleObject(
-                                    value = """
-                                    {
-                                      "user_id": "user_12345",
-                                      "mission_id": "mission_20251105_001",
-                                      "mission_info": {
-                                        "type": "REST",
-                                        "instruction": "5분간 휴식하세요",
-                                        "duration_seconds": 300,
-                                        "target_apps": ["com.google.android.youtube", "com.instagram.android"],
-                                        "start_time": "2025-11-05T14:30:00+09:00",
-                                        "end_time": "2025-11-05T14:35:00+09:00"
-                                      },
-                                      "behavior_logs": [
-                                        {
-                                          "log_type": "APP_USAGE",
-                                          "sequence": 1,
-                                          "timestamp": "2025-11-05T14:30:15+09:00",
-                                          "package_name": "com.instagram.android",
-                                          "app_name": "Instagram",
-                                          "duration_seconds": 125,
-                                          "is_target_app": true
-                                        },
-                                        {
-                                          "log_type": "SCREEN_OFF",
-                                          "sequence": 2,
-                                          "timestamp": "2025-11-05T14:33:30+09:00"
-                                        }
-                                      ]
-                                    }
-                                    """
-                            )
+                            examples = {
+                                    @ExampleObject(
+                                            name = "로그 있음",
+                                            description = "행동 로그가 있는 경우",
+                                            value = """
+                                            {
+                                              "user_id": "user_12345",
+                                              "mission_id": "mission_20251105_001",
+                                              "mission_info": {
+                                                "type": "REST",
+                                                "instruction": "5분간 휴식하세요",
+                                                "duration_seconds": 300,
+                                                "target_apps": ["com.google.android.youtube", "com.instagram.android"],
+                                                "start_time": "2025-11-05T14:30:00+09:00",
+                                                "end_time": "2025-11-05T14:35:00+09:00"
+                                              },
+                                              "behavior_logs": [
+                                                {
+                                                  "log_type": "APP_USAGE",
+                                                  "sequence": 1,
+                                                  "timestamp": "2025-11-05T14:30:15+09:00",
+                                                  "package_name": "com.instagram.android",
+                                                  "app_name": "Instagram",
+                                                  "duration_seconds": 125,
+                                                  "is_target_app": true
+                                                },
+                                                {
+                                                  "log_type": "SCREEN_OFF",
+                                                  "sequence": 2,
+                                                  "timestamp": "2025-11-05T14:33:30+09:00"
+                                                }
+                                              ]
+                                            }
+                                            """
+                                    ),
+                                    @ExampleObject(
+                                            name = "로그 없음",
+                                            description = "행동 로그가 없는 경우 (빈 배열)",
+                                            value = """
+                                            {
+                                              "user_id": "user_12345",
+                                              "mission_id": "mission_20251105_002",
+                                              "mission_info": {
+                                                "type": "REST",
+                                                "instruction": "5분간 휴식하세요",
+                                                "duration_seconds": 300,
+                                                "target_apps": ["com.google.android.youtube", "com.instagram.android"],
+                                                "start_time": "2025-11-05T15:00:00+09:00",
+                                                "end_time": "2025-11-05T15:05:00+09:00"
+                                              },
+                                              "behavior_logs": []
+                                            }
+                                            """
+                                    )
+                            }
                     )
             )
             @Valid @RequestBody EvaluationRequest request
