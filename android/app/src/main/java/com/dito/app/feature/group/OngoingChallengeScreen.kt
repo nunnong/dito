@@ -77,6 +77,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.widget.FrameLayout
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.ui.viewinterop.AndroidView
@@ -251,6 +252,18 @@ fun StatisticsCard(
                 )
             }
         }
+    }
+}
+
+fun formatSecondsToTime(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -1203,7 +1216,7 @@ fun CharacterView(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.speech_bubble),
+                            painter = painterResource(id = R.drawable.speech_bubble_2),
                             contentDescription = "Poke Bubble",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
