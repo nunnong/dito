@@ -152,6 +152,9 @@ class InsightItem(BaseModel):
         description="인사이트 유형 (긍정적/개선 필요)"
     )
     description: str = Field(description="인사이트 내용")
+    score: dict[str, int] | None = Field(
+        default=None, description="점수 (before/after)"
+    )
 
 
 class ReportAnalysis(BaseModel):
