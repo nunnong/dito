@@ -92,7 +92,6 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 val deepLink = "dito://mission/${data["mission_id"]}?type=$missionType"
                 Log.d(TAG, "딥링크: $deepLink (type=$missionType)")
 
-                handleMissionMessage(data, deepLink)
                 when (type) {
                     "intervention" -> {
                         // 미션 알림 - 미션 추적 시작 (progress 포함)
