@@ -994,18 +994,13 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
 }
 
 /**
- * 초 단위를 mm:ss 또는 h:mm:ss 형식으로 변환
+ * 초 단위를 hh:mm (시간:분) 형식으로 변환
  */
 fun formatSecondsToTime(totalSeconds: Int): String {
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
 
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
-    }
+    return String.format("%02d:%02d", hours, minutes)
 }
 
 fun getAppIconFromPackage(packageName: String?): Int {
