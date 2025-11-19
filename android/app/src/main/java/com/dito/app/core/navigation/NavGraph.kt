@@ -213,17 +213,7 @@ fun DitoNavGraph(
             val (navigateTo, missionId, missionType, openDetail) = parsedDeepLink
 
             // MainActivity에서 WearableMessageService 가져오기
-            val wearableMessageService = (context as? MainActivity)?.let { activity ->
-                try {
-                    // Reflection을 사용하여 주입된 서비스 가져오기
-                    val field = activity.javaClass.getDeclaredField("wearableMessageService")
-                    field.isAccessible = true
-                    field.get(activity) as? WearableMessageService
-                } catch (e: Exception) {
-                    Log.e("NavGraph", "Failed to get WearableMessageService", e)
-                    null
-                }
-            }
+            val wearableMessageService = (context as? MainActivity)?.wearableMessageService
 
             MainScreen(
                 onLogout = {
