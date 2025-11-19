@@ -133,13 +133,8 @@ class OngoingChallengeViewModel @Inject constructor(
     }
 
     private fun startRealTimeTicker() {
+        // 실시간 증가 로직 제거: 서버 데이터만 사용
         stopRealTimeTicker()
-        realTimeTickerJob = viewModelScope.launch {
-            while (true) {
-                delay(1000L) // 1초마다 업데이트
-                incrementScreenTimes()
-            }
-        }
     }
 
     private fun stopRealTimeTicker() {
@@ -148,19 +143,8 @@ class OngoingChallengeViewModel @Inject constructor(
     }
 
     private fun incrementScreenTimes() {
-        val currentTimes = _uiState.value.realTimeScreenTimes.toMutableMap()
-        val rankings = _uiState.value.rankings
-
-        // YouTube를 사용 중인 사용자만 스크린타임 1초씩 증가
-        rankings.forEach { ranking ->
-            val isUsingYouTube = ranking.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true
-            if (isUsingYouTube) {
-                val currentSeconds = currentTimes[ranking.userId] ?: 0
-                currentTimes[ranking.userId] = currentSeconds + 1
-            }
-        }
-
-        _uiState.value = _uiState.value.copy(realTimeScreenTimes = currentTimes)
+        // 실시간 증가 로직 제거: 서버에서 받은 데이터만 사용
+        // 10초마다 서버에서 최신 랭킹을 받아와서 표시
     }
 
     fun loadRanking() {
@@ -179,25 +163,17 @@ class OngoingChallengeViewModel @Inject constructor(
                         currentOrder
                     }
 
-                    // 백엔드에서 받은 스크린타임을 초 단위로 파싱
-                    val currentTimes = _uiState.value.realTimeScreenTimes.toMutableMap()
-
+                    // 서버에서 받은 스크린타임을 초 단위로 파싱 (실시간 증가 제거, 서버 데이터만 사용)
+                    val serverTimes = mutableMapOf<Long, Int>()
                     response.rankings.forEach { ranking ->
                         val serverSeconds = parseScreenTimeToSeconds(ranking.totalScreenTimeFormatted)
-                        val clientSeconds = currentTimes[ranking.userId] ?: 0
-
-                        // 서버 값이 클라이언트 값보다 크면 서버 값으로 업데이트 (보정)
-                        // 그렇지 않으면 클라이언트 값 유지 (실시간 증가분 보존)
-                        if (serverSeconds > clientSeconds) {
-                            currentTimes[ranking.userId] = serverSeconds
-                        }
-                        // 서버 값이 더 작으면 클라이언트 값 유지 (이미 증가한 초 보존)
+                        serverTimes[ranking.userId] = serverSeconds
                     }
 
                     _uiState.value = _uiState.value.copy(
-                        rankings = response.rankings,
+                        rankings = response.rankings, // 서버 순위 그대로 사용
                         initialUserOrder = initialOrder,
-                        realTimeScreenTimes = currentTimes
+                        realTimeScreenTimes = serverTimes // 서버 시간 그대로 사용
                     )
                 },
                 onFailure = { error ->
