@@ -188,7 +188,10 @@ fun MainScreen(
                 ClosetScreen(onBackClick = { innerNavController.popBackStack() })
             }
             composable("mission_notification") {
-                MissionNotificationScreen(onBackClick = { innerNavController.popBackStack() })
+                MissionNotificationScreen(
+                    onBackClick = { innerNavController.popBackStack() },
+                    initialMissionId = initialMissionId  // 딥링크 missionId 전달
+                )
             }
             composable(Route.GroupRoot.path) {
                 GroupScreen(navController = innerNavController)

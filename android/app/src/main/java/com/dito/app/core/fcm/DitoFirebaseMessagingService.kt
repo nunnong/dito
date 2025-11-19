@@ -76,6 +76,11 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         message.data.let { data ->
             Log.d(TAG, "Data payload: $data")
 
+            val type = data["type"]  // intervention or evaluation
+            val title = data["title"] ?: message.notification?.title ?: "디토"
+            val body = data["message"] ?: message.notification?.body ?: ""
+            val deepLink = data["deep_link"]
+
             // mission_id 존재 여부로 미션/일반 알림 구분 (AI 팀 FCM 구조에 맞춤)
             if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
                 // 미션 알림 - 미션 추적 시작
@@ -88,11 +93,31 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                 Log.d(TAG, "딥링크: $deepLink (type=$missionType)")
 
                 handleMissionMessage(data, deepLink)
+                when (type) {
+                    "intervention" -> {
+                        // 미션 알림 - 미션 추적 시작 (progress 포함)
+                        Log.d(TAG, "Intervention 알림 감지: mission_id=${data["mission_id"]}")
+                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
+                        Log.d(TAG, "딥링크: $missionDeepLink")
+                        handleMissionMessage(data, missionDeepLink)
+                    }
+                    "evaluation" -> {
+                        // 평가 결과 알림 - progress 없이 단순 알림만 표시
+                        Log.d(TAG, "Evaluation 알림 감지: mission_id=${data["mission_id"]}")
+                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
+                        Log.d(TAG, "딥링크: $missionDeepLink")
+                        showEvaluationNotification(title, body, missionDeepLink)
+                    }
+                    else -> {
+                        // type 없으면 기존 동작 유지 (하위 호환성)
+                        Log.d(TAG, "미션 알림 감지 (type 없음): mission_id=${data["mission_id"]}")
+                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
+                        handleMissionMessage(data, missionDeepLink)
+                    }
+                }
             } else {
                 // 일반 알림 - 격려 메시지
                 Log.d(TAG, "일반 알림 감지 (mission_id 없음)")
-                val title = data["title"] ?: message.notification?.title ?: "디토"
-                val body = data["message"] ?: message.notification?.body ?: "잘하고 있어요! 건강한 디지털 습관을 유지하세요."
                 showNotification(
                     title = title,
                     body = body,
@@ -161,6 +186,59 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         notificationManager.notify(notificationId, notification)
 
         Log.d(TAG, "✅ 알림 표시 완료: id=$notificationId, title=$title")
+    }
+
+    /**
+     * 평가 결과 알림 표시 (progress 없음)
+     * Evaluation FCM 전용 - 미션 추적을 시작하지 않고 단순 알림만 표시
+     *
+     * @param title 알림 제목
+     * @param message 알림 내용 (AI 피드백)
+     * @param deepLink 딥링크 URI (예: dito://mission/7)
+     */
+    private fun showEvaluationNotification(title: String, message: String, deepLink: String?) {
+        Log.d(TAG, "📊 평가 결과 알림 표시 중...")
+        Log.d(TAG, "   제목: $title")
+        Log.d(TAG, "   메시지: $message")
+        Log.d(TAG, "   딥링크: $deepLink")
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // 딥링크 Intent 생성
+        val intent = if (deepLink != null) {
+            Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
+                setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        } else {
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            deepLink?.hashCode() ?: System.currentTimeMillis().toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // 알림 생성 (progress 없음)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))  // 긴 텍스트 지원
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .build()
+
+        val notificationId = deepLink?.hashCode() ?: NOTIFICATION_ID_BASE + 1000
+        notificationManager.notify(notificationId, notification)
+
+        Log.d(TAG, "✅ 평가 결과 알림 표시 완료: id=$notificationId")
     }
 
     /**

@@ -97,6 +97,25 @@ class ShopViewModel @Inject constructor(
         }
     }
 
+    fun equipItem(itemId: Long) {
+        viewModelScope.launch {
+            android.util.Log.d("ShopViewModel", "Attempting to equip item: ID $itemId")
+
+            shopRepository.equipItem(itemId)
+                .onSuccess { response ->
+                    android.util.Log.d("ShopViewModel", "Item equipped successfully: ${response.message}")
+                    // Reload items to get updated state
+                    loadItems(isInitialLoad = true)
+                }
+                .onFailure { error ->
+                    android.util.Log.e("ShopViewModel", "Failed to equip item: ${error.message}")
+                    _uiState.update {
+                        it.copy(error = error.message ?: "아이템 적용에 실패했습니다.")
+                    }
+                }
+        }
+    }
+
     private fun loadItems(isInitialLoad: Boolean) {
         viewModelScope.launch {
             if (isInitialLoad) {

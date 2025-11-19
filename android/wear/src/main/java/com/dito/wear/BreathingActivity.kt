@@ -457,7 +457,8 @@ fun BackgroundVideo(isPlaying: Boolean) {
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false // 컨트롤러 숨기기
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // 화면 꽉 채우기
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // 비율 유지하며 화면 꽉 채우기
+                    // 워치 화면 크기 강제 설정
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
@@ -466,7 +467,13 @@ fun BackgroundVideo(isPlaying: Boolean) {
             },
             modifier = Modifier
                 .fillMaxSize()
-                .scale(1.2f) // 비디오를 더 크게 확대하여 화면 꽉 채우기
+                .scale(1.15f), // Compose의 scale modifier 사용 - 115% 확대
+            update = { playerView ->
+                // 레이아웃이 준비되면 강제 갱신
+                playerView.post {
+                    playerView.requestLayout()
+                }
+            }
         )
     }
 }

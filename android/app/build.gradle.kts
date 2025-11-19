@@ -132,6 +132,10 @@ dependencies {
 
     // ========== Wearable Data Layer (폰-워치 통신) ==========
     implementation("com.google.android.gms:play-services-wearable:18.2.0")
+    // ========== Lottie 애니메이션 ==========
+    implementation("com.airbnb.android:lottie-compose:6.5.2")
+    implementation("com.google.android.exoplayer:exoplayer-core:2.19.1")
+    implementation("com.google.android.exoplayer:exoplayer-ui:2.19.1")
 
     // ========== Test ==========
     testImplementation(libs.junit)
