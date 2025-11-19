@@ -291,7 +291,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
                 textAlign = TextAlign.Center,
                 lineHeight = 1.12.em,
                 style = DitoTypography.displayLarge,
-                fontSize = 48.sp
+                fontSize = 42.sp
             )
             Text(
                 text = "%",
@@ -299,7 +299,7 @@ fun MissionCompletionCard(missionCompletionRate: Int) {
                 textAlign = TextAlign.Center,
                 lineHeight = 1.16.em,
                 style = DitoTypography.displayMedium,
-                fontSize = 48.sp
+                fontSize = 42.sp
             )
         }
     }
