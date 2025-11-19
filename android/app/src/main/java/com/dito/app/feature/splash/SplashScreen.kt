@@ -157,13 +157,13 @@ private fun TitleSection() {
         ) {
             Text(
                 text = "DI",
-                style = DitoTypography.displaySmall,
+                style = DitoTypography.displayLarge,
                 color = Primary,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = "GITAL DETOX",
-                style = DitoTypography.displaySmall,
+                style = DitoTypography.displayLarge,
                 color = Color.Black,
                 textAlign = TextAlign.Center
             )
