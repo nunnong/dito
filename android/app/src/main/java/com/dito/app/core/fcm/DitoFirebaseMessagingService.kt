@@ -13,9 +13,13 @@ import com.dito.app.MainActivity
 import com.dito.app.R
 import com.dito.app.core.service.mission.MissionData
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.wearable.WearableMessageService
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -29,6 +33,9 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject
     lateinit var fcmTokenManager: FcmTokenManager
+
+    @Inject
+    lateinit var wearableMessageService: WearableMessageService
 
     companion object {
         private const val TAG = "DitoFCM"
@@ -76,6 +83,16 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
 
             // mission_id 존재 여부로 미션/일반 알림 구분 (AI 팀 FCM 구조에 맞춤)
             if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
+                // 미션 알림 - 미션 추적 시작
+                Log.d(TAG, "미션 알림 감지: mission_id=${data["mission_id"]}")
+
+                // 미션 타입을 딥링크에 포함 (예: dito://mission/7?type=MEDITATION)
+                val missionType = data["mission_type"] ?: "REST"
+                // AI 팀에서 보내는 deep_link가 있어도 무시하고, 미션 타입을 포함한 딥링크 생성
+                val deepLink = "dito://mission/${data["mission_id"]}?type=$missionType"
+                Log.d(TAG, "딥링크: $deepLink (type=$missionType)")
+
+                handleMissionMessage(data, deepLink)
                 when (type) {
                     "intervention" -> {
                         // 미션 알림 - 미션 추적 시작 (progress 포함)
@@ -135,11 +152,11 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         val intent = if (deepLink != null) {
             Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                 setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
         } else {
             Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
         }
 

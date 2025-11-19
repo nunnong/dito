@@ -1,8 +1,10 @@
 package com.dito.app.core.navigation
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,6 +14,7 @@ import androidx.navigation.navArgument
 import com.dito.app.MainActivity
 import com.dito.app.PermissionTestScreen
 import com.dito.app.MainScreen
+import com.dito.app.core.wearable.WearableMessageService
 import com.dito.app.feature.auth.AuthViewModel
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.auth.SignUpCredentialsScreen
@@ -194,9 +197,24 @@ fun DitoNavGraph(
         // 7) 메인 화면 (Home) - 딥링크 파싱해서 MainScreen으로 전달
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
+            val context = LocalContext.current
 
+            Log.d("NavGraph", "🔍 Home composable - deepLinkUri: $deepLinkUri")
+            val (navigateTo, missionId, missionType) = parseDeepLink(deepLinkUri)
+            Log.d("NavGraph", "   파싱 결과 - navigateTo: $navigateTo, missionId: $missionId, missionType: $missionType")
 
-            val (navigateTo, missionId) = parseDeepLink(deepLinkUri)
+            // MainActivity에서 WearableMessageService 가져오기
+            val wearableMessageService = (context as? MainActivity)?.let { activity ->
+                try {
+                    // Reflection을 사용하여 주입된 서비스 가져오기
+                    val field = activity.javaClass.getDeclaredField("wearableMessageService")
+                    field.isAccessible = true
+                    field.get(activity) as? WearableMessageService
+                } catch (e: Exception) {
+                    Log.e("NavGraph", "Failed to get WearableMessageService", e)
+                    null
+                }
+            }
 
             MainScreen(
                 onLogout = {
@@ -214,7 +232,9 @@ fun DitoNavGraph(
                 outerNavController = navController,
                 // 딥링크에서 파싱한 navigation 정보
                 initialNavigateTo = navigateTo,
-                initialMissionId = missionId
+                initialMissionId = missionId,
+                initialMissionType = missionType,
+                wearableMessageService = wearableMessageService
             )
         }
 
@@ -245,22 +265,23 @@ fun DitoNavGraph(
 /**
  * 딥링크 URI를 파싱하여 navigation 정보 추출
  *
- * @param deepLinkUri 딥링크 URI (예: dito://mission/7)
- * @return Pair<navigateTo, missionId>
+ * @param deepLinkUri 딥링크 URI (예: dito://mission/7?type=MEDITATION)
+ * @return Triple<navigateTo, missionId, missionType>
  *
  * 지원하는 딥링크:
- * - dito://mission/{missionId} → ("mission_notifications", missionId)
+ * - dito://mission/{missionId}?type={missionType} → ("mission_notifications", missionId, missionType)
  */
-private fun parseDeepLink(deepLinkUri: Uri?): Pair<String?, String?> {
+private fun parseDeepLink(deepLinkUri: Uri?): Triple<String?, String?, String?> {
     if (deepLinkUri == null) {
-        return Pair(null, null)
+        return Triple(null, null, null)
     }
 
     return when (deepLinkUri.host) {
         "mission" -> {
             val missionId = deepLinkUri.lastPathSegment  // "7"
-            Pair("mission_notifications", missionId)
+            val missionType = deepLinkUri.getQueryParameter("type")  // "MEDITATION"
+            Triple("mission_notifications", missionId, missionType)
         }
-        else -> Pair(null, null)
+        else -> Triple(null, null, null)
     }
 }
