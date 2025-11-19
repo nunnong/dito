@@ -440,7 +440,7 @@ fun HomeContent(
                                     contentScale = ContentScale.Fit
                                 )
                                 Text(
-                                    text = "오늘은 유튜브를 많이 보셨네요!",
+                                    text = "오늘도 파이팅!",
                                     style = DitoCustomTextStyles.titleDSmall,
                                     color = Color.Black,
                                     textAlign = TextAlign.Center,
