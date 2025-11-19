@@ -47,6 +47,7 @@ fun MainScreen(
     initialNavigateTo: String? = null,
     initialMissionId: String? = null,
     initialMissionType: String? = null,
+    initialOpenMissionDetail: Boolean = false,  // 평가 알림 구분용
     wearableMessageService: WearableMessageService? = null
 ) {
     val innerNavController = rememberNavController()
@@ -190,7 +191,8 @@ fun MainScreen(
             composable("mission_notification") {
                 MissionNotificationScreen(
                     onBackClick = { innerNavController.popBackStack() },
-                    initialMissionId = initialMissionId  // 딥링크 missionId 전달
+                    initialMissionId = initialMissionId,  // 딥링크 missionId 전달
+                    initialOpenDetail = initialOpenMissionDetail  // openDetail 파라미터 전달
                 )
             }
             composable(Route.GroupRoot.path) {

@@ -286,7 +286,7 @@ class OngoingChallengeViewModel @Inject constructor(
         showCoachBubble()  // 즉시 첫 메시지 표시
         coachMessageJob = viewModelScope.launch {
             while (true) {
-                delay(7000L)  // 7초마다 (3초 표시 + 4초 대기)
+                delay(5000L)  // 5초마다 (3초 표시 + 4초 대기)
                 showCoachBubble()
             }
         }
@@ -342,7 +342,7 @@ class OngoingChallengeViewModel @Inject constructor(
             val sec = times[user.userId] ?: 0
             val min = sec / 60
             messages.add(
-                "지금 ${user.nickname}가, YouTube를 달리고 있어.\n" +
+                "지금 ${user.nickname}님이, YouTube를 달리고 있어.\n" +
                         "한 번 찔러서 숨 고르게 해볼까? 👀 (${min}분 사용)"
             )
         }
@@ -355,13 +355,13 @@ class OngoingChallengeViewModel @Inject constructor(
 
             if (gapMin <= 5) {
                 messages.add(
-                    "지금 ${first.nickname}이 1위!\n" +
-                            "${second.nickname}가 바로 뒤를 쫓는 중 🔥\n"
+                    "지금 ${first.nickname}님이 1위!\n" +
+                            "${second.nickname}님이 바로 뒤를 쫓는 중 🔥\n"
                 )
             } else {
                 messages.add(
                     "${first.nickname}님이 여유 있게 1위 유지 중이야\n" +
-                            "${second.nickname}님이 따라가려면 조금 더 노력이 필요해 💨"
+                            "${second.nickname}님이 따라가려면 노력이 필요해!"
                 )
             }
         }
