@@ -56,6 +56,11 @@ class MainActivity : ComponentActivity() {
     // 🔧 mutableStateOf로 딥링크 관리 (Compose가 자동으로 recomposition)
     private val deepLinkUriState = mutableStateOf<Uri?>(null)
 
+    fun clearDeepLink() {
+        Log.d(TAG, "🧹 clearDeepLink 호출 → deepLinkUriState 초기화")
+        deepLinkUriState.value = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -115,16 +120,20 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, "   scheme: ${uri.scheme}")  // dito
             Log.d(TAG, "   host: ${uri.host}")      // mission
             Log.d(TAG, "   path: ${uri.path}")      // /9
+            Log.d(TAG, "   query: ${uri.query}")    // openDetail=true
 
             // 딥링크 파싱
             when (uri.host) {
                 "mission" -> {
                     val missionId = uri.lastPathSegment
+                    val openDetail = uri.getQueryParameter("openDetail")
                     Log.d(TAG, "   📋 미션 ID: $missionId")
+                    Log.d(TAG, "   🔓 자동 열기: $openDetail")
                 }
             }
 
-            // 🎯 State 업데이트 → Compose가 자동으로 recomposition
+            // 같은 URI가 또 와도 항상 “변경”으로 인식되게 한 번 null로 초기화 후 다시 세팅
+            deepLinkUriState.value = null
             deepLinkUriState.value = uri
 
         } else {

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -147,26 +148,7 @@ fun MissionDetailDialog(
                     Spacer(modifier = Modifier.height(Spacing.l))
                 }
 
-                // 미션 진행 중일 때 AI 피드백 안내
-                if (mission.status == MissionStatus.IN_PROGRESS && mission.feedback == null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = Spacing.m)
-                            .border(1.dp, Color.Black, DitoShapes.small)
-                            .background(Background, DitoShapes.small)
-                            .padding(Spacing.m),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "미션 수행 후\nAI 피드백을 받아보세요!",
-                            color = Color.Black,
-                            style = DitoCustomTextStyles.titleDMedium,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(Spacing.l))
-                }
+                // [제거됨] 미션 진행 중일 때 AI 피드백 안내 (미션 카드에서 표시)
 
                 // 확인 버튼
                 if (mission.status == MissionStatus.COMPLETED) {

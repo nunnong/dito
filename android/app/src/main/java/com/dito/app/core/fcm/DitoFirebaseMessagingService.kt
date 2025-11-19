@@ -101,10 +101,10 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
                         handleMissionMessage(data, missionDeepLink)
                     }
                     "evaluation" -> {
-                        // 평가 결과 알림 - progress 없이 단순 알림만 표시
-                        Log.d(TAG, "Evaluation 알림 감지: mission_id=${data["mission_id"]}")
-                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
-                        Log.d(TAG, "딥링크: $missionDeepLink")
+                        // 평가 결과 알림 - progress 없이 단순 알림만 표시 + 모달 자동 열기
+                        Log.d(TAG, "📊 Evaluation 알림 감지: mission_id=${data["mission_id"]}")
+                        val missionDeepLink = "dito://mission/${data["mission_id"]}?openDetail=true"
+                        Log.d(TAG, "   딥링크: $missionDeepLink")
                         showEvaluationNotification(title, body, missionDeepLink)
                     }
                     else -> {
