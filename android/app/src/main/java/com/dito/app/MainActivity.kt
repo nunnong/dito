@@ -46,6 +46,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: AuthRepository
 
+    @Inject
+    lateinit var wearableMessageService: com.dito.app.core.wearable.WearableMessageService
+
     companion object {
         private const val TAG = "MainActivity"
     }

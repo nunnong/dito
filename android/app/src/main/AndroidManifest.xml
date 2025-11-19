@@ -102,6 +102,16 @@
                     android:scheme="dito"
                     android:host="breathing" />
             </intent-filter>
+
+            <!-- Deep Link for Mission (미션) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="dito"
+                    android:host="mission" />
+            </intent-filter>
         </activity>
 
         <!-- Health Connect: 개인정보처리방침 Activity (Android 13 이하) -->
