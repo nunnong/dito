@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -129,7 +130,7 @@ fun MissionNotificationScreen(
     // 화면이 보이는 동안 주기적으로 새로고침 (진행 중인 미션이 있을 때)
     LaunchedEffect(Unit) {
         while (true) {
-            delay(5000L) // 5초마다 새로고침
+            delay(10000L) // 10초마다 새로고침
 
             // 진행 중인 미션이 있는지 확인
             val hasInProgressMission = uiState.notifications.any {
@@ -144,22 +145,26 @@ fun MissionNotificationScreen(
     }
 
     // FCM 평가 알림 딥링크로 모달 자동 열기
-    var hasProcessedDeepLink by remember { mutableStateOf(false) }
+    LaunchedEffect(initialMissionId, initialOpenDetail) {
+        if (initialMissionId != null) {
+            if (initialOpenDetail) {
+                // openDetail=true 일 때: 평가 알림 → 즉시 새로고침 후 모달 열기
+                Log.d("MissionNotificationScreen", "🎯 FCM 평가 알림 딥링크 처리")
+                Log.d("MissionNotificationScreen", "   missionId: $initialMissionId")
+                Log.d("MissionNotificationScreen", "   openDetail: $initialOpenDetail")
 
-    LaunchedEffect(initialMissionId, initialOpenDetail, uiState.notifications) {
-        // openDetail=true 일 때만 자동으로 모달 열기 (평가 알림)
-        if (initialOpenDetail && initialMissionId != null && uiState.notifications.isNotEmpty() && !hasProcessedDeepLink) {
-            Log.d("MissionNotificationScreen", "🎯 FCM 평가 알림 딥링크 처리")
-            Log.d("MissionNotificationScreen", "   missionId: $initialMissionId")
-            Log.d("MissionNotificationScreen", "   openDetail: $initialOpenDetail")
-            Log.d("MissionNotificationScreen", "   notifications count: ${uiState.notifications.size}")
+                // 평가 완료 데이터 가져오기 위해 즉시 새로고침
+                Log.d("MissionNotificationScreen", "🔄 평가 완료 데이터 로딩을 위한 즉시 새로고침")
+                viewModel.refresh()
 
-            // UI 로드 대기
-            delay(300)
-
-            // ViewModel 메서드로 모달 열기
-            viewModel.openMissionById(initialMissionId.toLongOrNull())
-            hasProcessedDeepLink = true
+                // ViewModel 메서드로 모달 열기 (내부에서 재시도 로직 포함)
+                viewModel.openMissionById(initialMissionId.toLongOrNull())
+            } else {
+                // 개입 알림 (휴식하라)
+                Log.d("MissionNotificationScreen", "🎯 FCM 개입 알림 딥링크 처리")
+                Log.d("MissionNotificationScreen", "   missionId: $initialMissionId")
+                Log.d("MissionNotificationScreen", "   프로그래스바 애니메이션이 자동으로 시작됩니다")
+            }
         }
     }
 
@@ -217,7 +222,8 @@ fun MissionNotificationScreen(
                         ) { notification ->
                             NotificationItem(
                                 notification = notification,
-                                onMissionClick = { viewModel.onMissionClick(it) }
+                                onMissionClick = { viewModel.onMissionClick(it) },
+                                triggeredByDeepLink = initialMissionId != null && notification.id.toString() == initialMissionId
                             )
                         }
                     }
@@ -237,7 +243,7 @@ fun MissionNotificationScreen(
     }
 
     // 미션 알림 페이지 설명 다이얼로그
-    if(showInfoDialog){
+    if (showInfoDialog) {
         MissionInfoDialog(
             onDismiss = { showInfoDialog = false }
         )
@@ -296,12 +302,12 @@ private fun MissionNotificationHeader(
     }
 }
 
-
 // 개별 알림 아이템
 @Composable
 fun NotificationItem(
     notification: MissionNotificationData,
-    onMissionClick: (MissionNotificationData) -> Unit = {}
+    onMissionClick: (MissionNotificationData) -> Unit = {},
+    triggeredByDeepLink: Boolean = false  // 푸시알림으로 진입했는지 여부
 ) {
     val scope = rememberCoroutineScope()
     val notificationType = getNotificationType(notification.status, notification.result)
@@ -309,48 +315,102 @@ fun NotificationItem(
     // 미션 완료 여부 확인
     val isCompleted = notification.status == MissionStatus.COMPLETED
 
-    // 진행률 계산 - 고정 20초 프로그래스바
+    // 진행률 계산 - 고정 10초 프로그래스바
     var progress by remember { mutableFloatStateOf(0f) }
     var isWaitingForEvaluation by remember { mutableStateOf(false) }
 
-    // [기존 코드 - 실제 미션 시간 기반]
-//    LaunchedEffect(notification.triggerTime, notification.duration) {
-//        while (notification.status == MissionStatus.IN_PROGRESS) {
-//            progress = calculateProgress(notification.triggerTime, notification.duration)
-//            delay(1000L)  // 1초마다 업데이트
-//
-//            // 100% 완료되면 루프 종료
-//            if (progress >= 1f) break
-//        }
-//    }
+    // 프로그래스바 맥박 효과를 위한 애니메이션 상태
+    var pulseScale by remember { mutableFloatStateOf(1f) }
 
-    // [새 코드 - 고정 20초 프로그래스바]
-    LaunchedEffect(notification.triggerTime) {
-        if (notification.status == MissionStatus.IN_PROGRESS && notification.triggerTime != null) {
-            try {
-                val zonedDateTime = java.time.ZonedDateTime.parse(
-                    notification.triggerTime,
-                    java.time.format.DateTimeFormatter.ISO_DATE_TIME
-                )
-                val startTime = zonedDateTime.toInstant().toEpochMilli()
-                val fixedDuration = 20000L  // 고정 20초
+    // 백엔드 status 변화에 따라 "평가 대기" 상태 동기화
+    LaunchedEffect(notification.status) {
+        if (notification.status == MissionStatus.COMPLETED) {
+            // 서버에서 완료 내려오면 "평가를 기다려주세요..." 카드 숨기고, 진행도는 100%로 고정
+            isWaitingForEvaluation = false
+            progress = 1f
+        }
+    }
 
-                while (notification.status == MissionStatus.IN_PROGRESS) {
-                    val now = System.currentTimeMillis()
-                    val elapsed = now - startTime
-                    progress = (elapsed.toFloat() / fixedDuration.toFloat()).coerceIn(0f, 1f)
 
-                    // 20초가 지나면 평가 대기 상태로 전환
-                    if (elapsed >= fixedDuration) {
-                        isWaitingForEvaluation = true
-                        break
-                    }
 
-                    delay(100L)  // 0.1초마다 업데이트 (부드러운 애니메이션)
-                }
-            } catch (e: Exception) {
-                Log.e("NotificationItem", "프로그래스 계산 실패", e)
+    // 맥박 효과 애니메이션 (진행 중일 때만)
+    LaunchedEffect(notification.status) {
+        if (notification.status == MissionStatus.IN_PROGRESS) {
+            while (true) {
+                // 1.0 → 1.05 → 1.0 반복 (맥박 효과)
+                pulseScale = 1.05f
+                delay(500)
+                pulseScale = 1.0f
+                delay(500)
             }
+        }
+    }
+
+    // 화면 진입 시점부터 남은 시간 기준 프로그레스바 (더 부드러운 UX)
+    LaunchedEffect(notification.id, notification.triggerTime, notification.status, notification.duration) {
+        if (notification.status != MissionStatus.IN_PROGRESS) return@LaunchedEffect
+
+        // notification.duration(초) 사용, 없으면 15초 기본값
+        val totalDurationMillis = (notification.duration ?: 15) * 1000L
+
+        // 미션 시작 시각 파싱 (백엔드에서 내려주는 triggerTime 사용)
+        val missionStartMillis = try {
+            notification.triggerTime?.let { timeString ->
+                ZonedDateTime.parse(timeString, DateTimeFormatter.ISO_DATE_TIME)
+                    .toInstant()
+                    .toEpochMilli()
+            } ?: System.currentTimeMillis()
+        } catch (e: Exception) {
+            Log.e("NotificationItem", "triggerTime 파싱 실패: ${notification.triggerTime}", e)
+            System.currentTimeMillis()
+        }
+
+        // 실제 경과 시간 계산
+        val nowMillis = System.currentTimeMillis()
+        val actualElapsed = nowMillis - missionStartMillis
+        val remainingMillis = (totalDurationMillis - actualElapsed).coerceAtLeast(0)
+
+        // 화면 진입 시점의 초기 진행률
+        val initialProgress = (actualElapsed.toFloat() / totalDurationMillis.toFloat()).coerceIn(0f, 1f)
+        progress = initialProgress
+
+        Log.d(
+            "NotificationItem",
+            "🎬 프로그레스바 시작: mission=${notification.id}, 실제 경과=${actualElapsed}ms, 남은 시간=${remainingMillis}ms, 초기 진행률=${(initialProgress * 100).toInt()}%"
+        )
+
+        // 이미 완료 시간을 넘긴 경우 즉시 평가 대기 상태로
+        if (remainingMillis == 0L) {
+            progress = 1f
+            isWaitingForEvaluation = true
+            Log.d("NotificationItem", "✅ 이미 완료 시간 경과 → 평가 대기 상태 진입 (mission=${notification.id})")
+            return@LaunchedEffect
+        }
+
+        // 화면 진입 시점부터 시작
+        val uiStartMillis = System.currentTimeMillis()
+        val remainingProgress = 1f - initialProgress  // 남은 진행률 (0 ~ 1)
+
+        try {
+            while (notification.status == MissionStatus.IN_PROGRESS) {
+                val uiElapsed = System.currentTimeMillis() - uiStartMillis
+
+                // 남은 시간이 모두 경과한 경우
+                if (uiElapsed >= remainingMillis) {
+                    progress = 1f
+                    isWaitingForEvaluation = true
+                    Log.d("NotificationItem", "✅ ${notification.duration ?: 15}초 경과 → 평가 대기 상태 진입 (mission=${notification.id})")
+                    break
+                }
+
+                // 진행률 = 초기 진행률 + (UI 경과 시간 / 남은 시간 × 남은 진행률)
+                val additionalProgress = (uiElapsed.toFloat() / remainingMillis.toFloat()) * remainingProgress
+                progress = (initialProgress + additionalProgress).coerceIn(0f, 1f)
+
+                delay(50L)
+            }
+        } catch (e: Exception) {
+            Log.e("NotificationItem", "프로그래스 계산 실패", e)
         }
     }
 
@@ -367,143 +427,229 @@ fun NotificationItem(
 
     BounceClickable(
         onClick = {
-                            scope.launch {
-                                delay(250L)
-                                onMissionClick(notification)            }
+            scope.launch {
+                delay(250L)
+                onMissionClick(notification)
+            }
         },
         modifier = Modifier.fillMaxWidth()
     ) { isPressed ->
-        // 카드 영역
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 12.dp))
-                .border(1.dp, borderColor, RoundedCornerShape(12.dp))
-                .clip(RoundedCornerShape(12.dp))
-                .background(Background)
-                .padding(16.dp)
-                .height(IntrinsicSize.Max),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 8.dp, horizontal = 6.dp)
-            ) {
-                // AI가 준 미션 내용 (크게)
-                Text(
-                    text = notification.title,
-                    color = OnSurface,
-                    style = DitoCustomTextStyles.titleKSmall
-                )
+        // 평가 대기 중일 때는 완전히 다른 UI 표시 (진행 중 상태에서만)
+        if (isWaitingForEvaluation && notification.status == MissionStatus.IN_PROGRESS) {
+            // 레몬 회전 애니메이션 상태
+            var lemonRotation by remember { mutableFloatStateOf(0f) }
+            var lemonScale by remember { mutableFloatStateOf(1f) }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            // 레몬 회전 + 크기 변화 애니메이션
+            LaunchedEffect(Unit) {
+                while (true) {
+                    // 회전 (연속적으로)
+                    for (i in 0..360) {
+                        lemonRotation = i.toFloat()
 
-                // 스탯 변화 표시 (pill 버튼 형태)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (notification.statChangeSelfCare > 0) {
-                        StatPill(
-                            label = "자기관리 +${notification.statChangeSelfCare}",
-                            backgroundColor = Primary
-                        )
+                        // 회전과 동시에 크기 변화 (0~180도: 확대, 180~360도: 축소)
+                        lemonScale = if (i < 180) {
+                            1.0f + (i / 180f) * 0.1f
+                        } else {
+                            1.1f - ((i - 180) / 180f) * 0.1f
+                        }
+
+                        delay(5L)  // 2초에 360도 회전
                     }
-                    if (notification.statChangeFocus > 0) {
-                        StatPill(
-                            label = "집중 +${notification.statChangeFocus}",
-                            backgroundColor = Secondary
-                        )
-                    }
-                    if (notification.statChangeSleep > 0) {
-                        StatPill(
-                            label = "수면 +${notification.statChangeSleep}",
-                            backgroundColor = Tertiary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // 레몬 이미지 + 개수
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.lemon),
-                        contentDescription = "Lemon",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${notification.coinReward}",
-                        color = OnSurface,
-                        style = DitoCustomTextStyles.titleDMedium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 진행바 (진행 중일 때만)
-                if (notification.status == MissionStatus.IN_PROGRESS) {
-                    LinearProgressIndicator(
-                        progress = progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp)
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = Primary,  // 보라색
-                        trackColor = Color(0xFF2A2A2A)
-                    )
                 }
             }
 
-            // 구분선
+            // "평가를 기다려주세요..." 전용 카드
             Box(
                 modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(Color.Black.copy(alpha = 0.2f))
-            )
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 12.dp))
+                    .border(1.dp, Primary, RoundedCornerShape(12.dp))  // 보라색 테두리
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Background)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // 레몬 로딩 애니메이션 (회전 + 크기 변화)
+                    Image(
+                        painter = painterResource(id = R.drawable.lemon),
+                        contentDescription = "Loading Lemon",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .graphicsLayer {
+                                rotationZ = lemonRotation  // Z축 회전
+                                scaleX = lemonScale
+                                scaleY = lemonScale
+                            }
+                    )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
+                    Text(
+                        text = "평가를 기다려주세요...",
+                        color = OnSurface,
+                        style = DitoCustomTextStyles.titleDLarge,
+                        textAlign = TextAlign.Center
+                    )
 
-            // 우측 아이콘 (로딩 or 체크)
-            if (isCompleted) {
-                when (notification.result) {
-                    MissionResult.FAILURE -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "AI가 미션 수행 결과를 분석하고 있어요",
+                        color = OnSurface.copy(alpha = 0.7f),
+                        style = DitoTypography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            // 기존 카드 UI (진행 중 or 완료)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .softShadow(DitoSoftShadow.Low.copy(cornerRadius = 12.dp))
+                    .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Background)
+                    .padding(16.dp)
+                    .height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 8.dp, horizontal = 6.dp)
+                ) {
+                    // AI가 준 미션 내용 (크게)
+                    Text(
+                        text = notification.title,
+                        color = OnSurface,
+                        style = DitoCustomTextStyles.titleKSmall
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 스탯 변화 표시 (pill 버튼 형태)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (notification.statChangeSelfCare > 0) {
+                            StatPill(
+                                label = "자기관리 +${notification.statChangeSelfCare}",
+                                backgroundColor = Primary
+                            )
+                        }
+                        if (notification.statChangeFocus > 0) {
+                            StatPill(
+                                label = "집중 +${notification.statChangeFocus}",
+                                backgroundColor = Secondary
+                            )
+                        }
+                        if (notification.statChangeSleep > 0) {
+                            StatPill(
+                                label = "수면 +${notification.statChangeSleep}",
+                                backgroundColor = Tertiary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    // 레몬 이미지 + 개수
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
                         Image(
-                            painter = painterResource(id = R.drawable.fail),
-                            contentDescription = "Failed",
-                            modifier = Modifier.size(32.dp),
-                            colorFilter = ColorFilter.tint(Color(0xFFFF5252))
+                            painter = painterResource(id = R.drawable.lemon),
+                            contentDescription = "Lemon",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "${notification.coinReward}",
+                            color = OnSurface,
+                            style = DitoCustomTextStyles.titleDMedium
                         )
                     }
-                    else -> {
-                        Image(
-                            painter = painterResource(id = R.drawable.complete),
-                            contentDescription = "Success",
-                            modifier = Modifier.size(32.dp),
-                            colorFilter = ColorFilter.tint(Color(0xFF42A5F5))
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 진행바 (진행 중일 때만) - 동적 색상 변화
+                    if (notification.status == MissionStatus.IN_PROGRESS) {
+                        // 진행도에 따라 색상 변화 (0% 보라색 → 50% 파란색 → 100% 초록색)
+                        val progressColor = when {
+                            progress < 0.3f -> Primary  // 보라색
+                            progress < 0.6f -> Color(0xFF42A5F5)  // 파란색
+                            else -> Color(0xFF66BB6A)  // 초록색
+                        }
+
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 16.dp)
+                                .height(8.dp)  // 높이 증가
+                                .clip(RoundedCornerShape(4.dp))
+                                .graphicsLayer {
+                                    scaleY = pulseScale  // 맥박 효과
+                                },
+                            color = progressColor,
+                            trackColor = Color(0xFF2A2A2A)
                         )
                     }
                 }
-            } else {
-                // 진행중일 때 CircularProgressIndicator 표시
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Primary,
-                    strokeWidth = 3.dp
+
+                // 구분선
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(Color.Black.copy(alpha = 0.2f))
                 )
-            }
-        }
-    }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // 우측 아이콘 (로딩 or 체크)
+                if (isCompleted) {
+                    when (notification.result) {
+                        MissionResult.FAILURE -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.fail),
+                                contentDescription = "Failed",
+                                modifier = Modifier.size(32.dp),
+                                colorFilter = ColorFilter.tint(Color(0xFFFF5252))
+                            )
+                        }
+
+                        else -> {
+                            Image(
+                                painter = painterResource(id = R.drawable.complete),
+                                contentDescription = "Success",
+                                modifier = Modifier.size(32.dp),
+                                colorFilter = ColorFilter.tint(Color(0xFF42A5F5))
+                            )
+                        }
+                    }
+                } else {
+                    // 진행중일 때 CircularProgressIndicator 표시
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Primary,
+                        strokeWidth = 3.dp
+                    )
+                }
+            }  // Row 닫기
+        }  // if-else 닫기
+    }  // BounceClickable 닫기
 }
 
 // 스탯 pill 컴포넌트
@@ -540,12 +686,11 @@ private fun calculateProgress(triggerTime: String?, duration: Int?): Float {
     // duration이 없으면 계산 불가
     if (duration == null || duration <= 0) return 0f
 
-    // 1. triggerTime이 있으면 백엔드 데이터 사용
+    // 1. triggerTime이 있으면 계산
     if (triggerTime != null) {
         return try {
-            // 백엔드 Timestamp 형식: "2025-11-13T07:34:50.320+00:00" (ISO 8601)
             val zonedDateTime =
-                java.time.ZonedDateTime.parse(triggerTime, DateTimeFormatter.ISO_DATE_TIME)
+                ZonedDateTime.parse(triggerTime, DateTimeFormatter.ISO_DATE_TIME)
             val startMillis = zonedDateTime.toInstant().toEpochMilli()
             val endMillis = startMillis + (duration * 1000L)
             val nowMillis = System.currentTimeMillis()
@@ -560,13 +705,12 @@ private fun calculateProgress(triggerTime: String?, duration: Int?): Float {
                 }
             }
         } catch (e: Exception) {
-            // 파싱 실패 시 로그 출력 후 0f 반환
             android.util.Log.e("MissionProgress", "triggerTime 파싱 실패: $triggerTime", e)
             0f
         }
     }
 
-    // 2. triggerTime이 없으면 0f 반환
+    // 2. triggerTime이 없으면 0f
     return 0f
 }
 
@@ -588,7 +732,6 @@ fun StatusBadge(type: NotificationType) {
         )
     }
 }
-
 
 // 미리보기
 @Preview(showBackground = true)

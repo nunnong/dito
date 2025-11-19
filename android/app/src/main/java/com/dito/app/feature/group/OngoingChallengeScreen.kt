@@ -622,13 +622,13 @@ fun OngoingChallengeScreen(
             uiState = uiState,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 14.dp, vertical = 5.dp)
         )
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 10.dp),
+                .padding(vertical = 2.dp, horizontal = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // 처음 위치 순서대로 정보 카드 표시

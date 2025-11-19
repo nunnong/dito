@@ -286,7 +286,7 @@ class OngoingChallengeViewModel @Inject constructor(
         showCoachBubble()  // 즉시 첫 메시지 표시
         coachMessageJob = viewModelScope.launch {
             while (true) {
-                delay(7000L)  // 7초마다 (3초 표시 + 4초 대기)
+                delay(5000L)  // 5초마다 (3초 표시 + 4초 대기)
                 showCoachBubble()
             }
         }
@@ -361,7 +361,7 @@ class OngoingChallengeViewModel @Inject constructor(
             } else {
                 messages.add(
                     "${first.nickname}님이 여유 있게 1위 유지 중이야\n" +
-                            "${second.nickname}님이 따라가려면 조금 더 노력이 필요해 💨"
+                            "${second.nickname}님이 따라가려면 노력이 필요해!"
                 )
             }
         }
