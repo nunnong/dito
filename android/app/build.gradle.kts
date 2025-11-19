@@ -25,11 +25,11 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "true")
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "false")
+            buildConfigField("Boolean", "SKIP_AI_INTERVENTION", "true")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
