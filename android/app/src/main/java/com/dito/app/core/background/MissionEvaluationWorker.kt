@@ -58,7 +58,8 @@ class MissionEvaluationWorker @AssistedInject constructor(
                 Log.w(TAG, "MissionProgressService 중지 시도 중 에러 (이미 중지되었을 수 있음): ${e.message}")
             }
 
-//            triggerFinalAppRecord()
+            // 미션 종료 시점의 앱 사용 기록 (앱 전환이 없었던 경우를 위해)
+            triggerFinalAppRecord()
 
             // 1. Realm에서 미션 추적 로그 수집
             val logs = RealmRepository.getMissionLogs(missionId)
@@ -167,21 +168,26 @@ class MissionEvaluationWorker @AssistedInject constructor(
         }
     }
 
-//    private fun triggerFinalAppRecord() {
-//        try {
-//            Log.d(TAG, "📌 미션 종료 - 마지막 앱 기록 시작")
-//
-//            // MissionTracker에게 현재 사용 중인 앱 강제 기록 요청
-//            missionTracker.recordFinalApp()
-//
-//            // 기록 완료 대기 (Realm 쓰기 작업 완료 시간)
-//            Thread.sleep(200)
-//
-//            Log.d(TAG, "✅ 마지막 앱 기록 완료")
-//        } catch (e: Exception) {
-//            Log.e(TAG, "마지막 앱 기록 트리거 실패", e)
-//        }
-//    }
+    /**
+     * 미션 평가 전에 마지막 앱 사용 기록을 강제로 트리거
+     *
+     * 사용자가 미션 중 앱을 전환하지 않은 경우 (예: 계속 인스타그램을 사용한 경우),
+     * onAppSwitch()가 호출되지 않으므로 명시적으로 기록해야 합니다.
+     */
+    private fun triggerFinalAppRecord() {
+        try {
+            Log.d(TAG, "📌 미션 종료 - 마지막 앱 기록 시작")
 
+            // MissionTracker에게 현재 사용 중인 앱 강제 기록 요청
+            missionTracker.recordFinalApp()
+
+            // 기록 완료 대기 (Realm 쓰기 작업 완료 시간)
+            Thread.sleep(200)
+
+            Log.d(TAG, "✅ 마지막 앱 기록 완료")
+        } catch (e: Exception) {
+            Log.e(TAG, "마지막 앱 기록 트리거 실패", e)
+        }
+    }
 
 }
