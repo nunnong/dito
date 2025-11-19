@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.dito.app.core.data.report.ComparisonItem
 import com.dito.app.core.data.report.ComparisonType
 import com.dito.app.core.data.report.DailyReportData
+import com.dito.app.core.data.report.RadarChartData
 import com.dito.app.core.data.report.StatusDescription
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.repository.HomeRepository
@@ -75,11 +76,13 @@ class DailyReportViewModel @Inject constructor(
 
                                 val predictions = reportData.reportOverview.split("\n").filter { it.isNotBlank() }
 
-                                val comparisons = reportData.insights.map { insight ->
-                                    val iconRes = when (insight.type) {
-                                        ComparisonType.POSITIVE -> if (insight.description.contains("야간")) "sleep" else "self_control"
-                                        ComparisonType.NEGATIVE -> "phone"
-                                        ComparisonType.NEUTRAL -> "self_control"
+                                // insights 순서대로 아이콘 매핑: [0]=수면, [1]=조절력, [2]=집중
+                                val comparisons = reportData.insights.mapIndexed { index, insight ->
+                                    val iconRes = when (index) {
+                                        0 -> "sleep"         // 🌙 수면
+                                        1 -> "self_control"  // ⚖️ 조절력
+                                        2 -> "report_phone"  // 🎯 집중
+                                        else -> "self_control"
                                     }
 
                                     ComparisonItem(
@@ -88,6 +91,18 @@ class DailyReportViewModel @Inject constructor(
                                         description = insight.description
                                     )
                                 }
+
+                                // Radar Chart 데이터 추출 (insights 순서: 수면, 조절력, 집중)
+                                val radarData = if (reportData.insights.size >= 3) {
+                                    RadarChartData(
+                                        sleepScore = reportData.insights[0].score.after,
+                                        selfControlScore = reportData.insights[1].score.after,
+                                        focusScore = reportData.insights[2].score.after,
+                                        sleepBefore = reportData.insights[0].score.before,
+                                        selfControlBefore = reportData.insights[1].score.before,
+                                        focusBefore = reportData.insights[2].score.before
+                                    )
+                                } else null
 
                                 val uiData = DailyReportData(
                                     status = reportData.status,
@@ -100,6 +115,7 @@ class DailyReportViewModel @Inject constructor(
                                     ),
                                     predictions = predictions,
                                     comparisons = comparisons,
+                                    radarChartData = radarData,
                                     advice = reportData.advice
                                 )
                                 _uiState.value = DailyReportUiState.Success(uiData)
