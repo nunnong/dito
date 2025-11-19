@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -199,9 +200,15 @@ fun DitoNavGraph(
             val authViewModel: AuthViewModel = hiltViewModel()
             val context = LocalContext.current
 
-            Log.d("NavGraph", "🔍 Home composable - deepLinkUri: $deepLinkUri")
-            val (navigateTo, missionId, missionType) = parseDeepLink(deepLinkUri)
-            Log.d("NavGraph", "   파싱 결과 - navigateTo: $navigateTo, missionId: $missionId, missionType: $missionType")
+            // deepLinkUri가 변경될 때마다 파싱 결과를 갱신하도록 State로 관리
+            val parsedDeepLink = remember(deepLinkUri) {
+                Log.d("NavGraph", "🔍 딥링크 파싱 - deepLinkUri: $deepLinkUri")
+                val result = parseDeepLink(deepLinkUri)
+                Log.d("NavGraph", "   파싱 결과 - navigateTo: ${result.first}, missionId: ${result.second}, missionType: ${result.third}")
+                result
+            }
+
+            val (navigateTo, missionId, missionType) = parsedDeepLink
 
             // MainActivity에서 WearableMessageService 가져오기
             val wearableMessageService = (context as? MainActivity)?.let { activity ->

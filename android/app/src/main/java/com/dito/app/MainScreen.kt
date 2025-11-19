@@ -58,8 +58,8 @@ fun MainScreen(
     // 권한 체크 상태 (무한 네비게이션 방지)
     var isCheckingPermissions by remember { mutableStateOf(false) }
 
-    // FCM 알림 처리 완료 플래그
-    var hasHandledNotification by remember { mutableStateOf(false) }
+    // FCM 알림 처리 완료 플래그 (missionId가 변경되면 자동으로 리셋)
+    var hasHandledNotification by remember(initialMissionId) { mutableStateOf(false) }
 
     // 화면이 다시 보일 때마다 권한 상태 확인
     DisposableEffect(lifecycleOwner) {
