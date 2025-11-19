@@ -368,7 +368,11 @@ fun NotificationItem(
         // 실제 경과 시간 계산
         val nowMillis = System.currentTimeMillis()
         val actualElapsed = nowMillis - missionStartMillis
-        val remainingMillis = (totalDurationMillis - actualElapsed).coerceAtLeast(0)
+        val actualRemainingMillis = (totalDurationMillis - actualElapsed).coerceAtLeast(0)
+
+        // UI 프로그레스바 시간 = 실제 남은 시간 + 3초 (더 부드러운 UX)
+        val uiExtraTime = 3000L  // 3초 추가
+        val uiRemainingMillis = actualRemainingMillis + uiExtraTime
 
         // 화면 진입 시점의 초기 진행률
         val initialProgress = (actualElapsed.toFloat() / totalDurationMillis.toFloat()).coerceIn(0f, 1f)
@@ -376,11 +380,11 @@ fun NotificationItem(
 
         Log.d(
             "NotificationItem",
-            "🎬 프로그레스바 시작: mission=${notification.id}, 실제 경과=${actualElapsed}ms, 남은 시간=${remainingMillis}ms, 초기 진행률=${(initialProgress * 100).toInt()}%"
+            "🎬 프로그레스바 시작: mission=${notification.id}, 실제 경과=${actualElapsed}ms, 실제 남은 시간=${actualRemainingMillis}ms, UI 남은 시간=${uiRemainingMillis}ms, 초기 진행률=${(initialProgress * 100).toInt()}%"
         )
 
         // 이미 완료 시간을 넘긴 경우 즉시 평가 대기 상태로
-        if (remainingMillis == 0L) {
+        if (actualRemainingMillis == 0L) {
             progress = 1f
             isWaitingForEvaluation = true
             Log.d("NotificationItem", "✅ 이미 완료 시간 경과 → 평가 대기 상태 진입 (mission=${notification.id})")
@@ -395,16 +399,16 @@ fun NotificationItem(
             while (notification.status == MissionStatus.IN_PROGRESS) {
                 val uiElapsed = System.currentTimeMillis() - uiStartMillis
 
-                // 남은 시간이 모두 경과한 경우
-                if (uiElapsed >= remainingMillis) {
+                // UI 남은 시간이 모두 경과한 경우 (3초 추가된 시간 기준)
+                if (uiElapsed >= uiRemainingMillis) {
                     progress = 1f
                     isWaitingForEvaluation = true
-                    Log.d("NotificationItem", "✅ ${notification.duration ?: 15}초 경과 → 평가 대기 상태 진입 (mission=${notification.id})")
+                    Log.d("NotificationItem", "✅ UI 프로그레스바 완료 → 평가 대기 상태 진입 (mission=${notification.id})")
                     break
                 }
 
-                // 진행률 = 초기 진행률 + (UI 경과 시간 / 남은 시간 × 남은 진행률)
-                val additionalProgress = (uiElapsed.toFloat() / remainingMillis.toFloat()) * remainingProgress
+                // 진행률 = 초기 진행률 + (UI 경과 시간 / UI 남은 시간 × 남은 진행률)
+                val additionalProgress = (uiElapsed.toFloat() / uiRemainingMillis.toFloat()) * remainingProgress
                 progress = (initialProgress + additionalProgress).coerceIn(0f, 1f)
 
                 delay(50L)

@@ -47,8 +47,8 @@ fun MainScreen(
     initialNavigateTo: String? = null,
     initialMissionId: String? = null,
     initialMissionType: String? = null,
-    wearableMessageService: WearableMessageService? = null,
-    initialOpenMissionDetail: Boolean = false
+    initialOpenMissionDetail: Boolean = false,  // 평가 알림 구분용
+    wearableMessageService: WearableMessageService? = null
 ) {
     val innerNavController = rememberNavController()
     var selectedTab by remember { mutableStateOf(BottomTab.HOME) }
