@@ -13,9 +13,13 @@ import com.dito.app.MainActivity
 import com.dito.app.R
 import com.dito.app.core.service.mission.MissionData
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.wearable.WearableMessageService
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -29,6 +33,9 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
 
     @Inject
     lateinit var fcmTokenManager: FcmTokenManager
+
+    @Inject
+    lateinit var wearableMessageService: WearableMessageService
 
     companion object {
         private const val TAG = "DitoFCM"
@@ -74,37 +81,42 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
             val body = data["message"] ?: message.notification?.body ?: ""
             val deepLink = data["deep_link"]
 
-            // mission_id 존재 여부로 미션/일반 알림 구분
+            // mission_id 존재 여부로 미션/일반 알림 구분 (AI 팀 FCM 구조에 맞춤)
             if (data.containsKey("mission_id") && data["mission_id"]?.isNotBlank() == true) {
-                val missionId = data["mission_id"]!!
+                // 미션 알림 - 미션 추적 시작
+                Log.d(TAG, "미션 알림 감지: mission_id=${data["mission_id"]}")
+
+                // 미션 타입을 딥링크에 포함 (예: dito://mission/7?type=MEDITATION)
+                val missionType = data["mission_type"] ?: "REST"
+                // AI 팀에서 보내는 deep_link가 있어도 무시하고, 미션 타입을 포함한 딥링크 생성
+                val deepLink = "dito://mission/${data["mission_id"]}?type=$missionType"
+                Log.d(TAG, "딥링크: $deepLink (type=$missionType)")
 
                 when (type) {
                     "intervention" -> {
-                        // 미션 시작 알림 - 미션 추적 시작 (progress 포함)
-                        Log.d(TAG, "🎯 Intervention 알림 감지: mission_id=$missionId")
-                        val missionDeepLink = deepLink ?: "dito://mission/$missionId"
-                        Log.d(TAG, "   딥링크: $missionDeepLink")
+                        // 미션 알림 - 미션 추적 시작 (progress 포함)
+                        Log.d(TAG, "Intervention 알림 감지: mission_id=${data["mission_id"]}")
+                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
+                        Log.d(TAG, "딥링크: $missionDeepLink")
                         handleMissionMessage(data, missionDeepLink)
                     }
                     "evaluation" -> {
-                        // 평가 결과 알림 - 모달 자동 열기용 딥링크
-                        Log.d(TAG, "📊 Evaluation 알림 감지: mission_id=$missionId")
-                        val evaluationDeepLink = "dito://mission/$missionId?openDetail=true"
-                        Log.d(TAG, "   딥링크: $evaluationDeepLink")
-                        showEvaluationNotification(title, body, evaluationDeepLink)
+                        // 평가 결과 알림 - progress 없이 단순 알림만 표시
+                        Log.d(TAG, "Evaluation 알림 감지: mission_id=${data["mission_id"]}")
+                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
+                        Log.d(TAG, "딥링크: $missionDeepLink")
+                        showEvaluationNotification(title, body, missionDeepLink)
                     }
                     else -> {
-                        // type 없으면 intervention으로 처리 (하위 호환성)
-                        Log.d(TAG, "⚠️ type 없는 미션 알림: mission_id=$missionId")
-                        val missionDeepLink = deepLink ?: "dito://mission/$missionId"
+                        // type 없으면 기존 동작 유지 (하위 호환성)
+                        Log.d(TAG, "미션 알림 감지 (type 없음): mission_id=${data["mission_id"]}")
+                        val missionDeepLink = deepLink ?: "dito://mission/${data["mission_id"]}"
                         handleMissionMessage(data, missionDeepLink)
                     }
                 }
             } else {
                 // 일반 알림 - 격려 메시지
                 Log.d(TAG, "일반 알림 감지 (mission_id 없음)")
-                val title = data["title"] ?: message.notification?.title ?: "디토"
-                val body = data["message"] ?: message.notification?.body ?: "잘하고 있어요! 건강한 디지털 습관을 유지하세요."
                 showNotification(
                     title = title,
                     body = body,
@@ -139,11 +151,11 @@ class DitoFirebaseMessagingService : FirebaseMessagingService() {
         val intent = if (deepLink != null) {
             Intent(Intent.ACTION_VIEW, Uri.parse(deepLink)).apply {
                 setClass(this@DitoFirebaseMessagingService, MainActivity::class.java)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
         } else {
             Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
         }
 

@@ -1,8 +1,11 @@
 package com.dito.app.core.navigation
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -15,6 +18,7 @@ import androidx.navigation.navArgument
 import com.dito.app.MainActivity
 import com.dito.app.PermissionTestScreen
 import com.dito.app.MainScreen
+import com.dito.app.core.wearable.WearableMessageService
 import com.dito.app.feature.auth.AuthViewModel
 import com.dito.app.feature.auth.LoginScreen
 import com.dito.app.feature.auth.SignUpCredentialsScreen
@@ -196,22 +200,28 @@ fun DitoNavGraph(
         // 7) 메인 화면 (Home) - 딥링크 파싱해서 MainScreen으로 전달
         composable(Route.Home.path) {
             val authViewModel: AuthViewModel = hiltViewModel()
-            val context = LocalContext.current   // 🆕 추가
+            val context = LocalContext.current
 
-            // deepLinkUri가 변할 때만 파싱 (remember 사용)
-            val deepLinkInfo = remember(deepLinkUri) {
-                parseDeepLink(deepLinkUri)
+            // deepLinkUri가 변경될 때마다 파싱 결과를 갱신하도록 State로 관리
+            val parsedDeepLink = remember(deepLinkUri) {
+                Log.d("NavGraph", "🔍 딥링크 파싱 - deepLinkUri: $deepLinkUri")
+                val result = parseDeepLink(deepLinkUri)
+                Log.d("NavGraph", "   파싱 결과 - navigateTo: ${result.first}, missionId: ${result.second}, missionType: ${result.third}")
+                result
             }
 
-            android.util.Log.d("NavGraph", "🔄 MainScreen composable (deepLinkUri=${deepLinkUri})")
-            android.util.Log.d("NavGraph", "   initialMissionId: ${deepLinkInfo.missionId}")
-            android.util.Log.d("NavGraph", "   initialNavigateTo: ${deepLinkInfo.navigateTo}")
-            android.util.Log.d("NavGraph", "   initialOpenDetail: ${deepLinkInfo.openDetail}")
+            val (navigateTo, missionId, missionType) = parsedDeepLink
 
-            // 🆕 여기 추가: 딥링크 한 번 소비하고 나면 MainActivity 쪽 state를 비워버리기
-            LaunchedEffect(deepLinkUri) {
-                if (deepLinkUri != null) {
-                    (context as? MainActivity)?.clearDeepLink()
+            // MainActivity에서 WearableMessageService 가져오기
+            val wearableMessageService = (context as? MainActivity)?.let { activity ->
+                try {
+                    // Reflection을 사용하여 주입된 서비스 가져오기
+                    val field = activity.javaClass.getDeclaredField("wearableMessageService")
+                    field.isAccessible = true
+                    field.get(activity) as? WearableMessageService
+                } catch (e: Exception) {
+                    Log.e("NavGraph", "Failed to get WearableMessageService", e)
+                    null
                 }
             }
 
@@ -230,9 +240,10 @@ fun DitoNavGraph(
                 },
                 outerNavController = navController,
                 // 딥링크에서 파싱한 navigation 정보
-                initialNavigateTo = deepLinkInfo.navigateTo,
-                initialMissionId = deepLinkInfo.missionId,
-                initialOpenMissionDetail = deepLinkInfo.openDetail
+                initialNavigateTo = navigateTo,
+                initialMissionId = missionId,
+                initialMissionType = missionType,
+                wearableMessageService = wearableMessageService
             )
         }
 
@@ -261,58 +272,25 @@ fun DitoNavGraph(
 }
 
 /**
- * 딥링크 파싱 결과를 담는 데이터 클래스
- */
-data class DeepLinkInfo(
-    val navigateTo: String? = null,
-    val missionId: String? = null,
-    val openDetail: Boolean = false
-)
-
-/**
  * 딥링크 URI를 파싱하여 navigation 정보 추출
  *
- * @param deepLinkUri 딥링크 URI (예: dito://mission/7 또는 dito://mission/7?openDetail=true)
- * @return DeepLinkInfo
+ * @param deepLinkUri 딥링크 URI (예: dito://mission/7?type=MEDITATION)
+ * @return Triple<navigateTo, missionId, missionType>
  *
  * 지원하는 딥링크:
- * - dito://mission/{missionId} → 미션 알림 화면으로 이동
- * - dito://mission/{missionId}?openDetail=true → 미션 알림 화면 + 모달 자동 열기
+ * - dito://mission/{missionId}?type={missionType} → ("mission_notifications", missionId, missionType)
  */
-private fun parseDeepLink(deepLinkUri: Uri?): DeepLinkInfo {
+private fun parseDeepLink(deepLinkUri: Uri?): Triple<String?, String?, String?> {
     if (deepLinkUri == null) {
-        return DeepLinkInfo()
+        return Triple(null, null, null)
     }
-
-    android.util.Log.d("NavGraph", "🔍 딥링크 파싱 시작")
-    android.util.Log.d("NavGraph", "   URI: $deepLinkUri")
-    android.util.Log.d("NavGraph", "   host: ${deepLinkUri.host}")
 
     return when (deepLinkUri.host) {
         "mission" -> {
             val missionId = deepLinkUri.lastPathSegment  // "7"
-            val openDetail = deepLinkUri.getQueryParameter("openDetail") == "true"
-
-            android.util.Log.d("NavGraph", "   missionId: $missionId")
-            android.util.Log.d("NavGraph", "   openDetail query param: ${deepLinkUri.getQueryParameter("openDetail")}")
-            android.util.Log.d("NavGraph", "   openDetail (parsed): $openDetail")
-
-            val result = DeepLinkInfo(
-                navigateTo = "mission_notifications",
-                missionId = missionId,
-                openDetail = openDetail
-            )
-
-            android.util.Log.d("NavGraph", "✅ 딥링크 파싱 완료")
-            android.util.Log.d("NavGraph", "   navigateTo: ${result.navigateTo}")
-            android.util.Log.d("NavGraph", "   missionId: ${result.missionId}")
-            android.util.Log.d("NavGraph", "   openDetail: ${result.openDetail}")
-
-            result
+            val missionType = deepLinkUri.getQueryParameter("type")  // "MEDITATION"
+            Triple("mission_notifications", missionId, missionType)
         }
-        else -> {
-            android.util.Log.d("NavGraph", "⚠️ 알 수 없는 딥링크 호스트")
-            DeepLinkInfo()
-        }
+        else -> Triple(null, null, null)
     }
 }

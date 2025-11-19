@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
@@ -18,6 +19,7 @@ import com.dito.app.core.navigation.Route
 import com.dito.app.core.ui.component.BottomTab
 import com.dito.app.core.ui.component.DitoBottomAppBar
 import com.dito.app.core.util.PermissionHelper
+import com.dito.app.core.wearable.WearableMessageService
 import com.dito.app.feature.closet.ClosetScreen
 import com.dito.app.feature.group.GroupScreen
 import com.dito.app.feature.group.GroupWaitingScreen
@@ -30,6 +32,9 @@ import com.dito.app.feature.settings.ChangeNickName
 import com.dito.app.feature.settings.TermsOfServiceDialog
 import com.dito.app.feature.settings.PrivacyPoicyDialog
 import com.dito.app.feature.shop.ShopScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen(
@@ -38,8 +43,11 @@ fun MainScreen(
     initialShowShop: Boolean = false,
     onBackFromShop: () -> Unit = {},
     outerNavController: NavController? = null,
+    // FCM 알림에서 전달된 navigation 정보
     initialNavigateTo: String? = null,
     initialMissionId: String? = null,
+    initialMissionType: String? = null,
+    wearableMessageService: WearableMessageService? = null,
     initialOpenMissionDetail: Boolean = false
 ) {
     val innerNavController = rememberNavController()
@@ -51,10 +59,8 @@ fun MainScreen(
     // 권한 체크 상태 (무한 네비게이션 방지)
     var isCheckingPermissions by remember { mutableStateOf(false) }
 
-    var handledMissionId by remember { mutableStateOf<String?>(null) }
-
-    // FCM 알림 처리 완료 플래그
-    var hasHandledNotification by remember { mutableStateOf(false) }
+    // FCM 알림 처리 완료 플래그 (missionId가 변경되면 자동으로 리셋)
+    var hasHandledNotification by remember(initialMissionId) { mutableStateOf(false) }
 
     // 화면이 다시 보일 때마다 권한 상태 확인
     DisposableEffect(lifecycleOwner) {
@@ -82,61 +88,54 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(Unit){
-        if(initialNavigateTo == null || initialMissionId == null){
-            selectedTab = BottomTab.HOME
-            innerNavController.navigate("home"){
-                popUpTo("home") { inclusive = true}
+    // MainScreen이 처음 로드될 때 항상 home으로 초기화
+    LaunchedEffect(Unit) {
+        selectedTab = BottomTab.HOME
+        innerNavController.navigate("home") {
+            popUpTo("home") { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
+    // FCM 알림에서 전달된 navigation 처리
+    LaunchedEffect(initialNavigateTo, initialMissionId, initialMissionType) {
+        Log.d("MainScreen", "🔍 LaunchedEffect 호출됨")
+        Log.d("MainScreen", "   initialNavigateTo: $initialNavigateTo")
+        Log.d("MainScreen", "   initialMissionId: $initialMissionId")
+        Log.d("MainScreen", "   initialMissionType: $initialMissionType")
+        Log.d("MainScreen", "   hasHandledNotification: $hasHandledNotification")
+        Log.d("MainScreen", "   wearableMessageService null 여부: ${wearableMessageService == null}")
+
+        if (!hasHandledNotification && initialNavigateTo == "mission_notifications") {
+            Log.d("MainScreen", "🎯 FCM 알림 감지: mission_id=$initialMissionId, type=$initialMissionType")
+
+            // MEDITATION 미션일 때 워치 앱 자동 실행
+            if (initialMissionType == "MEDITATION" && wearableMessageService != null) {
+                Log.d("MainScreen", "🧘 명상 미션 감지 - 워치 앱 실행 시작")
+                CoroutineScope(Dispatchers.IO).launch {
+                    val result = wearableMessageService.startBreathingOnWatch()
+                    if (result.isSuccess) {
+                        Log.d("MainScreen", "✅ 워치 앱 실행 성공")
+                    } else {
+                        Log.e("MainScreen", "❌ 워치 앱 실행 실패: ${result.exceptionOrNull()?.message}")
+                    }
+                }
+            }
+
+            // Home 화면이 완전히 로드된 후 mission_notification으로 이동
+            // 약간의 딜레이를 주어 innerNavController가 준비되도록 함
+            kotlinx.coroutines.delay(500)
+
+            innerNavController.navigate("mission_notification") {
                 launchSingleTop = true
             }
+
+            hasHandledNotification = true
+            Log.d("MainScreen", "✅ 미션 알림 화면으로 이동 완료")
+        } else {
+            Log.d("MainScreen", "❌ 알림 처리 조건 불만족")
         }
     }
-
-
-    LaunchedEffect(initialNavigateTo, initialMissionId, initialOpenMissionDetail) {
-        val missionId = initialMissionId
-
-        if (initialNavigateTo == "mission_notifications" && !missionId.isNullOrEmpty()) {
-
-            if (initialOpenMissionDetail) {
-                // 평가 알림: 같은 missionId라도 항상 미션 화면으로 이동해서 모달을 띄우도록 함
-                Log.d("MainScreen", "📊 평가 알림 딥링크 감지")
-                Log.d("MainScreen", "   mission_id: $missionId")
-                Log.d("MainScreen", "   openDetail: $initialOpenMissionDetail")
-
-                // Home/내부 Nav 준비 시간
-                kotlinx.coroutines.delay(500)
-
-                selectedTab = BottomTab.MISSION
-
-                innerNavController.navigate("mission_notification") {
-                    launchSingleTop = true
-                }
-
-                handledMissionId = missionId
-
-                Log.d("MainScreen", "✅ 평가 알림 → 미션 화면 이동 완료")
-
-            } else if (handledMissionId != missionId) {
-                // 개입 알림: 새로운 missionId일 때만 이동 (중복 방지)
-                Log.d("MainScreen", "🎯 개입 알림 딥링크 감지 (새 미션)")
-                Log.d("MainScreen", "   mission_id: $missionId")
-
-                kotlinx.coroutines.delay(500)
-
-                selectedTab = BottomTab.MISSION
-
-                innerNavController.navigate("mission_notification") {
-                    launchSingleTop = true
-                }
-
-                handledMissionId = missionId   // 이번 미션은 처리 완료
-
-                Log.d("MainScreen", "✅ 개입 알림 → 미션 화면 이동 완료")
-            }
-        }
-    }
-
 
     // selectedTab이 변경되면 showShop을 false로 설정
     LaunchedEffect(selectedTab) {
@@ -151,31 +150,19 @@ fun MainScreen(
                 selectedTab = selectedTab,
                 onTabSelected = {
                     selectedTab = it
-
-                    if (it == BottomTab.HOME) {
-                        innerNavController.navigate("home") {
-                            launchSingleTop = true
-                            popUpTo("home") { inclusive = false }
-                        }
+                    if (it == BottomTab.HOME) innerNavController.navigate(Route.Home.path) {
+                        launchSingleTop = true; popUpTo("home") { inclusive = false }
+                    }
+                    if (it == BottomTab.GROUP) innerNavController.navigate(Route.GroupRoot.path) {
+                        launchSingleTop = true
+                    }
+                    if (it == BottomTab.MISSION) innerNavController.navigate(Route.MissionNotification.path) {
+                        launchSingleTop = true
+                    }
+                    if (it == BottomTab.REPORT) innerNavController.navigate(Route.Report.path) {
+                        launchSingleTop = true
                     }
 
-                    if (it == BottomTab.GROUP) {
-                        innerNavController.navigate(Route.GroupRoot.path) {
-                            launchSingleTop = true
-                        }
-                    }
-
-                    if (it == BottomTab.MISSION) {
-                        innerNavController.navigate("mission_notification") {
-                            launchSingleTop = true
-                        }
-                    }
-
-                    if (it == BottomTab.REPORT) {
-                        innerNavController.navigate(Route.Report.path) {
-                            launchSingleTop = true
-                        }
-                    }
                 }
             )
         }
