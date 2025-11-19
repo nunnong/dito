@@ -472,7 +472,7 @@ def evaluate_mission_with_llm(
         evaluation_result = "SUCCESS"
 
         # 빈 배열인 경우 간단한 피드백 반환 (LLM 호출 없이)
-        feedback = "미션 시간 동안 앱을 전혀 사용하지 않았어! 완벽한 디지털 디톡스야. 이 습관을 계속 유지해보자! 💪"
+        feedback = f"{target_app}을(를) 잘 참았어! 훌륭해! 💪"
 
         print(f"     평가 결과: {evaluation_result}")
         print(f"     피드백: {feedback}")

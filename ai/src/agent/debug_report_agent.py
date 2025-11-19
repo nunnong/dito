@@ -56,16 +56,45 @@ class ReportState(TypedDict):
 
 
 def create_empty_report_node(state: ReportState) -> dict:
-    """1단계: 빈 리포트 생성 (시뮬레이션).
+    """1단계: AI 서버가 빈 리포트 생성.
 
-    실제 API 호출 없이 mock report_id를 생성합니다.
+    Spring 백엔드에 빈 리포트를 생성하고 IN_PROGRESS 상태로 설정합니다.
+    이후 3단계에서 분석 결과를 업데이트할 리포트 ID를 받습니다.
+
+    API 호출 정보:
+    --------------
+    Method: POST
+    URL: /api/report
+    Headers:
+        - Content-Type: application/json
+        - X-API-Key: {SECURITY_INTERNAL_API_KEY}
+    Body:
+        {
+            "user_id": 23,
+            "report_date": "2025-01-15",
+            "status": "IN_PROGRESS"
+        }
+
+    응답 예시:
+        {
+            "id": 123,
+            "user_id": 23,
+            "report_date": "2025-01-15",
+            "status": "IN_PROGRESS",
+            "created_at": "2025-01-15T10:00:00",
+            "updated_at": "2025-01-15T10:00:00"
+        }
     """
-    print("📝 [Debug] 빈 리포트 생성 시뮬레이션")
+    from agent.utils import create_empty_report
 
-    # state에서 report_id 가져오기 또는 mock ID 생성
-    report_id = state.get("report_id", 999)
+    print(f"📝 2단계: 빈 리포트 생성 시작")
 
-    print(f"     ✅ Report ID: {report_id}")
+    report_id = create_empty_report(state["user_id"], state["report_date"])
+
+    if not report_id:
+        # API 호출 실패 시 placeholder ID 사용 (워크플로우 계속 진행)
+        print("     ⚠️ 빈 리포트 생성 실패, placeholder ID로 진행합니다.")
+        report_id = -1  # 실패를 나타내는 특수 ID
 
     return {"report_id": report_id, "status": "IN_PROGRESS"}
 
