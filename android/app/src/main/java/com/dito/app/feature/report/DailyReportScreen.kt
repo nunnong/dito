@@ -635,16 +635,14 @@ fun ComparisonItemCard(
             modifier = Modifier
                 .width(31.dp)
                 .height(34.dp)
+                .align(Alignment.Top)
         )
         Text(
             text = comparisonItem.description,
             color = textColor,
             lineHeight = 1.33.em,
             style = DitoTypography.bodyMedium,
-            modifier = Modifier
-                .weight(1f)
-                .height(41.dp)
-                .wrapContentHeight(align = Alignment.CenterVertically)
+            modifier = Modifier.weight(1f)
         )
     }
 }
