@@ -217,91 +217,105 @@ fun DailyReportContent(
 
 @Composable
 fun MissionCompletionCard(missionCompletionRate: Int) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(97.dp)
-            .hardShadow(
-                offsetX = 4.dp,
-                offsetY = 4.dp,
-                cornerRadius = 8.dp,
-                color = Color.Black
-            )
-            .clip(shape = RoundedCornerShape(8.dp))
-            .background(color = Color.White)
-            .border(
-                border = BorderStroke(1.5.dp, Color.Black),
-                shape = RoundedCornerShape(8.dp)
-            )
-            .padding(all = 16.dp)
+    Box(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxHeight()
-                .weight(1f)
+                .fillMaxWidth()
+                .height(97.dp)
+                .hardShadow(
+                    offsetX = 4.dp,
+                    offsetY = 4.dp,
+                    cornerRadius = 8.dp,
+                    color = Color.Black
+                )
+                .clip(shape = RoundedCornerShape(8.dp))
                 .background(color = Color.White)
+                .border(
+                    border = BorderStroke(1.5.dp, Color.Black),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(all = 16.dp)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(11.dp, Alignment.Start),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+                    .background(color = Color.White)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.mission_star),
-                    contentDescription = "Mission Icon",
-                    modifier = Modifier.size(28.dp)
-                )
-                Text(
-                    text = "미션 수행률",
-                    color = Color.Black,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 0.91.em,
-                    style = DitoCustomTextStyles.titleDLarge
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(48.dp),
-                border = BorderStroke(1.dp, Color.Black),
-                modifier = Modifier.clip(shape = RoundedCornerShape(48.dp))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(200.dp)
-                        .height(23.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(11.dp, Alignment.Start),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.mission_star),
+                        contentDescription = "Mission Icon",
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "미션 수행률",
+                        color = Color.Black,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 0.91.em,
+                        style = DitoCustomTextStyles.titleDLarge
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(48.dp),
+                    border = BorderStroke(1.dp, Color.Black),
+                    modifier = Modifier.clip(shape = RoundedCornerShape(48.dp))
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(missionCompletionRate / 100f)
+                            .width(200.dp)
                             .height(23.dp)
-                            .clip(shape = RoundedCornerShape(48.dp))
-                            .background(color = Primary)
-                    )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(missionCompletionRate / 100f)
+                                .height(23.dp)
+                                .clip(shape = RoundedCornerShape(48.dp))
+                                .background(color = Primary)
+                        )
+                    }
                 }
             }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$missionCompletionRate",
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 1.12.em,
+                    style = DitoTypography.displayLarge,
+                    fontSize = 42.sp
+                )
+                Text(
+                    text = "%",
+                    color = Primary,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 1.16.em,
+                    style = DitoTypography.displayMedium,
+                    fontSize = 42.sp
+                )
+            }
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "$missionCompletionRate",
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                lineHeight = 1.12.em,
-                style = DitoTypography.displayLarge,
-                fontSize = 42.sp
-            )
-            Text(
-                text = "%",
-                color = Primary,
-                textAlign = TextAlign.Center,
-                lineHeight = 1.16.em,
-                style = DitoTypography.displayMedium,
-                fontSize = 42.sp
-            )
-        }
+
+        // Lemon wiggle image - top right
+        Image(
+            painter = painterResource(id = R.drawable.lemon_wiggle),
+            contentDescription = "Lemon Wiggle",
+            modifier = Modifier
+                .size(40.dp)
+                .align(Alignment.TopEnd)
+                .padding(top = 12.dp, end = 12.dp)
+        )
     }
 }
 
@@ -327,25 +341,39 @@ fun CurrentStatusCard(
                 shape = RoundedCornerShape(8.dp)
             )
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color = Primary)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = Primary)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.now_status),
+                    contentDescription = "Status Icon",
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "현재 $userName 님은",
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 0.91.em,
+                    style = DitoCustomTextStyles.titleDMedium
+                )
+            }
+
+            // Orange wiggle image - top right
             Image(
-                painter = painterResource(id = R.drawable.now_status),
-                contentDescription = "Status Icon",
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = "현재 $userName 님은",
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                lineHeight = 0.91.em,
-                style = DitoCustomTextStyles.titleDMedium
+                painter = painterResource(id = R.drawable.orange_wiggle),
+                contentDescription = "Orange Wiggle",
+                modifier = Modifier
+                    .size(40.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 6.dp, end = 12.dp)
             )
         }
         Box(
@@ -395,25 +423,39 @@ fun ComparisonCard(
                 shape = RoundedCornerShape(8.dp)
             )
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color = Primary)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = Primary)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.clock),
+                    contentDescription = "Comparison Icon",
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "종합 밸런스 분석",
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 0.91.em,
+                    style = DitoCustomTextStyles.titleDMedium
+                )
+            }
+
+            // Melon wiggle image - top right
             Image(
-                painter = painterResource(id = R.drawable.clock),
-                contentDescription = "Comparison Icon",
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = "종합 밸런스 분석",
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                lineHeight = 0.91.em,
-                style = DitoCustomTextStyles.titleDMedium
+                painter = painterResource(id = R.drawable.melon_wiggle),
+                contentDescription = "Melon Wiggle",
+                modifier = Modifier
+                    .size(40.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 6.dp, end = 12.dp)
             )
         }
         Box(
@@ -485,25 +527,39 @@ fun DitoMessageCard(advice: String) {
                 shape = RoundedCornerShape(8.dp)
             )
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(color = Primary)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+        Box(
+            modifier = Modifier.fillMaxWidth()
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = Primary)
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.letter),
+                    contentDescription = "Message Icon",
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "Dito의 메시지",
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 0.91.em,
+                    style = DitoCustomTextStyles.titleDMedium
+                )
+            }
+
+            // Grape wiggle image - top right
             Image(
-                painter = painterResource(id = R.drawable.letter),
-                contentDescription = "Message Icon",
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = "Dito의 메시지",
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                lineHeight = 0.91.em,
-                style = DitoCustomTextStyles.titleDMedium
+                painter = painterResource(id = R.drawable.grape_wiggle),
+                contentDescription = "Grape Wiggle",
+                modifier = Modifier
+                    .size(40.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 6.dp, end = 12.dp)
             )
         }
         Box(
@@ -579,16 +635,14 @@ fun ComparisonItemCard(
             modifier = Modifier
                 .width(31.dp)
                 .height(34.dp)
+                .align(Alignment.Top)
         )
         Text(
             text = comparisonItem.description,
             color = textColor,
             lineHeight = 1.33.em,
             style = DitoTypography.bodyMedium,
-            modifier = Modifier
-                .weight(1f)
-                .height(41.dp)
-                .wrapContentHeight(align = Alignment.CenterVertically)
+            modifier = Modifier.weight(1f)
         )
     }
 }

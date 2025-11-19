@@ -16,11 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dito.app.R
 import com.dito.app.core.ui.designsystem.*
+import com.google.common.io.Files.append
 import kotlinx.coroutines.delay
 
 @Preview
@@ -156,17 +160,19 @@ private fun TitleSection() {
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "DI",
+                buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Primary)) {
+                        append("DI")
+                    }
+                    withStyle(style = SpanStyle(color = Color.Black)) {
+                        append("GITAL DETOX")
+                    }
+                },
                 style = DitoTypography.displaySmall,
-                color = Primary,
+                modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
-            Text(
-                text = "GITAL DETOX",
-                style = DitoTypography.displaySmall,
-                color = Color.Black,
-                textAlign = TextAlign.Center
-            )
+
         }
 
         // "TOGETHER" Text - TO만 노란색
@@ -176,13 +182,13 @@ private fun TitleSection() {
         ) {
             Text(
                 text = "TO",
-                style = DitoTypography.displayMedium,
+                style = DitoTypography.displaySmall,
                 color = Primary,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = "GETHER",
-                style = DitoTypography.displayMedium,
+                style = DitoTypography.displaySmall,
                 color = Color.Black,
                 textAlign = TextAlign.Center
             )
