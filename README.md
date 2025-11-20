@@ -48,7 +48,7 @@ DITO는 AI 기반 실시간 행동 분석과 개입을 통해 사용자의 디�
 | **Backend** | 위지훈 | 백엔드 구조 설계 및 미션, 유저, 상점, 유저 상태, 인증/인가 관련 API 개발
 | **Backend/Infra** | 장아영 | Jenkins CI/CD 서버 빌드 및 배포 자동화, 그룹 챌린지  관련 API 제작, DB 관리, 서버 관리, API 명세 조율, 안드로이드 앱과 연동한 Wear 앱 개발 |
 | **Android** | 정윤영 | FE 그룹 및 설정 화면 개발, JetpackCompose 기반 UI 개발 : 공통 UI 컴포넌트 분리, 디자인 시스템 구축 및 적용 : Figma 스타일을 Compose 디자인 토큰으로 정리, Retrofit 기반 그룹 및 설정 API 연동 및 호출 최소화 |
-| **AI** | 허민권 | AI 에이전트 개발, ngnix 인프라, fcm 연동 |
+| **AI** | 허민권 | LangGraph 기반 멀티 에이전트 오케스트레이션 아키텍처 설계(조정자 에이전트 + 4개 전문 에이전트 구조), ReAct 패턴 사고-행동-관찰 루프 구현, StateGraph와 Persistent Checkpoint를 활용한 에이전트 간 컨텍스트 보존 및 순환 그래프·조건부 분기 시스템 구축, ngnix 인프라 구축 및 파일서버 설계, 앱, 서버간 fcm 연동, 비동기 호출 및 알림 구현 |
 
 ## 기술 스택
 
