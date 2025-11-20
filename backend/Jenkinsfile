@@ -125,9 +125,15 @@ pipeline {
               # 환경변수 파일로 Docker Compose 이미지 태그 설정
               export APP_IMAGE="${DOCKER_IMAGE}"
 
-              # 새 컨테이너 시작 (기존 컨테이너와 동시에 실행)
+              # 기존 app 컨테이너 중지 및 제거 (네트워크 재연결 위해)
+              echo "Stopping and removing old app container..."
+              docker rm -f dito-app 2>/dev/null || true
+              docker compose -f docker-compose.yml rm -f app || true
+
+              # 새 컨테이너 시작 (--force-recreate로 완전히 새로 생성)
               echo "Starting new container with image: ${DOCKER_IMAGE}..."
-              docker compose -f docker-compose.yml up -d --no-deps app
+              docker compose --env-file .env -f docker-compose.yml up -d --force-recreate --no-deps app
+
 
               echo "New container started. Waiting for health check..."
             '''
@@ -287,7 +293,7 @@ pipeline {
     }
     always {
       echo 'Finalizing...'
-      sh "rm -f ${BACKEND_DIR}/.env || true"
+//       sh "rm -f ${BACKEND_DIR}/.env || true"
     }
   }
 }

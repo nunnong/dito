@@ -69,3 +69,10 @@ backend/.idea/
 *.key
 /.mcp.json
 /.claude/settings.local.json
+/.idea/
+PLAN*.md
+.gitignore
+TECH*.md
+.mcp.json
+CLAUDE.md
+SKILL.md
