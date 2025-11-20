@@ -1,0 +1,299 @@
+pipeline {
+  agent any
+
+  environment {
+    // ====== 기본 설정 ======
+    BACKEND_DIR     = 'backend'
+    COMPOSE_FILE    = "${env.BACKEND_DIR}/docker-compose.yml"
+
+    // ====== 이미지 태깅 전략 ======
+    IMAGE_NAME      = 'dito-backend'
+    BUILD_TAG       = "build-${env.BUILD_NUMBER}"
+    STABLE_TAG      = 'latest-stable'
+    DOCKER_IMAGE    = "${IMAGE_NAME}:${BUILD_TAG}"
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+    timeout(time: 30, unit: 'MINUTES')
+    disableConcurrentBuilds()
+    timestamps()
+  }
+
+  stages {
+
+    stage('Prepare') {
+      steps {
+        script {
+          echo '========================================='
+          echo "Starting CI/CD Pipeline"
+          echo "Build #${env.BUILD_NUMBER}"
+          echo "Branch: ${env.GIT_BRANCH ?: 'N/A'}"
+          echo '========================================='
+        }
+        deleteDir()
+      }
+    }
+
+    stage('Checkout') {
+      steps {
+        echo "Checking out source from SCM..."
+        checkout scm
+        sh '''
+          echo "Current directory: $(pwd)"
+          echo "Git branch: $(git rev-parse --abbrev-ref HEAD)"
+          echo "Git commit: $(git rev-parse --short HEAD)"
+        '''
+      }
+    }
+
+    stage('Environment Setup') {
+      steps {
+        echo 'Injecting secret env file...'
+        script {
+          withCredentials([file(credentialsId: 'dito-backend-env', variable: 'ENV_FILE')]) {
+            sh '''
+              cp "$ENV_FILE" "$BACKEND_DIR/.env"
+              chmod 600 "$BACKEND_DIR/.env"
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Build JAR') {
+      steps {
+        dir("${BACKEND_DIR}/Dito") {  // gradlew가 있는 경로로 이동
+          sh '''
+            echo "Building jar file..."
+            chmod +x gradlew
+            ./gradlew clean build -x test
+          '''
+        }
+      }
+    }
+
+    stage('Build Docker Image') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          sh '''#!/bin/bash -e
+            echo "Built artifacts:"
+            ls -al Dito/build/libs || true
+
+            echo "Picking Spring Boot fat jar (exclude *-plain.jar)..."
+            JAR_PATH=$(ls Dito/build/libs/*-SNAPSHOT.jar | grep -v -- "-plain.jar" | head -n1)
+
+            if [ -z "$JAR_PATH" ] || [ ! -f "$JAR_PATH" ]; then
+              echo "Boot JAR not found in Dito/build/libs (fat jar)"
+              exit 1
+            fi
+
+            echo "Copying $JAR_PATH -> app.jar"
+            cp "$JAR_PATH" ./app.jar
+            chmod 644 ./app.jar
+
+            echo "Building Docker image: ${DOCKER_IMAGE}..."
+            docker build -t "${DOCKER_IMAGE}" .
+
+            echo "Image built successfully!"
+            docker images | grep "${IMAGE_NAME}" | head -5
+          '''
+        }
+      }
+    }
+
+    stage('Deploy with Zero Downtime') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          script {
+            sh '''#!/bin/bash -e
+              echo "========================================="
+              echo "Starting Zero-Downtime Deployment"
+              echo "New Image: ${DOCKER_IMAGE}"
+              echo "========================================="
+
+              # 기존 컨테이너 확인
+              OLD_CONTAINER=$(docker ps -q -f name=dito-app) || true
+
+              if [ -n "$OLD_CONTAINER" ]; then
+                echo "Found existing container: $OLD_CONTAINER"
+                echo "Will perform rolling update..."
+              else
+                echo "No existing container found. First deployment."
+              fi
+
+              # 환경변수 파일로 Docker Compose 이미지 태그 설정
+              export APP_IMAGE="${DOCKER_IMAGE}"
+
+              # 기존 app 컨테이너 중지 및 제거 (네트워크 재연결 위해)
+              echo "Stopping and removing old app container..."
+              docker rm -f dito-app 2>/dev/null || true
+              docker compose -f docker-compose.yml rm -f app || true
+
+              # 새 컨테이너 시작 (--force-recreate로 완전히 새로 생성)
+              echo "Starting new container with image: ${DOCKER_IMAGE}..."
+              docker compose --env-file .env -f docker-compose.yml up -d --force-recreate --no-deps app
+
+
+              echo "New container started. Waiting for health check..."
+            '''
+          }
+        }
+      }
+    }
+
+
+
+    stage('Health Check') {
+      steps {
+        script {
+          try {
+            // 최대 10번, 10초 간격으로 재시도
+            retry(10) {
+              sh '''
+                set -e
+
+                APP_PORT="${APP_PORT:-8080}"
+                URL="http://localhost:${APP_PORT}/actuator/health"
+
+                # 상태코드만 추출 (에러여도 종료하지 않도록 || true)
+                CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+
+                if [ "$CODE" = "200" ] || [ "$CODE" = "403" ]; then
+                  echo "Health check passed with HTTP $CODE"
+                  exit 0
+                else
+                  echo "Health not ready yet (HTTP $CODE). Retrying..."
+                  sleep 10
+                  exit 1
+                fi
+              '''
+            }
+            echo "Health check succeeded! Deployment successful."
+          } catch (Exception e) {
+            echo "Health check failed! Starting rollback..."
+            dir("${BACKEND_DIR}") {
+              sh '''#!/bin/bash
+                echo "========================================="
+                echo "HEALTH CHECK FAILED - ROLLING BACK"
+                echo "========================================="
+
+                # 실패한 컨테이너 로그 출력
+                echo "Failed container logs:"
+                docker compose -f docker-compose.yml logs --tail=50 app || true
+
+                # 새 컨테이너 종료
+                echo "Stopping failed container..."
+                docker compose -f docker-compose.yml down app || true
+
+                # latest-stable 이미지 확인
+                STABLE_IMAGE="${IMAGE_NAME}:${STABLE_TAG}"
+                if docker image inspect "$STABLE_IMAGE" >/dev/null 2>&1; then
+                  echo "Rollback to stable image: $STABLE_IMAGE"
+                  export APP_IMAGE="$STABLE_IMAGE"
+                  docker compose -f docker-compose.yml up -d app
+                  echo "Rollback completed. Service restored with previous version."
+                else
+                  echo "WARNING: No stable image found. Service is down!"
+                  echo "Please deploy a working version manually."
+                fi
+              '''
+            }
+            error("Deployment failed and rolled back")
+          }
+        }
+      }
+    }
+
+    stage('Tag Stable Image') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          sh '''#!/bin/bash -e
+            echo "========================================="
+            echo "Tagging successful deployment as stable"
+            echo "========================================="
+
+            # 새 이미지를 latest-stable로 태깅
+            docker tag "${DOCKER_IMAGE}" "${IMAGE_NAME}:${STABLE_TAG}"
+
+            echo "Tagged ${DOCKER_IMAGE} as ${IMAGE_NAME}:${STABLE_TAG}"
+            echo "This image will be used for rollback if future deployments fail."
+
+            # 이미지 목록 확인
+            echo ""
+            echo "Available images:"
+            docker images | grep "${IMAGE_NAME}" | head -10
+          '''
+        }
+      }
+    }
+
+    stage('Cleanup') {
+      steps {
+        dir("${BACKEND_DIR}") {
+          sh '''#!/bin/bash
+            echo "Cleaning up old images..."
+
+            # 최근 3개 빌드 이미지만 유지 (build-N 태그)
+            echo "Keeping latest 3 build images and stable image..."
+            docker images "${IMAGE_NAME}" --format "{{.Tag}}" | grep "^build-" | sort -t- -k2 -rn | tail -n +4 | while read tag; do
+              echo "Removing old image: ${IMAGE_NAME}:$tag"
+              docker rmi "${IMAGE_NAME}:$tag" || true
+            done
+
+            # dangling 이미지 정리
+            docker image prune -f || true
+
+            echo ""
+            echo "Remaining images:"
+            docker images | grep "${IMAGE_NAME}" || echo "No images found"
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo '========================================='
+      echo "CI/CD Pipeline completed successfully!"
+      echo '========================================='
+      dir("${BACKEND_DIR}") {
+        sh '''
+          echo "Deployment Info"
+          echo "  Image: ${DOCKER_IMAGE}"
+          echo "  Stable: ${IMAGE_NAME}:${STABLE_TAG}"
+          echo "  Build: #${BUILD_NUMBER}"
+          echo "  Time : $(date)"
+          echo ""
+          echo "Running containers:"
+          docker compose -f docker-compose.yml ps
+        '''
+      }
+    }
+    failure {
+      echo '========================================='
+      echo "CI/CD Pipeline failed!"
+      echo '========================================='
+      dir("${BACKEND_DIR}") {
+        sh '''
+          echo "Failed at build #${BUILD_NUMBER}"
+          echo "Attempted image: ${DOCKER_IMAGE}"
+          echo ""
+          echo "Container status:"
+          docker compose -f docker-compose.yml ps || true
+          echo ""
+          echo "Recent logs:"
+          docker compose -f docker-compose.yml logs --tail=100 || true
+          echo ""
+          echo "Available images:"
+          docker images | grep "${IMAGE_NAME}" || echo "No images found"
+        '''
+      }
+    }
+    always {
+      echo 'Finalizing...'
+//       sh "rm -f ${BACKEND_DIR}/.env || true"
+    }
+  }
+}
