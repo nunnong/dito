@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="notification_color">#FF6200EE</color>
+    <!-- Progress Notification Colors -->
+    <color name="progress_rest">#4CAF50</color> <!-- Green for REST mission -->
+    <color name="progress_meditation">#9C27B0</color> <!-- Purple for MEDITATION mission -->
+
+</resources>

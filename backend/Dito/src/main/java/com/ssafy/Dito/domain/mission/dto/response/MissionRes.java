@@ -1,0 +1,26 @@
+package com.ssafy.Dito.domain.mission.dto.response;
+
+import com.querydsl.core.annotations.QueryProjection;
+import com.ssafy.Dito.domain.mission.entity.Status;
+import com.ssafy.Dito.domain.missionResult.entity.Result;
+import java.sql.Timestamp;
+
+public record MissionRes (
+        long id,
+        String missionType,
+        String title,
+        int coinReward,
+        Status status,
+        Result result,
+        Timestamp triggerTime,
+        int duration,
+        String feedback,
+        int statChangeSelfCare,
+        int statChangeFocus,
+        int statChangeSleep
+) {
+    @QueryProjection
+    public MissionRes {
+    }
+
+}
