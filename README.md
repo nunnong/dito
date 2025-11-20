@@ -46,9 +46,9 @@ DITO는 AI 기반 실시간 행동 분석과 개입을 통해 사용자의 디�
 | **팀장/Android** | 유지은 | 7주 일정 관리, 6명 팀원 태스크 분배, 기술 스택 선정(Android/Spring Boot/Realm/MongoDB 등), 시스템 아키텍처 설계 및 API 명세 조율, Spring Boot + MongoDB + Realm 구성 설계, OS 레벨 모니터링 시스템(AccessibilityService, MediaSessionListenerService, UsageStatsManager), 실시간 AI 개입 시스템 구축(AI 호출 로직 구현 및 쿨다운 고도화), 데이터 관리(로컬 Realm DB, WorkManager 배치 전송, 콘텐츠 분석), 그룹 챌린지 실시간 동기화(실시간 추월, 실사용 앱 공유, 챌린지 타겟앱 시간 누적) |
 | **Android** | 박효정 | Jetpck Compose 기반 UI 개발 전반(Splash, Signup, Login, Home, Closet, Shop, ShopConfirm, MissionNotification), 자체 디자인 시스템 구축, 인터랙티브 애니메이션 및 사운드 피드백 구현, API 연동 및 ViewModel + Repository 기반 상태관리, Shop/Closet 무한 스크롤 페이지네이션 구현, 캐릭터 의상/배경 UI 개발 및 구매 플로우 구성, Pixel Art 스타일에 맞춘 컴포넌트/레이아웃 최적화.  |
 | **Backend** | 위지훈 | 백엔드 구조 설계 및 미션, 유저, 상점, 유저 상태, 인증/인가 관련 API 개발
-| **Backend/Infra** | 장아영 | Jenkins CI/CD 서버 빌드 및 배포 자동화, 그룹 챌린지  관련 API 제작, DB 관리, 서버 관리, API 명세 조율, 안드로이드 앱과 연동한 Wear 앱 개발 |
+| **Backend/Infra** | 장아영 | Backend API 개발, Android/Wear OS 앱 구현, 인프라 구축까지 전 영역을 담당. Spring Boot 기반 그룹 챌린지 시스템과 스크린타임 동기화 기능을 설계 및 구현. Health Connect SDK 연동과 Jetpack Compose 기반 UI 개발을 통해 사용자 경험을 구현했습니다. Jenkins CI/CD 파이프라인과 Docker Compose 멀티 컨테이너 환경을 구축하여 무중단 배포 체계를 확립. 푸시알림에 따른 워치앱 연동 및 실행 구현 |
 | **Android** | 정윤영 | FE 그룹 및 설정 화면 개발, JetpackCompose 기반 UI 개발 : 공통 UI 컴포넌트 분리, 디자인 시스템 구축 및 적용 : Figma 스타일을 Compose 디자인 토큰으로 정리, Retrofit 기반 그룹 및 설정 API 연동 및 호출 최소화 |
-| **AI** | 허민권 | AI 에이전트 개발, ngnix 인프라, fcm 연동 |
+| **AI** | 허민권 | LangGraph 기반 멀티 에이전트 오케스트레이션 아키텍처 설계(조정자 에이전트 + 4개 전문 에이전트 구조), ReAct 패턴 사고-행동-관찰 루프 구현, StateGraph와 Persistent Checkpoint를 활용한 에이전트 간 컨텍스트 보존 및 순환 그래프·조건부 분기 시스템 구축, ngnix 인프라 구축 및 파일서버 설계, 앱, 서버간 fcm 연동, 비동기 호출 및 알림 구현 |
 
 ## 기술 스택
 
