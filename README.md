@@ -324,27 +324,27 @@ ai/
 
 ### 01. 스플래시 & 로그인
 
-<img src="docs/beforesplash.png" alt="1-1.아이콘" width="500">
+<img src="docs/beforesplash.png" alt="1-1.아이콘" width="120">
 
-<img src="docs/splash.png" alt="1-2.스플래쉬" width="500">
+<img src="docs/splash.png" alt="1-2.스플래쉬" width="120">
 
 **로그인 방식:**
 
-<img src="docs/login.png" alt="1-3.로그인" width="500">
+<img src="docs/login.png" alt="1-3.로그인" width="120">
 
 - 자체 로그인
 - JWT 기반 토큰 인증 (Access Token + Refresh Token)
 
 **회원가입 시 입력 정보:**
 
-<img src="docs/signup1.png" alt="1-4.아이디/비밀번호" width="500">
+<img src="docs/signup1.png" alt="1-4.아이디/비밀번호" width="120">
 
-<img src="docs/signup2.png" alt="1-5.개인정보 입력" width="500">
-<img src="docs/career.png" alt="1-6.직업 정보 입력" width="500">
+<img src="docs/signup2.png" alt="1-5.개인정보 입력" width="120">
+<img src="docs/career.png" alt="1-6.직업 정보 입력" width="120">
 - 닉네임, 생년월일, 성별, 직업
 - 개입 빈도 설정 (RARELY, NORMAL, OFTEN)
 
-<img src="docs/permission.png" alt="1-7.권한 설정" width="500">
+<img src="docs/permission.png" alt="1-7.권한 설정" width="120">
 
 
 
@@ -352,7 +352,7 @@ ai/
 
 **표시 정보:**
 
-<img src="docs/mainprofile.png" alt="2-1.메인" width="500">
+<img src="docs/mainprofile.png" alt="2-1.메인" width="120">
 
 - 오늘 스크린 타임 (실시간 업데이트)
 - 현재 스탯 (수면, 집중력, 자기조절)
@@ -363,15 +363,15 @@ ai/
 
 **주요 액션:**
 
-<img src="docs/shop.png" alt="2-2.상점" width="500">
+<img src="docs/shop.png" alt="2-2.상점" width="120">
 
 - 상점
 
-<img src="docs/closet.png" alt="2-3.옷장" width="500">
+<img src="docs/closet.png" alt="2-3.옷장" width="120">
 
-<img src="docs/buy.png" alt="2-4.구매" width="500">
+<img src="docs/buy.png" alt="2-4.구매" width="120">
 
-<img src="docs/buy2.png" alt="2-5.구매 확인" width="500">
+<img src="docs/buy2.png" alt="2-5.구매 확인" width="120">
 
 - 리포트 보기
 
@@ -488,46 +488,46 @@ ai/
 - 리포트 상세 페이지에서 전체 내용 열람
 - 과거 리포트 히스토리 조회
 
-<img src="docs/report1.png" alt="6-1.리포트 1" width="500">
+<img src="docs/report1.png" alt="6-1.리포트 1" width="120">
 
-<img src="docs/report2.png" alt="6-2.리포트 2" width="500">
+<img src="docs/report2.png" alt="6-2.리포트 2" width="120">
 
-<img src="docs/report2.5.png" alt="6-3.리포트 2.5" width="500">
+<img src="docs/report2.5.png" alt="6-3.리포트 2.5" width="120">
 
 ### 07. 그룹 챌린지
 
-<img src="docs/groupguide.png" alt="7-1.그룹 가이드" width="500">
+<img src="docs/groupguide.png" alt="7-1.그룹 가이드" width="120">
 
 **챌린지 생성:**
 - 방장이 그룹 이름, 기간, 목표, 베팅 코인 설정
 - 초대 코드 자동 생성 (6자리)
 - 최대 인원 제한 없음
 
-<img src="docs/groupmain.png" alt="7-2.그룹 메인" width="500">
+<img src="docs/groupmain.png" alt="7-2.그룹 메인" width="120">
 
 **참여:**
 - 초대 코드 입력으로 참여
 - 베팅 코인 차감 (참여 시점)
 - 그룹 멤버 리스트 확인
 
-<img src="docs/groupenter.png" alt="7-3.그룹 참여" width="500">
+<img src="docs/groupenter.png" alt="7-3.그룹 참여" width="120">
 
-<img src="docs/waitingroom.png" alt="7-4.대기실" width="500">
+<img src="docs/waitingroom.png" alt="7-4.대기실" width="120">
 
 **랭킹 시스템:**
 - 실시간 스크린 타임 기준 순위
 - 15분마다 WorkManager로 스크린 타임 동기화
 - 일일 랭킹, 주간 랭킹
 
-<img src="docs/groupdetail.png" alt="7-5.그룹 상세" width="500">
+<img src="docs/groupdetail.png" alt="7-5.그룹 상세" width="120">
 
-<img src="docs/groupmodal.png" alt="7-6.그룹 모달" width="500">
+<img src="docs/groupmodal.png" alt="7-6.그룹 모달" width="120">
 
 **친구 찌르기:**
 - 그룹 내 친구에게 찌르기 알림 전송
 - 동기부여 및 상호작용 기능
 
-<img src="docs/poke.png" alt="7-7.친구 찌르기" width="500">
+<img src="docs/poke.png" alt="7-7.친구 찌르기" width="120">
 
 **보상:**
 - 챌린지 종료 시 1등에게 총 베팅 코인의 50%
@@ -536,9 +536,9 @@ ai/
 
 ### 08. 미션 시스템
 
-<img src="docs/missionguide.png" alt="8-1.미션 가이드" width="500">
+<img src="docs/missionguide.png" alt="8-1.미션 가이드" width="120">
 
-<img src="docs/notiguide.png" alt="8-2.알림 가이드" width="500">
+<img src="docs/notiguide.png" alt="8-2.알림 가이드" width="120">
 
 **미션 타입:**
 
@@ -552,7 +552,7 @@ ai/
    - 가이드에 따라 심호흡
    - 심박수 모니터링 (Health Connect)
 
-<img src="docs/mission.png" alt="8-3.미션 화면" width="500">
+<img src="docs/mission.png" alt="8-3.미션 화면" width="120">
 
 **미션 흐름:**
 ```
@@ -560,11 +560,11 @@ AI 개입 → 미션 생성 → FCM 알림 → 사용자 수락
 → 미션 수행 → 완료/실패 → 보상 지급/차감 → 스탯 변경
 ```
 
-<img src="docs/missionfeedback.png" alt="8-4.미션 피드백 1" width="500">
+<img src="docs/missionfeedback.png" alt="8-4.미션 피드백 1" width="120">
 
-<img src="docs/missionfeedback2.png" alt="8-5.미션 피드백 2" width="500">
+<img src="docs/missionfeedback2.png" alt="8-5.미션 피드백 2" width="120">
 
-<img src="docs/statchange.png" alt="8-6.스탯 변경" width="500">
+<img src="docs/statchange.png" alt="8-6.스탯 변경" width="120">
 
 **보상:**
 - 성공 시: 코인 획득 + 스탯 증가
@@ -609,9 +609,9 @@ AI 개입 → 미션 생성 → FCM 알림 → 사용자 수락
 
 ### 11. 설정
 
-<img src="docs/settings.png" alt="11-1.설정 화면" width="500">
+<img src="docs/settings.png" alt="11-1.설정 화면" width="120">
 
-<img src="docs/missioncnt.png" alt="11-2.미션 카운트" width="500">
+<img src="docs/missioncnt.png" alt="11-2.미션 카운트" width="120">
 
 **사용자 설정:**
 - 개입 빈도 조정 (RARELY, NORMAL, OFTEN)
