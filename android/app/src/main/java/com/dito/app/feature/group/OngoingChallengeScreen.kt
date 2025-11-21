@@ -103,7 +103,7 @@ fun StatisticsCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "📊 오늘의 현황",
+                text = "오늘의 현황",
                 style = DitoTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = Color.Black
             )
@@ -150,7 +150,7 @@ fun StatisticsCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "😢 목표 실패",
+                    text = "목표 실패",
                     style = DitoTypography.bodyMedium,
                     color = Color.Black
                 )
@@ -217,9 +217,6 @@ fun StatisticsCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-
-
-            // 친구 상태 (스크롤 가능)
             Spacer(modifier = Modifier.height(8.dp))
 
             val youtubeUsers = uiState.rankings.filter {
@@ -228,7 +225,7 @@ fun StatisticsCard(
 
             if (youtubeUsers.isNotEmpty()) {
                 Text(
-                    text = "👥 지금 YouTube 사용 중:",
+                    text = "지금 YouTube 사용 중:",
                     style = DitoTypography.labelLarge.copy(fontWeight = FontWeight.Bold),
                     color = Color.Black
                 )
@@ -994,13 +991,13 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
 }
 
 /**
- * 초 단위를 hh:mm (시간:분) 형식으로 변환
+ * 초 단위를 mm:ss (분:초) 형식으로 변환
  */
 fun formatSecondsToTime(totalSeconds: Int): String {
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
 
-    return String.format("%02d:%02d", hours, minutes)
+    return String.format("%02d:%02d", minutes, seconds)
 }
 
 fun getAppIconFromPackage(packageName: String?): Int {

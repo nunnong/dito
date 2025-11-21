@@ -251,33 +251,33 @@ fun ChallengeResultContent(
             Spacer(modifier = Modifier.height(Spacing.xl))
 
             // WIN/LOSE 카드
-            if (rankings.isNotEmpty()) {
-                val winner = rankings.first()
-                val loser = rankings.last()
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.m)
-                ) {
-                    // WIN 카드
-                    WinLoseCard(
-                        modifier = Modifier.weight(1f),
-                        isWin = true,
-                        nickname = winner.nickname,
-                        time = winner.totalScreenTimeFormatted,
-                        costumeUrl = winner.profileImage
-                    )
-
-                    // LOSE 카드
-                    WinLoseCard(
-                        modifier = Modifier.weight(1f),
-                        isWin = false,
-                        nickname = loser.nickname,
-                        time = loser.totalScreenTimeFormatted,
-                        costumeUrl = loser.profileImage
-                    )
-                }
-            }
+//            if (rankings.isNotEmpty()) {
+//                val winner = rankings.first()
+//                val loser = rankings.last()
+//
+//                Row(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    horizontalArrangement = Arrangement.spacedBy(Spacing.m)
+//                ) {
+//                    // WIN 카드
+//                    WinLoseCard(
+//                        modifier = Modifier.weight(1f),
+//                        isWin = true,
+//                        nickname = winner.nickname,
+//                        time = winner.totalScreenTimeFormatted,
+//                        costumeUrl = winner.profileImage
+//                    )
+//
+//                    // LOSE 카드
+//                    WinLoseCard(
+//                        modifier = Modifier.weight(1f),
+//                        isWin = false,
+//                        nickname = loser.nickname,
+//                        time = loser.totalScreenTimeFormatted,
+//                        costumeUrl = loser.profileImage
+//                    )
+//                }
+//            }
 
             Spacer(modifier = Modifier.height(Spacing.xl))
 
@@ -456,7 +456,6 @@ fun PenaltyCardSection(
 
             Spacer(modifier = Modifier.height(Spacing.xl))
 
-            // 디토 + 망치 이미지
             Box(
                 contentAlignment = Alignment.Center
             ) {
@@ -464,13 +463,6 @@ fun PenaltyCardSection(
                     painter = painterResource(R.drawable.dito),
                     contentDescription = null,
                     modifier = Modifier.size(120.dp)
-                )
-                Image(
-                    painter = painterResource(R.drawable.hammer),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .offset(x = 30.dp, y = (-20).dp)
                 )
             }
 
