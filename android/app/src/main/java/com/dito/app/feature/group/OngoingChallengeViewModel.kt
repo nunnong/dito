@@ -123,8 +123,7 @@ class OngoingChallengeViewModel @Inject constructor(
             }
         }
         startRealTimeTicker()
-        startCoachMessageRotation()
-    }
+        startCoachMessageRotation()    }
 
     fun stopAutoRefresh() {
         autoRefreshJob?.cancel()
@@ -163,15 +162,15 @@ class OngoingChallengeViewModel @Inject constructor(
                         currentOrder
                     }
 
-                    // 서버에서 받은 스크린타임을 초 단위로 파싱 (실시간 증가 제거, 서버 데이터만 사용)
+                    // 서버에서 받은 스크린타임을 초 단위
                     val serverTimes = mutableMapOf<Long, Int>()
                     response.rankings.forEach { ranking ->
-                        val serverSeconds = parseScreenTimeToSeconds(ranking.totalScreenTimeFormatted)
+                        val serverSeconds = ranking.totalSeconds
                         serverTimes[ranking.userId] = serverSeconds
                     }
 
                     _uiState.value = _uiState.value.copy(
-                        rankings = response.rankings, // 서버 순위 그대로 사용
+                        rankings = response.rankings,
                         initialUserOrder = initialOrder,
                         realTimeScreenTimes = serverTimes // 서버 시간 그대로 사용
                     )
@@ -183,29 +182,6 @@ class OngoingChallengeViewModel @Inject constructor(
                 }
             )
         }
-    }
-
-    /**
-     * "10m", "1h 30m", "2h", "45m" 등의 문자열을 초 단위로 변환
-     */
-    private fun parseScreenTimeToSeconds(formatted: String): Int {
-        var totalSeconds = 0
-
-        // 시간 파싱 (예: "1h", "2h")
-        val hourRegex = """(\d+)h""".toRegex()
-        hourRegex.find(formatted)?.let { match ->
-            val hours = match.groupValues[1].toIntOrNull() ?: 0
-            totalSeconds += hours * 3600
-        }
-
-        // 분 파싱 (예: "30m", "45m")
-        val minuteRegex = """(\d+)m""".toRegex()
-        minuteRegex.find(formatted)?.let { match ->
-            val minutes = match.groupValues[1].toIntOrNull() ?: 0
-            totalSeconds += minutes * 60
-        }
-
-        return totalSeconds
     }
 
     fun pokeMember(targetUserId: Long) {

@@ -21,10 +21,10 @@ data class RankingItem(
     val profileImage: String?,
     @SerialName("itemId")
     val costumeItemId: Int? = null,
-    @SerialName("totalScreenTimeFormatted")
-    val totalScreenTimeFormatted: String,
-    @SerialName("avgDailyScreenTimeFormatted")
-    val avgDailyScreenTimeFormatted: String,
+    @SerialName("totalSeconds")
+    val totalSeconds: Int,
+    @SerialName("avgDailySeconds")
+    val avgDailySeconds: Int,
     @SerialName("betCoins")
     val betCoins: Int,
     @SerialName("potentialPrize")
