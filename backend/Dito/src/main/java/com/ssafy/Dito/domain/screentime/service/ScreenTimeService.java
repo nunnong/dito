@@ -178,10 +178,21 @@ public class ScreenTimeService {
                     // ============================
                     // ⭐ 전체 스크린타임 / 유튜브 시간 계산
                     // ============================
+//                    List<MediaSessionEventDocument> events =
+//                            mediaSessionLogRepository.findByUserIdAndEventDateBetween(
+//                                    uid, startDate, endDate
+//                            );
+
+                    final LocalDate queryStart = startDate;
+                    final LocalDate queryEnd = (endDate != null ? endDate.plusDays(1) : null);
+
                     List<MediaSessionEventDocument> events =
-                            mediaSessionLogRepository.findByUserIdAndEventDateBetween(
-                                    uid, startDate, endDate
-                            );
+                            (queryStart != null && queryEnd != null)
+                                    ? mediaSessionLogRepository.findByUserIdAndEventDateBetween(
+                                    uid, queryStart, queryEnd
+                            )
+                                    : Collections.emptyList();
+
 
                     long totalSeconds = 0;
                     long youtubeSeconds = 0;
