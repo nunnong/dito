@@ -133,8 +133,8 @@ public class ScreenTimeService {
      */
     @Transactional
     public void updateCurrentApp(Long userId, UpdateCurrentAppReq request) {
-        log.info("📱 현재 앱 정보 갱신 - userId: {}, groupId: {}, appPackage: {}, appName: {}",
-            userId, request.groupId(), request.appPackage(), request.appName());
+        log.info("📱 현재 앱 정보 갱신 - userId: {}, groupId: {}, appPackage: {}, appName: {}, duration: {}",
+            userId, request.groupId(), request.appPackage(), request.appName(), request.usageDuration());
 
         // MongoDB에 저장 (upsert)
         CurrentAppUsage existing = currentAppUsageRepository
@@ -147,13 +147,14 @@ public class ScreenTimeService {
                 request.groupId(),
                 userId,
                 request.appPackage(),
-                request.appName()
+                request.appName(),
+                request.usageDuration()
             );
             currentAppUsageRepository.save(newAppUsage);
             log.info("  ✅ 현재 앱 정보 생성 완료 - userId: {}, appName: {}", userId, request.appName());
         } else {
             // 기존 데이터 업데이트
-            existing.update(request.appPackage(), request.appName());
+            existing.update(request.appPackage(), request.appName(), request.usageDuration());
             currentAppUsageRepository.save(existing);
             log.info("  ✅ 현재 앱 정보 업데이트 완료 - userId: {}, appName: {}", userId, request.appName());
         }

@@ -49,6 +49,9 @@ public class CurrentAppUsage extends MongoBaseDocument {
     @Field("app_name")
     private String appName;
 
+    @Field("usage_duration")
+    private Long usageDuration; // in seconds
+
     @Field("last_updated_at")
     private LocalDateTime lastUpdatedAt;
 
@@ -58,12 +61,14 @@ public class CurrentAppUsage extends MongoBaseDocument {
         Long userId,
         String appPackage,
         String appName,
+        Long usageDuration,
         LocalDateTime lastUpdatedAt
     ) {
         this.groupId = groupId;
         this.userId = userId;
         this.appPackage = appPackage;
         this.appName = appName;
+        this.usageDuration = usageDuration;
         this.lastUpdatedAt = lastUpdatedAt;
     }
 
@@ -74,13 +79,15 @@ public class CurrentAppUsage extends MongoBaseDocument {
         Long groupId,
         Long userId,
         String appPackage,
-        String appName
+        String appName,
+        Long usageDuration
     ) {
         return CurrentAppUsage.builder()
             .groupId(groupId)
             .userId(userId)
             .appPackage(appPackage)
             .appName(appName)
+            .usageDuration(usageDuration)
             .lastUpdatedAt(LocalDateTime.now())
             .build();
     }
@@ -88,9 +95,10 @@ public class CurrentAppUsage extends MongoBaseDocument {
     /**
      * 현재 앱 정보 업데이트
      */
-    public void update(String appPackage, String appName) {
+    public void update(String appPackage, String appName, Long usageDuration) {
         this.appPackage = appPackage;
         this.appName = appName;
+        this.usageDuration = usageDuration;
         this.lastUpdatedAt = LocalDateTime.now();
     }
 }

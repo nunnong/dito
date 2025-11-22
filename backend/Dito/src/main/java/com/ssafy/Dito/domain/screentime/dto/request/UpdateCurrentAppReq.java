@@ -20,6 +20,9 @@ public record UpdateCurrentAppReq(
 
     @Schema(description = "앱 이름", example = "YouTube", required = true)
     @NotBlank(message = "앱 이름은 필수입니다")
-    String appName
+    String appName,
+
+    @Schema(description = "사용 시간 (초)", example = "600", required = false)
+    Long usageDuration
 ) {
 }
