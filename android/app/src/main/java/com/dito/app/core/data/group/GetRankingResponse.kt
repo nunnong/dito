@@ -36,5 +36,7 @@ data class RankingItem(
     @SerialName("currentAppPackage")
     val currentAppPackage: String? = null,
     @SerialName("currentAppName")
-    val currentAppName: String? = null
+    val currentAppName: String? = null,
+    @SerialName("isEducational")
+    val isEducational: Boolean = false
 )

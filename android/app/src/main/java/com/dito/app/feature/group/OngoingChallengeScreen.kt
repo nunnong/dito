@@ -80,6 +80,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
+import com.dito.app.core.ui.designsystem.Primary
 
 // 오늘의 현황 박스
 @Composable
@@ -102,6 +103,13 @@ fun StatisticsCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.youtube),
+                contentDescription = null,
+                modifier = Modifier.width(24.dp).height(24.dp),
+                contentScale = ContentScale.Crop
+            )
+
             Text(
                 text = "오늘의 현황",
                 style = DitoTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -462,7 +470,7 @@ fun OngoingChallengeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(410f / 635f)
+                    .aspectRatio(410f / 600f)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.test),
@@ -910,12 +918,12 @@ fun UserInfoCard(
     Box(
         modifier = modifier
             .background(
-                if (isMe) Color(0xFFFFEB3B).copy(alpha = 0.2f) else Color.White,
+                if (isMe) Primary else Color.White,
                 RoundedCornerShape(8.dp)
             )
             .border(
-                width = if (isMe) 3.dp else 2.dp,
-                color = if (isMe) Color(0xFFFFEB3B) else Color.Black,
+                width = 2.dp,
+                color = Color.Black,
                 shape = RoundedCornerShape(8.dp)
             )
             .padding(4.dp)
@@ -1025,6 +1033,7 @@ fun CharacterView(
     showPokeBubble: Boolean = false,
     currentMinutes: Int = 0,
     goalMinutes: Int = 0,
+    isEducational: Boolean = false,
     onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -1184,10 +1193,10 @@ fun CharacterView(
                     contentScale = ContentScale.Crop
                 )
 
-                // 현재 사용 중인 앱 아이콘
+                // 현재 사용 중인 앱 아이콘 (교육용이면 edu.png 표시)
                 Image(
-                    painter = painterResource(id = getAppIconFromPackage(currentAppPackage)),
-                    contentDescription = if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
+                    painter = painterResource(id = if (isEducational) R.drawable.edu else getAppIconFromPackage(currentAppPackage)),
+                    contentDescription = if (isEducational) "Educational content" else if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
                     modifier = Modifier
                         .size(54.dp)
                         .align(Alignment.BottomCenter)
