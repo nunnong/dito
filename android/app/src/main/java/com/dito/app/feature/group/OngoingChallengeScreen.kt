@@ -81,7 +81,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 
-
+// 오늘의 현황 박스
 @Composable
 fun StatisticsCard(
     uiState: OngoingChallengeUiState,
