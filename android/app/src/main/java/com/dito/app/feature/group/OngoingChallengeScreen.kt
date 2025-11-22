@@ -239,10 +239,8 @@ fun StatisticsCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 youtubeUsers.forEach { user ->
-                    val seconds = uiState.realTimeScreenTimes[user.userId] ?: 0
-                    val timeStr = formatSecondsToTime(seconds)
                     Text(
-                        text = "🔥 ${user.nickname} - ${timeStr}",
+                        text = "🔥 ${user.nickname} - ${user.totalScreenTimeFormatted}",
                         style = DitoTypography.bodyMedium,
                         color = Color(0xFFFF5252)
                     )
@@ -597,6 +595,7 @@ fun OngoingChallengeScreen(
                                         showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
                                         currentMinutes = currentMinutes,
                                         goalMinutes = uiState.goalMinutes,
+                                        isEducational = rankingItem.isEducational,
                                         onClick = {
                                             if (!rankingItem.isMe) {
                                                 viewModel.pokeMember(rankingItem.userId)
@@ -646,12 +645,10 @@ fun OngoingChallengeScreen(
                     if (index < displayOrder.size) {
                         val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
-                        val realTimeSeconds = uiState.realTimeScreenTimes[userId] ?: 0
-                        val formattedTime = formatSecondsToTime(realTimeSeconds)
                         UserInfoCard(
                             nickname = rankingItem?.nickname ?: "",
                             profileImage = rankingItem?.profileImage,
-                            screenTime = formattedTime,
+                            screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
                             isEmpty = rankingItem == null,
                             isMe = rankingItem?.isMe ?: false,
                             modifier = Modifier.weight(1f)
@@ -953,7 +950,7 @@ fun UserInfoCard(
                     StrokeText(
                         text = screenTime,
                         style = DitoTypography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        fillColor = Color(0xFFFFD700),  // 골드색
+                        fillColor = Color.White,
                         strokeColor = Color.Black,
                         strokeWidth = 2.dp,
                         textAlign = TextAlign.Center,
@@ -1000,17 +997,6 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
         else -> "lemon"
     }
 }
-
-/**
- * 초 단위를 mm:ss (분:초) 형식으로 변환
- */
-fun formatSecondsToTime(totalSeconds: Int): String {
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-
-    return String.format("%02d:%02d", minutes, seconds)
-}
-
 fun getAppIconFromPackage(packageName: String?): Int {
     return when {
         packageName == null -> R.drawable.dito

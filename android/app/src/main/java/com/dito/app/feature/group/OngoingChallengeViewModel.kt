@@ -150,9 +150,15 @@ class OngoingChallengeViewModel @Inject constructor(
         val groupId = groupManager.getGroupId()
         if (groupId == 0L) return
 
+        android.util.Log.d("OngoingChallenge", "loadRanking 호출: ${System.currentTimeMillis()}")
+
         viewModelScope.launch {
             groupRepository.getRanking(groupId).fold(
                 onSuccess = { response ->
+                    android.util.Log.d("OngoingChallenge", "랭킹 응답 받음: ${response.rankings.firstOrNull()?.totalScreenTimeFormatted}")
+                    response.rankings.forEach { ranking ->
+                        android.util.Log.d("OngoingChallenge", "userId=${ranking.userId}, isEducational=${ranking.isEducational}, currentApp=${ranking.currentAppPackage}")
+                    }
                     val currentOrder = _uiState.value.initialUserOrder
 
                     // 처음 랭킹을 받았을 때만 초기 순서 저장
@@ -162,10 +168,10 @@ class OngoingChallengeViewModel @Inject constructor(
                         currentOrder
                     }
 
-                    // 서버에서 받은 스크린타임을 초 단위
+                    // 서버에서 받은 스크린타임을 초 단위로 변환
                     val serverTimes = mutableMapOf<Long, Int>()
                     response.rankings.forEach { ranking ->
-                        val serverSeconds = ranking.totalSeconds
+                        val serverSeconds = parseFormattedTimeToSeconds(ranking.totalScreenTimeFormatted)
                         serverTimes[ranking.userId] = serverSeconds
                     }
 
@@ -400,5 +406,25 @@ class OngoingChallengeViewModel @Inject constructor(
         }
 
         return totalMinutes
+    }
+
+    private fun parseFormattedTimeToSeconds(formattedTime: String): Int {
+        // "10h 30m" 형식을 초 단위로 변환
+        val hourRegex = """(\d+)h""".toRegex()
+        val minuteRegex = """(\d+)m""".toRegex()
+
+        var totalSeconds = 0
+
+        hourRegex.find(formattedTime)?.let { match ->
+            val hours = match.groupValues[1].toIntOrNull() ?: 0
+            totalSeconds += hours * 3600
+        }
+
+        minuteRegex.find(formattedTime)?.let { match ->
+            val minutes = match.groupValues[1].toIntOrNull() ?: 0
+            totalSeconds += minutes * 60
+        }
+
+        return totalSeconds
     }
 }

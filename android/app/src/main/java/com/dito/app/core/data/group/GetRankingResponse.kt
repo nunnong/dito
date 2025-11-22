@@ -25,8 +25,6 @@ data class RankingItem(
     val totalScreenTimeFormatted: String,
     @SerialName("avgDailyScreenTimeFormatted")
     val avgDailyScreenTimeFormatted: String,
-    @SerialName("totalSeconds")
-    val totalSeconds: Int = 0,
     @SerialName("betCoins")
     val betCoins: Int,
     @SerialName("potentialPrize")
