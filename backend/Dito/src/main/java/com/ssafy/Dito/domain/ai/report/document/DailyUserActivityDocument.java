@@ -70,7 +70,7 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
         @Field("most_used_app")
         private String mostUsedApp;  // package name
 
-        @Builder
+        @Builder(toBuilder = true)
         public Summary(Integer totalAppUsageTime, Double totalMediaWatchTime, String mostUsedApp) {
             this.totalAppUsageTime = totalAppUsageTime;
             this.totalMediaWatchTime = totalMediaWatchTime;
@@ -96,7 +96,7 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
         @Field("session_count")
         private Integer sessionCount;
 
-        @Builder
+        @Builder(toBuilder = true)
         public AppUsageStat(String appName, String packageName, Long totalDuration, Integer sessionCount) {
             this.appName = appName;
             this.packageName = packageName;
@@ -132,7 +132,7 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
         @Field("keywords")
         private List<String> keywords;
 
-        @Builder
+        @Builder(toBuilder = true)
         public MediaSession(String platform, String title, String channel, Long timestamp,
                           Long watchTime, String videoType, List<String> keywords) {
             this.platform = platform;

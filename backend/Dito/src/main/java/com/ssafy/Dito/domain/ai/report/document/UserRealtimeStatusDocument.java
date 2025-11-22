@@ -6,7 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @Document(collection = "user_realtime_status")
 public class UserRealtimeStatusDocument {
     @Id
@@ -29,4 +29,7 @@ public class UserRealtimeStatusDocument {
     // Usage Stats Heartbeat fields
     private String currentAppPackage;
     private String currentAppName;
+
+    // Heartbeat tracking
+    private Long lastHeartbeatTimestamp;
 }
