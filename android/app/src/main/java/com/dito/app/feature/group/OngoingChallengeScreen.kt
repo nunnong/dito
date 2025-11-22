@@ -132,7 +132,7 @@ fun StatisticsCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "💪 목표 달성",
+                    text = "목표 달성",
                     style = DitoTypography.bodyMedium,
                     color = Color.Black
                 )
@@ -324,7 +324,10 @@ fun ProgressHUD(
                 Text(
                     text = "Goal Over!",
                     style = DitoTypography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
                 )
             }
         }
@@ -1213,19 +1216,19 @@ fun CharacterView(
                         contentAlignment = Alignment.Center
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.speech_bubble),
+                            painter = painterResource(id = R.drawable.speech_bubble_3),
                             contentDescription = "Poke Bubble",
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
                         )
                         Text(
                             text = if (showChain) "It's me" else "아얏!",
-                            style = DitoTypography.labelMedium,
+                            style = DitoTypography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             color = Color.Black,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .padding(bottom = 6.dp)
+                                .padding(bottom = 6.dp).offset(y = -4.dp)
                         )
                     }
                 }

@@ -177,20 +177,29 @@ class EventSyncWorker @AssistedInject constructor(
                 return false
             }
 
+            Log.d(TAG, "🌐 [API 호출 시작] POST /event/media-session (배치 전송)")
+            Log.d(TAG, "   📦 전송 이벤트 수: ${events.size}건")
+            safeEvents.forEachIndexed { index, event ->
+                Log.d(TAG, "   [${index+1}] title=${event.title}, watchTime=${event.watch_time}ms")
+            }
+
             val response = apiService.uploadMediaSessionEvents(
                 token = token,
                 request = request
             )
 
             if (response.isSuccessful && response.body()?.error == false) {
-                Log.d(TAG, "✅ 미디어 이벤트 전송 성공 (${events.size}건)")
+                Log.d(TAG, "✅ [API 응답 성공] POST /event/media-session (HTTP ${response.code()})")
+                Log.d(TAG, "   ✓ 미디어 이벤트 배치 전송 완료 (${events.size}건)")
                 true
             } else {
-                Log.e(TAG, "❌ 미디어 이벤트 전송 실패: ${response.code()}")
+                Log.e(TAG, "❌ [API 응답 실패] POST /event/media-session (HTTP ${response.code()})")
+                Log.e(TAG, "   ✗ 응답 본문: ${response.errorBody()?.string()}")
                 false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌미디어 이벤트 전송 예외", e)
+            Log.e(TAG, "❌ [API 예외] POST /event/media-session (배치)")
+            Log.e(TAG, "   ✗ 예외 메시지: ${e.message}", e)
             false
         }
     }

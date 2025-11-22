@@ -24,7 +24,7 @@ object ScreenTimeRepository {
         userId: Long,
         date: String,
         totalMinutes: Int
-    ): String = withContext(Dispatchers.IO) {
+    ): String = withContext(Dispatchers.IO)  {
         try {
             val realm = RealmConfig.getInstance()
             val recordedAt = LocalDateTime.now().toString()
