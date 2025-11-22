@@ -123,8 +123,7 @@ class OngoingChallengeViewModel @Inject constructor(
             }
         }
         startRealTimeTicker()
-        startCoachMessageRotation()
-    }
+        startCoachMessageRotation()    }
 
     fun stopAutoRefresh() {
         autoRefreshJob?.cancel()
