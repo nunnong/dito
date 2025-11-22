@@ -7,6 +7,8 @@ import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.item.entity.Type;
+import com.ssafy.Dito.domain.log.mediaSessionEvent.document.MediaSessionEventDocument;
+import com.ssafy.Dito.domain.log.mediaSessionEvent.repository.MediaSessionLogRepository;
 import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
@@ -53,6 +55,7 @@ public class ScreenTimeService {
     private final UserItemQueryRepository  userItemQueryRepository;
     private final CostumeUrlUtil costumeUrlUtil;
     private static final int MAX_PARTICIPANTS = 6;
+    private final MediaSessionLogRepository mediaSessionLogRepository;
 
     // 메모리 캐시 사용 안 함
     // private final Map<Long, CurrentAppInfo> currentAppCache = new ConcurrentHashMap<>();
@@ -259,23 +262,70 @@ public class ScreenTimeService {
         AtomicInteger rankCounter = new AtomicInteger(1);
 
         List<GroupRankingRes.ParticipantRank> rankings = participants.stream()
+//                .map(participant -> {
+//                    Long uid = participant.getId().getUser().getId();
+//                    String nickname = participant.getId().getUser().getNickname();
+//
+//                    // 🔥 1) snapshot 불러오기
+//                    List<ScreenTimeSnapshot> snaps =
+//                            snapshotRepository.findByGroupIdAndUserIdAndDateBetweenOrderByRecordedAtAsc(
+//                                    groupId,
+//                                    uid,
+//                                    startDate.toString(),
+//                                    endDate.toString()
+//                            );
+//
+//                    // 🔥 2) snapshot 기반 유튜브 시간 계산
+//                    int youtubeMinutesAccurate = calculateYoutubeFromSnapshots(snaps);
+//
+//                    // 기존 요약(totalMinutes)은 summary로 적절함
+//                    Integer totalMinutes = userTotalTime.getOrDefault(uid, 0);
+//                    Integer betCoins = userBetCoins.getOrDefault(uid, 0);
+//
+//                    return Map.entry(uid,
+//                            new RankingData(
+//                                    nickname,
+//                                    totalMinutes,
+//                                    youtubeMinutesAccurate,
+//                                    betCoins
+//                            )
+//                    );
+//                })
+//
+//                .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (YouTube 시간 기준)
                 .map(participant -> {
                     Long uid = participant.getId().getUser().getId();
                     String nickname = participant.getId().getUser().getNickname();
 
-                    // 🔥 1) snapshot 불러오기
-                    List<ScreenTimeSnapshot> snaps =
-                            snapshotRepository.findByGroupIdAndUserIdAndDateBetweenOrderByRecordedAtAsc(
-                                    groupId,
-                                    uid,
-                                    startDate.toString(),
-                                    endDate.toString()
-                            );
+                    // ================================
+                    // 1) 기존 snapshot 기반 제거됨
+                    // ================================
 
-                    // 🔥 2) snapshot 기반 유튜브 시간 계산
-                    int youtubeMinutesAccurate = calculateYoutubeFromSnapshots(snaps);
+                    // ================================
+                    // 2) MediaSession 이벤트 읽기 추가
+                    //    교육용 영상은 제외됨
+                    // ================================
+                    List<MediaSessionEventDocument> events =
+                            mediaSessionLogRepository.findByUserIdAndEventDateBetween(
+                                    uid, startDate, endDate
+                            ); // ✅ 추가됨
 
-                    // 기존 요약(totalMinutes)은 summary로 적절함
+                    long youtubeSeconds = 0;
+
+                    for (MediaSessionEventDocument e : events) {
+
+                        // 교육용 영상은 시간 제외
+                        if (Boolean.TRUE.equals(e.getIsEducational())) {
+                            continue; // ✅ 변경됨
+                        }
+
+                        // 정상 watchTime 누적
+                        youtubeSeconds += (e.getWatchTime() != null ? e.getWatchTime() : 0);
+                    }
+
+                    int youtubeMinutesAccurate = (int) (youtubeSeconds / 60); // 최종 분 단위
+                    // ================================
+
                     Integer totalMinutes = userTotalTime.getOrDefault(uid, 0);
                     Integer betCoins = userBetCoins.getOrDefault(uid, 0);
 
@@ -283,13 +333,12 @@ public class ScreenTimeService {
                             new RankingData(
                                     nickname,
                                     totalMinutes,
-                                    youtubeMinutesAccurate,
+                                    youtubeMinutesAccurate, // snapshot → mediaSessionEvents 기반으로 변경됨
                                     betCoins
                             )
                     );
                 })
-
-                .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (YouTube 시간 기준)
+                .sorted(Map.Entry.comparingByValue())
             .map(entry -> {
                 Long uid = entry.getKey();
                 RankingData data = entry.getValue();
