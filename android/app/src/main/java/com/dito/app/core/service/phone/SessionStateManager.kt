@@ -87,6 +87,14 @@ class SessionStateManager(
 
             return EducationalContentDetector.isEducationalContent(session.title, finalChannel)
         }
+
+        /**
+         * YouTube 세션이 활성화되어 있는지 확인
+         */
+        fun isYoutubeSessionActive(): Boolean {
+            val session = instance?.currentSession ?: return false
+            return session.appPackage == PKG_YOUTUBE
+        }
     }
 
     private var currentSession: ActiveSession? = null
@@ -134,6 +142,8 @@ class SessionStateManager(
         if (appPackage == PKG_YOUTUBE) {
             cancelExplorationCheck() // 탐색 타이머 취소
             scheduleAICheckDuringPlayback()
+            AppMonitoringService.notifyYoutubeStarted()
+            Log.d(TAG, "YouTube 재생 시작 - 스크린타임 전송 시작")
         }
 
         if (title.isBlank()) {
@@ -289,6 +299,8 @@ class SessionStateManager(
         currentSession?.let { session ->
             if (session.appPackage == PKG_YOUTUBE) {
                 scheduleExplorationCheck()
+                AppMonitoringService.notifyYoutubeStopped()
+                Log.d(TAG, "YouTube 재생 멈춤 - 스크린타임 전송 중단")
             }
 
             val now = System.currentTimeMillis()

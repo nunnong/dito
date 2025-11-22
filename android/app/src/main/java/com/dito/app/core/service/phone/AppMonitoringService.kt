@@ -50,6 +50,15 @@ class AppMonitoringService : AccessibilityService() {
                 }
             }
         }
+
+        fun notifyYoutubeStopped() {
+            instance?.stopYoutubePeriodicSync()
+            instance?.updateCurrentAppAfterSessionStop()
+        }
+
+        fun notifyYoutubeStarted() {
+            instance?.startYoutubePeriodicSync()
+        }
     }
 
     private var youtubePeriodicSyncJob: Job? = null
@@ -88,6 +97,20 @@ class AppMonitoringService : AccessibilityService() {
 
         val packageName = event.packageName?.toString() ?: return
 
+        // Dito 앱일 때는 현재 앱 정보만 업데이트하고 사용 시간은 추적하지 않음
+        if (packageName == "com.dito.app") {
+            // YouTube MediaSession이 활성이면 YouTube를 현재 앱으로 표시 (PIP 모드)
+            val hasYoutubeSession = SessionStateManager.isYoutubeSessionActive()
+            if (hasYoutubeSession) {
+                sendCurrentAppToServer("com.google.android.youtube", "YouTube")
+                Log.d(TAG, "Dito 앱이지만 YouTube 재생 중 (PIP) - 현재 앱 YouTube로 표시")
+            } else {
+                sendCurrentAppToServer(packageName, "Dito")
+            }
+            currentApp = packageName
+            return
+        }
+
         if (shouldIgnorePackage(packageName)) return
 
         handleAppSwitch(packageName, System.currentTimeMillis())
@@ -96,7 +119,6 @@ class AppMonitoringService : AccessibilityService() {
     private fun shouldIgnorePackage(packageName: String): Boolean {
         return packageName.isEmpty() ||
                 packageName == "android" ||
-                packageName == "com.dito.app" ||
                 packageName.startsWith("com.android.systemui") ||
                 packageName.contains("inputmethod") ||
                 packageName.startsWith("com.google.android.inputmethod") ||
@@ -171,15 +193,28 @@ class AppMonitoringService : AccessibilityService() {
         }
 
         // 현재 사용 중인 앱 서버에 전송
-        sendCurrentAppToServer(newApp, getAppName(newApp))
+        // MediaSession 활성화 여부 체크: YouTube 재생 중이면 다른 앱이어도 YouTube로 표시 (PIP 모드)
+        val hasYoutubeSession = SessionStateManager.isYoutubeSessionActive()
+        if (hasYoutubeSession && newApp != "com.google.android.youtube") {
+            // 다른 앱이지만 YouTube 재생 중 (PIP 모드)
+            sendCurrentAppToServer("com.google.android.youtube", "YouTube")
+            Log.d(TAG, "YouTube PIP 모드 - 현재 앱 YouTube로 표시")
+        } else {
+            // 일반 앱 전환
+            sendCurrentAppToServer(newApp, getAppName(newApp))
+        }
 
-        // YouTube 사용 중일 때 30초마다 스크린타임 전송
+        // YouTube 앱 진입 시: 스크린타임 전송은 MediaSession 시작 시에만 (SessionStateManager에서 처리)
         if(newApp == "com.google.android.youtube"){
-            startYoutubePeriodicSync()
-            Log.d(TAG, "🎬 YouTube 앱 진입 - 30초마다 스크린타임 자동 전송 시작")
-        }else{
-            stopYoutubePeriodicSync()
-            Log.d(TAG, "📱 다른 앱 전환 - YouTube 자동 전송 중단")
+            Log.d(TAG, "YouTube 앱 진입 - 현재 앱은 YouTube로 표시, 전송은 재생 시작 시")
+        }
+        // YouTube에서 다른 앱으로 전환 시: MediaSession 비활성이면 전송 중단
+        else if(currentApp == "com.google.android.youtube"){
+            val hasYoutubeSession = SessionStateManager.isYoutubeSessionActive()
+            if (!hasYoutubeSession) {
+                stopYoutubePeriodicSync()
+                Log.d(TAG, "YouTube 종료 (재생 안 함) - 전송 중단")
+            }
         }
     }
 
@@ -188,6 +223,16 @@ class AppMonitoringService : AccessibilityService() {
         youtubePeriodicSyncJob = null
     }
 
+    private fun updateCurrentAppAfterSessionStop() {
+        // MediaSession 종료 후 현재 foreground 앱으로 업데이트
+        if (currentApp.isNotEmpty()) {
+            sendCurrentAppToServer(currentApp, getAppName(currentApp))
+            Log.d(TAG, "MediaSession 종료 - 현재 앱을 " + getAppName(currentApp) + "로 업데이트")
+        }
+    }
+
+    
+    // 유튜브 전용 스크린타임 전송
     private fun startYoutubePeriodicSync() {
         // 기존 작업이 있으면 중단
         youtubePeriodicSyncJob?.cancel()
@@ -198,14 +243,14 @@ class AppMonitoringService : AccessibilityService() {
                     // 즉시 스크린타임 전송
                     sendScreenTimeImmediately()
 
-                    Log.d(TAG, "📤 YouTube 사용 중 - 스크린타임 전송 완료")
+                    Log.d(TAG, "YouTube 사용 중 - 스크린타임 전송 완료")
 
-                    // 20초 대기
-                    delay(20 * 1000L)
+                    // 10초 대기
+                    delay(10 * 1000L)
 
                 } catch (e: Exception) {
-                    Log.e(TAG, "❌ YouTube 주기적 전송 오류", e)
-                    delay(30 * 1000L)  // 에러 시에도 30초 후 재시도
+                    Log.e(TAG, "YouTube 주기적 전송 오류", e)
+                    delay(10 * 1000L)  // 에러 시에도 10초 후 재시도
                 }
             }
         }
@@ -234,7 +279,7 @@ class AppMonitoringService : AccessibilityService() {
             val totalMinutes = ScreenTimeCollector(this@AppMonitoringService).getTodayScreenTimeMinutes()
             val youtubeMinutes = ScreenTimeCollector(this@AppMonitoringService).getYouTubeUsageMinutes()
 
-            Log.d(TAG, "📊 스크린타임 수집 - 전체: ${totalMinutes}분, YouTube: ${youtubeMinutes}분")
+            Log.d(TAG, "스크린타임 수집 - 전체: ${totalMinutes}분, YouTube: ${youtubeMinutes}분")
 
             // API 요청
             val request = ScreenTimeUpdateRequest(
@@ -250,13 +295,13 @@ class AppMonitoringService : AccessibilityService() {
             )
 
             if (response.isSuccessful) {
-                Log.d(TAG, "✅ 스크린타임 즉시 전송 성공 - YouTube: ${youtubeMinutes}분")
+                Log.d(TAG, "스크린타임 즉시 전송 성공 - YouTube: ${youtubeMinutes}분")
             } else {
-                Log.w(TAG, "⚠️ 스크린타임 전송 실패: ${response.code()} - ${response.message()}")
+                Log.w(TAG, "스크린타임 전송 실패: ${response.code()} - ${response.message()}")
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 스크린타임 전송 예외: ${e.message}", e)
+            Log.e(TAG, "스크린타임 전송 예외: ${e.message}", e)
         }
     }
 
@@ -291,13 +336,13 @@ class AppMonitoringService : AccessibilityService() {
                 )
 
                 if (response.isSuccessful) {
-                    Log.d(TAG, "✅ 현재 앱 전송 성공: $appName ($packageName)")
+                    Log.d(TAG, "현재 앱 전송 성공: $appName ($packageName)")
                 } else {
-                    Log.w(TAG, "⚠️ 현재 앱 전송 실패: ${response.code()}")
+                    Log.w(TAG, "현재 앱 전송 실패: ${response.code()}")
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "❌ 현재 앱 전송 예외: ${e.message}", e)
+                Log.e(TAG, "현재 앱 전송 예외: ${e.message}", e)
             }
         }
     }
