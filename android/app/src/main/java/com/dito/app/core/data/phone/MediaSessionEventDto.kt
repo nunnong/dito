@@ -35,5 +35,8 @@ data class MediaSessionEventDto(
     val pause_time: Long?,
 
     @SerialName("eventDate")
-    val event_date: String
+    val event_date: String,
+
+    @SerialName("isEducational")
+    val is_educational: Boolean = false
 )
