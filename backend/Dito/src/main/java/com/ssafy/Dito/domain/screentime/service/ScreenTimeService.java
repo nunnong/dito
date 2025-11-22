@@ -107,6 +107,8 @@ public class ScreenTimeService {
      */
     @Transactional
     public void updateCurrentApp(Long userId, UpdateCurrentAppReq request) {
+        log.info("📱 현재 앱 정보 갱신 - userId: {}, groupId: {}, appPackage: {}, appName: {}, duration: {}",
+                userId, request.groupId(), request.appPackage(), request.appName(), request.usageDuration());
 
         CurrentAppUsage existing =
                 currentAppUsageRepository.findByGroupIdAndUserId(request.groupId(), userId).orElse(null);
@@ -116,10 +118,12 @@ public class ScreenTimeService {
                     request.groupId(),
                     userId,
                     request.appPackage(),
-                    request.appName()
+                    request.appName(),
+                    request.usageDuration()
+
             ));
         } else {
-            existing.update(request.appPackage(), request.appName());
+            existing.update(request.appPackage(), request.appName(), request.usageDuration());
             currentAppUsageRepository.save(existing);
         }
     }
