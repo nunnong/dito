@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "user_realtime_status")
 public class UserRealtimeStatusDocument {
     @Id
+    private String id;  // MongoDB가 자동생성하는 ObjectId
+
     private Long userId;
 
     private String videoId;

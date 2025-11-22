@@ -37,7 +37,7 @@ public class RealtimeActivityService {
 
     public void updateRealtimeUsage(Long userId, RealtimeUsageReq req) {
         // 기존 문서가 있으면 가져와서 업데이트, 없으면 새로 생성
-        UserRealtimeStatusDocument document = userRealtimeStatusRepository.findById(userId)
+        UserRealtimeStatusDocument document = userRealtimeStatusRepository.findByUserId(userId)
             .orElse(UserRealtimeStatusDocument.builder()
                 .userId(userId)
                 .build());
@@ -52,6 +52,7 @@ public class RealtimeActivityService {
         // 따라서 Repository에서 조회한 데이터를 기반으로 다시 빌드.
         
         UserRealtimeStatusDocument updatedDocument = UserRealtimeStatusDocument.builder()
+            .id(document.getId())  // 기존 ID 유지 (있으면 업데이트, 없으면 새로 생성)
             .userId(userId)
             .videoId(document.getVideoId())
             .title(document.getTitle())
