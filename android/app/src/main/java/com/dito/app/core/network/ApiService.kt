@@ -23,7 +23,6 @@ import com.dito.app.core.data.home.UpdateWeeklyGoalRequest
 import com.dito.app.core.data.home.UpdateWeeklyGoalResponse
 import com.dito.app.core.data.missionNotification.MissionNotificationResponse
 import com.dito.app.core.data.report.DailyReportResponse
-import com.dito.app.core.data.screentime.GroupRankingResponse
 import com.dito.app.core.data.screentime.ScreenTimeUpdateRequest
 import com.dito.app.core.data.screentime.ScreenTimeUpdateResponse
 import com.dito.app.core.data.screentime.UpdateCurrentAppRequest

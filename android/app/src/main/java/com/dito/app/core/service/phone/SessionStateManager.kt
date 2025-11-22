@@ -5,13 +5,21 @@ import android.media.MediaMetadata
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.data.RealmConfig
+import com.dito.app.core.data.phone.MediaSessionBatchRequest
 import com.dito.app.core.data.phone.MediaSessionEvent
+import com.dito.app.core.data.phone.toDto
+import com.dito.app.core.network.ApiService
 import com.dito.app.core.network.AppMetadata
 import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
 import com.dito.app.core.service.Checker
 import com.dito.app.core.service.mission.MissionTracker
+import com.dito.app.core.storage.AuthTokenManager
 import com.dito.app.core.util.EducationalContentDetector
 import java.text.SimpleDateFormat
 import java.util.concurrent.atomic.AtomicInteger
@@ -25,7 +33,9 @@ import org.mongodb.kbson.ObjectId
 class SessionStateManager(
     private val context: Context,
     private val aiAgent: AIAgent,
-    private val missionTracker: MissionTracker
+    private val missionTracker: MissionTracker,
+    private val apiService: ApiService,
+    private val authTokenManager: AuthTokenManager
 ) {
 
 
@@ -110,6 +120,8 @@ class SessionStateManager(
     private var aiCheckRunnable: Runnable? = null // 재생 중 AI 호출 타이머
     private var explorationCheckRunnable: Runnable? = null // 탐색 중 AI 호출 타이머
     private var explorationStartTime: Long = 0L // 탐색 시작 시간
+    private var realtimeSyncRunnable: Runnable? = null // YouTube 재생 중 실시간 동기화 타이머
+    private val realtimeSyncIntervalMs = 10_000L // 10초
 
 
 
@@ -142,6 +154,7 @@ class SessionStateManager(
         if (appPackage == PKG_YOUTUBE) {
             cancelExplorationCheck() // 탐색 타이머 취소
             scheduleAICheckDuringPlayback()
+            scheduleRealtimeSync() // 실시간 동기화 시작
             AppMonitoringService.notifyYoutubeStarted()
             Log.d(TAG, "YouTube 재생 시작 - 스크린타임 전송 시작")
         }
@@ -270,6 +283,7 @@ class SessionStateManager(
         currentSession?.let { session ->
             if (session.appPackage == PKG_YOUTUBE) {
                 scheduleExplorationCheck()
+                cancelRealtimeSync() // 실시간 동기화 중단
             }
             session.lastPauseTime = System.currentTimeMillis()
             Log.d(TAG, "일시정지")
@@ -281,6 +295,9 @@ class SessionStateManager(
         cancelExplorationCheck()
 
         currentSession?.let { session ->
+            if (session.appPackage == PKG_YOUTUBE) {
+                scheduleRealtimeSync() // 실시간 동기화 재시작
+            }
             session.lastPauseTime?.let { pauseTime ->
                 val pauseDuration = System.currentTimeMillis() - pauseTime
                 session.totalPauseTime += pauseDuration
@@ -299,6 +316,7 @@ class SessionStateManager(
         currentSession?.let { session ->
             if (session.appPackage == PKG_YOUTUBE) {
                 scheduleExplorationCheck()
+                cancelRealtimeSync() // 실시간 동기화 중단
                 AppMonitoringService.notifyYoutubeStopped()
                 Log.d(TAG, "YouTube 재생 멈춤 - 스크린타임 전송 중단")
             }
@@ -431,20 +449,16 @@ class SessionStateManager(
 
         aiCheckRunnable = Runnable {
             currentSession?.let { session ->
-                if (session.appPackage != PKG_YOUTUBE) return@let
+                if (session.appPackage != PKG_YOUTUBE) {
+                    // 유튜브가 아니면 10초 후 다시 체크
+                    handler.postDelayed(aiCheckRunnable!!, Checker.TEST_CHECKER_MS)
+                    return@let
+                }
 
                 val currentTime = System.currentTimeMillis()
                 val watchTime = currentTime - session.startTime - session.totalPauseTime
 
-                val payloadWatchTime = 30 * 60 * 1000L
-
-                Log.d(TAG, "⏰ 재생 중 AI 호출 타이머 트리거 (${watchTime / 1000}초 시청)")
-
-                // 쿨다운 체크
-                if (!Checker.canCallYoutubePlay()) {
-                    Log.d(TAG, "YouTube 재생 쿨다운 중 → AI 호출 스킵")
-                    return@let
-                }
+                Log.d(TAG, "⏰ [10초마다] 재생 중 데이터 전송 (${watchTime / 1000}초 시청)")
 
                 val finalChannel = when {
                     session.bestChannel.isNotBlank() -> session.bestChannel
@@ -452,71 +466,87 @@ class SessionStateManager(
                     else -> "알 수 없는 채널"
                 }
 
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-                Log.d(TAG, "checkMediaSession 호출 직전 값 확인:")
-                Log.d(TAG, "  title: '${session.title}'")
-                Log.d(TAG, "  finalChannel: '$finalChannel'")
-                Log.d(TAG, "  session.bestChannel: '${session.bestChannel}'")
-                Log.d(TAG, "  session.channel: '${session.channel}'")
-                Log.d(TAG, "  watchTime: $watchTime")
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-
-                val checkPoint = Checker.checkMediaSession(
-                    title = session.title,
-                    channel = finalChannel,
-                    watchTime = payloadWatchTime,
-                    timestamp = currentTime,
-                    appPackage = session.appPackage
+                // 교육 콘텐츠 여부 판단
+                val isEducational = EducationalContentDetector.isEducationalContent(
+                    session.title,
+                    finalChannel
                 )
 
-                if (checkPoint != null) {
-                    // Realm에 저장 (TRACK_2, 배치 전송용)
-                    val eventIds = mutableListOf<String>()
-                    try {
-                        val realm = RealmConfig.getInstance()
-                        realm.writeBlocking {
-                            val event = copyToRealm(MediaSessionEvent().apply {
-                                this.trackType = "TRACK_2"
-                                this.eventType = "PLAYING_CHECK" // 재생 중 체크
-                                this.title = session.title
-                                this.channel = finalChannel
-                                this.appPackage = session.appPackage
-                                this.timestamp = currentTime
-                                this.videoDuration = session.duration
-                                this.watchTime = watchTime
-                                this.pauseTime = session.totalPauseTime
-                                this.date = formatDate(currentTime)
-                                this.detectionMethod = "playback-timer"
-                                this.synced = false
-                            })
-                            eventIds.add(event._id.toHexString())
-                        }
-                        Log.d(TAG, "✅ 재생 중 체크 Realm 저장 완료")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "❌ 재생 중 체크 Realm 저장 실패", e)
-                        return@let
+                // Realm에 저장
+                val savedEvent: MediaSessionEvent?
+                try {
+                    val realm = RealmConfig.getInstance()
+                    savedEvent = realm.writeBlocking {
+                        val event = copyToRealm(MediaSessionEvent().apply {
+                            this.trackType = "TRACK_2"
+                            this.eventType = "VIDEO_START"
+                            this.title = session.title
+                            this.channel = finalChannel
+                            this.appPackage = session.appPackage
+                            this.timestamp = currentTime
+                            this.videoDuration = session.duration
+                            this.watchTime = watchTime
+                            this.pauseTime = session.totalPauseTime
+                            this.date = formatDate(currentTime)
+                            this.detectionMethod = "playback-timer"
+                            this.synced = false
+                            this.isEducational = isEducational
+                        })
+                        event
                     }
+                    Log.d(TAG, "✅ 재생 중 체크 Realm 저장 완료 (교육=${isEducational})")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ 재생 중 체크 Realm 저장 실패", e)
+                    // 실패해도 10초 후 다시 시도
+                    handler.postDelayed(aiCheckRunnable!!, Checker.TEST_CHECKER_MS)
+                    return@let
+                }
 
-                    Log.d(TAG, "🤖 재생 중 AI 호출 (무의식적 시청 감지)")
-                    aiAgent.requestIntervention(
-                        behaviorLog = BehaviorLog(
-                            appName = checkPoint.appName,
-                            durationSeconds = checkPoint.durationSeconds,
-                            usageTimestamp = checkPoint.usageTimestamp,
-                            recentAppSwitches = null,
-                            appMetadata = AppMetadata(
-                                title = session.title,
-                                channel = finalChannel
-                            )
-                        ),
-                        eventIds = eventIds
-                    )
-                    // 쿨다운 마킹
-                    Checker.markCooldown(Checker.CD_KEY_YT_PLAY)
-                } else {
-                    Log.d(TAG, "재생 중 체크: AI 호출 조건 불충족")
+                // 즉시 서버에 전송 (10초마다)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val token = authTokenManager.getBearerToken()
+                        if (token == null) {
+                            Log.w(TAG, "⚠️ 토큰이 없어 재생 중 이벤트 즉시 전송 불가")
+                            return@launch
+                        }
+
+                        val eventDto = savedEvent.toDto()
+                        val request = MediaSessionBatchRequest(listOf(eventDto))
+
+                        Log.d(TAG, "🌐 [API 호출 시작] POST /event/media-session")
+                        Log.d(TAG, "   📦 전송 데이터: title=${eventDto.title}, channel=${eventDto.channel}")
+                        Log.d(TAG, "   ⏱️ watchTime=${eventDto.watch_time}ms, pauseTime=${eventDto.pause_time}ms")
+                        Log.d(TAG, "   📅 eventDate=${eventDto.event_date}, eventTimestamp=${eventDto.event_timestamp}")
+                        Log.d(TAG, "   📚 isEducational=${eventDto.is_educational}")
+
+                        val response = apiService.uploadMediaSessionEvents(
+                            token = token,
+                            request = request
+                        )
+
+                        if (response.isSuccessful && response.body()?.error == false) {
+                            Log.d(TAG, "✅ [API 응답 성공] POST /event/media-session (HTTP ${response.code()})")
+                            Log.d(TAG, "   ✓ 재생 중 이벤트 즉시 전송 완료")
+                            // 전송 성공하면 synced = true로 마킹
+                            val realm = RealmConfig.getInstance()
+                            realm.writeBlocking {
+                                val event = query(MediaSessionEvent::class, "_id == $0", savedEvent._id).first().find()
+                                event?.synced = true
+                            }
+                        } else {
+                            Log.e(TAG, "❌ [API 응답 실패] POST /event/media-session (HTTP ${response.code()})")
+                            Log.e(TAG, "   ✗ 응답 본문: ${response.errorBody()?.string()}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ [API 예외] POST /event/media-session")
+                        Log.e(TAG, "   ✗ 예외 메시지: ${e.message}", e)
+                    }
                 }
             }
+
+            // 10초 후 다시 실행 (계속 반복)
+            handler.postDelayed(aiCheckRunnable!!, Checker.TEST_CHECKER_MS)
         }
 
         handler.postDelayed(aiCheckRunnable!!, Checker.TEST_CHECKER_MS)
@@ -611,7 +641,37 @@ class SessionStateManager(
             handler.removeCallbacks(it)
             explorationCheckRunnable = null
             explorationStartTime = 0L
-            Log.d(TAG, "⏹ 탐색 타이머 취소")
+            Log.d(TAG, "탐색 타이머 취소")
+        }
+    }
+
+    // 실시간 동기화 시작
+    private fun scheduleRealtimeSync() {
+        cancelRealtimeSync()
+
+        realtimeSyncRunnable = Runnable {
+            Log.d(TAG, "실시간 동기화 실행")
+
+            val workRequest = OneTimeWorkRequestBuilder<EventSyncWorker>().build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "realtime_media_sync",
+                ExistingWorkPolicy.REPLACE,
+                workRequest
+            )
+
+            scheduleRealtimeSync()
+        }
+
+        handler.postDelayed(realtimeSyncRunnable!!, realtimeSyncIntervalMs)
+        Log.d(TAG, "실시간 동기화 시작 (${realtimeSyncIntervalMs / 1000}초 간격)")
+    }
+
+    // 실시간 동기화 취소
+    private fun cancelRealtimeSync() {
+        realtimeSyncRunnable?.let {
+            handler.removeCallbacks(it)
+            realtimeSyncRunnable = null
+            Log.d(TAG, "실시간 동기화 중단")
         }
     }
 
@@ -793,6 +853,7 @@ class SessionStateManager(
     fun cleanup() {
         cancelAICheck()
         cancelExplorationCheck()
+        cancelRealtimeSync()
 
         pendingSaveRunnable?.let { handler.removeCallbacks(it) }
         pendingSaveRunnable = null
@@ -801,7 +862,7 @@ class SessionStateManager(
         pendingSessionSaveRunnable = null
 
         currentSession?.let { session ->
-            Log.d(TAG, "⚠️ 서비스 종료 → 남은 세션 즉시 저장")
+            Log.d(TAG, "서비스 종료 - 남은 세션 즉시 저장")
             saveSession(session)
         }
     }
@@ -810,6 +871,7 @@ class SessionStateManager(
     fun forceFlushCurrentSession() {
         cancelAICheck()
         cancelExplorationCheck()
+        cancelRealtimeSync()
 
         currentSession?.let { session ->
             val currentTime = System.currentTimeMillis()
@@ -817,20 +879,18 @@ class SessionStateManager(
             val watchTime = totalTime - session.totalPauseTime
 
             if (watchTime < MIN_WATCH_TIME) {
-                Log.d(TAG, "🔄 강제 플러시: 시청 시간 너무 짧음 (${watchTime / 1000}초) - 저장 생략")
+                Log.d(TAG, "강제 플러시: 시청 시간 너무 짧음 (${watchTime / 1000}초) - 저장 생략")
                 currentSession = null
                 lastSessionTitle = ""
                 lastSessionTime = 0L
                 return
             }
 
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
-            Log.d(TAG, "🔄 강제 플러시 → 앱 전환으로 인한 즉시 저장")
+            Log.d(TAG, "강제 플러시 - 앱 전환으로 인한 즉시 저장")
             Log.d(TAG, "   제목: ${session.title}")
             Log.d(TAG, "   채널: ${session.channel}")
             Log.d(TAG, "   bestChannel: ${session.bestChannel}")
             Log.d(TAG, "   시청 시간: ${watchTime / 1000}초")
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
             pendingSaveRunnable?.let { handler.removeCallbacks(it) }
             pendingSaveRunnable = null

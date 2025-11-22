@@ -69,6 +69,12 @@ class AppMonitoringService : AccessibilityService() {
     @Inject
     lateinit var missionTracker: MissionTracker
 
+    @Inject
+    lateinit var apiService: com.dito.app.core.network.ApiService
+
+    @Inject
+    lateinit var authTokenManager: com.dito.app.core.storage.AuthTokenManager
+
     private lateinit var sessionManager: SessionStateManager
 
     @Volatile
@@ -83,7 +89,7 @@ class AppMonitoringService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
+        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker, apiService, authTokenManager)
         Log.d(TAG, "✅ AccessibilityService 연결됨")
     }
 

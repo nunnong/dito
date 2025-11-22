@@ -286,7 +286,7 @@ class OngoingChallengeViewModel @Inject constructor(
 
         // 1) 친구 실시간 사용 상황 코멘트
         val youtubeUsers = rankings.filter {
-            !it.isMe && it.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true
+            !it.isMe && it.currentAppName?.contains("com.google.android.youtube", ignoreCase = true) == true
         }
 
         if (youtubeUsers.isNotEmpty()) {
