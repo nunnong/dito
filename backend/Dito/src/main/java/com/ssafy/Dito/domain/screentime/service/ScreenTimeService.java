@@ -165,8 +165,20 @@ public class ScreenTimeService {
         Map<Long, CurrentAppUsage> currentAppMap =
                 currentApps.stream().collect(Collectors.toMap(CurrentAppUsage::getUserId, a -> a));
 
-        AtomicInteger rankCounter = new AtomicInteger(1);
+        // ⭐ ScreenTimeDailySummary에서 기간별 데이터 조회
+        String startDateStr = startDate != null ? startDate.toString() : null;
+        String endDateStr = endDate != null ? endDate.toString() : null;
 
+        List<ScreenTimeDailySummary> allSummaries =
+                (startDateStr != null && endDateStr != null)
+                        ? summaryRepository.findByGroupIdAndDateBetween(groupId, startDateStr, endDateStr)
+                        : Collections.emptyList();
+
+        // userId별로 그룹화
+        Map<Long, List<ScreenTimeDailySummary>> summaryMap = allSummaries.stream()
+                .collect(Collectors.groupingBy(ScreenTimeDailySummary::getUserId));
+
+        AtomicInteger rankCounter = new AtomicInteger(1);
         final int finalDaysElapsed = daysElapsed;
 
         List<GroupRankingRes.ParticipantRank> rankings = participants.stream()
@@ -175,59 +187,25 @@ public class ScreenTimeService {
                     Long uid = participant.getId().getUser().getId();
                     String nickname = participant.getId().getUser().getNickname();
 
-                    // ============================
-                    // ⭐ 전체 스크린타임 / 유튜브 시간 계산
-                    // ============================
-//                    List<MediaSessionEventDocument> events =
-//                            mediaSessionLogRepository.findByUserIdAndEventDateBetween(
-//                                    uid, startDate, endDate
-//                            );
+                    // ⭐ ScreenTimeDailySummary에서 유튜브 시간 합산
+                    int youtubeMinutes = summaryMap.getOrDefault(uid, Collections.emptyList())
+                            .stream()
+                            .mapToInt(s -> s.getYoutubeMinutes() != null ? s.getYoutubeMinutes() : 0)
+                            .sum();
 
-                    final LocalDate queryStart = startDate;
-                    final LocalDate queryEnd = (endDate != null ? endDate.plusDays(1) : null);
+                    // ⭐ 최근 교육 콘텐츠 여부 확인 (MediaSessionEvent 사용)
+                    List<MediaSessionEventDocument> recentEvents =
+                            mediaSessionLogRepository.findByUserIdAndEventDateBetween(
+                                    uid,
+                                    startDate,
+                                    endDate != null ? endDate.plusDays(1) : null
+                            );
 
-                    List<MediaSessionEventDocument> events =
-                            (queryStart != null && queryEnd != null)
-                                    ? mediaSessionLogRepository.findByUserIdAndEventDateBetween(
-                                    uid, queryStart, queryEnd
-                            )
-                                    : Collections.emptyList();
-
-
-                    long totalSeconds = 0;
-                    long youtubeSeconds = 0;
-
-                    MediaSessionEventDocument latestYoutubeEvent = null;
-
-                    for (MediaSessionEventDocument e : events) {
-
-                        long watch = (e.getWatchTime() != null ? e.getWatchTime() : 0);
-
-                        // 전체 스크린타임 누적
-                        totalSeconds += watch;
-
-                        // YouTube 감지
-                        boolean isYoutube =
-                                e.getPackageName() != null &&
-                                        e.getPackageName().contains("youtube");
-
-                        if (isYoutube) {
-
-                            // ⭐ 가장 최근 YouTube 이벤트 추적
-                            if (latestYoutubeEvent == null ||
-                                    e.getEventTimestamp() > latestYoutubeEvent.getEventTimestamp()) {
-                                latestYoutubeEvent = e;
-                            }
-
-                            // 교육용 제외하고 유튜브 시간 계산
-                            if (!Boolean.TRUE.equals(e.getIsEducational())) {
-                                youtubeSeconds += watch;
-                            }
-                        }
-                    }
-
-                    int totalMinutesAccurate = (int) (totalSeconds / 60);
-                    int youtubeMinutesAccurate = (int) (youtubeSeconds / 60);
+                    MediaSessionEventDocument latestYoutubeEvent = recentEvents.stream()
+                            .filter(e -> e.getPackageName() != null &&
+                                    e.getPackageName().contains("youtube"))
+                            .max(Comparator.comparingLong(MediaSessionEventDocument::getEventTimestamp))
+                            .orElse(null);
 
                     boolean latestIsEducational =
                             latestYoutubeEvent != null &&
@@ -239,13 +217,11 @@ public class ScreenTimeService {
                             uid,
                             new RankingData(
                                     nickname,
-                                    totalMinutesAccurate,     // ⭐ 변경
-                                    youtubeMinutesAccurate,   // ⭐ 변경
+                                    youtubeMinutes,     // ⭐ Summary에서 가져온 유튜브 시간
                                     betCoins,
                                     latestIsEducational
                             )
                     );
-
                 })
                 .sorted(Map.Entry.comparingByValue())
                 .map(entry -> {
@@ -255,12 +231,8 @@ public class ScreenTimeService {
 
                     int rank = rankCounter.getAndIncrement();
 
-                    double avgTotalMinutes =
-                            finalDaysElapsed > 0 ? data.totalMinutes() / (double) finalDaysElapsed : 0.0;
-
                     double avgYoutubeMinutes =
                             finalDaysElapsed > 0 ? data.youtubeMinutes() / (double) finalDaysElapsed : 0.0;
-
 
                     Integer potentialPrize = (rank == 1) ? group.getTotalBetCoins() : 0;
 
@@ -273,8 +245,8 @@ public class ScreenTimeService {
                     String costumeUrl = null;
 
                     if (equippedCostume != null) {
-                        Long costumeItemId = equippedCostume.getId().getItem().getId();  // ⭐ Long 으로 받음
-                        itemId = costumeItemId != null ? costumeItemId.intValue() : null; // ⭐ 안전 변환
+                        Long costumeItemId = equippedCostume.getId().getItem().getId();
+                        itemId = costumeItemId != null ? costumeItemId.intValue() : null;
                         costumeUrl = costumeUrlUtil.getCostumeUrl(
                                 equippedCostume.getId().getItem().getImgUrl(),
                                 uid,
@@ -288,8 +260,8 @@ public class ScreenTimeService {
                             data.nickname(),
                             costumeUrl,
                             itemId,
-                            formatTime(data.totalMinutes()),
-                            formatTime((int) avgTotalMinutes),
+                            formatTime(data.youtubeMinutes()),      // ⭐ 유튜브 시간만 표시
+                            formatTime((int) avgYoutubeMinutes),    // ⭐ 평균도 유튜브만
                             data.betCoins(),
                             potentialPrize,
                             uid.equals(currentUserId),
@@ -317,18 +289,14 @@ public class ScreenTimeService {
      */
     private record RankingData(
             String nickname,
-            int totalMinutes,
-            int youtubeMinutes,
+            int youtubeMinutes,  // ⭐ totalMinutes 제거
             int betCoins,
             boolean latestIsEducational
     ) implements Comparable<RankingData> {
+
         @Override
         public int compareTo(RankingData other) {
-            int compareYoutube = Integer.compare(this.youtubeMinutes, other.youtubeMinutes);
-            if (compareYoutube == 0)
-                return Integer.compare(this.totalMinutes, other.totalMinutes);
-            return compareYoutube;
+            return Integer.compare(this.youtubeMinutes, other.youtubeMinutes);
         }
     }
-
 }
