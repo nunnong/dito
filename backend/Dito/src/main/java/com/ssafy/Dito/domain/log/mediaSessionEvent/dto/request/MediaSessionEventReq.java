@@ -14,7 +14,8 @@ public record MediaSessionEventReq(
     Long videoDuration,
     Long watchTime,
     Long PauseTime,
-    LocalDate eventDate
+    LocalDate eventDate,
+    Boolean isEducational
 ) {
 
 }

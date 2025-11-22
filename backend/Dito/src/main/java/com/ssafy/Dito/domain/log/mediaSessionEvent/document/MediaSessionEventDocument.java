@@ -70,12 +70,15 @@ public class MediaSessionEventDocument extends MongoBaseDocument {
     @Indexed
     private Long userId;
 
+    @Field("is_educational")
+    private Boolean isEducational;
+
     @Builder
     private MediaSessionEventDocument(String eventId, EventType eventType, String packageName,
                                       String appName, String title, String channel,
                                       Long eventTimestamp, Long videoDuration,
                                       Long watchTime, Long pauseTime,
-                                      LocalDate eventDate, Long userId) {
+                                      LocalDate eventDate, Long userId, Boolean isEducational) {
         this.eventId = eventId;
         this.eventType = eventType;
         this.packageName = packageName;
@@ -88,6 +91,7 @@ public class MediaSessionEventDocument extends MongoBaseDocument {
         this.pauseTime = pauseTime;
         this.eventDate = eventDate;
         this.userId = userId;
+        this.isEducational = isEducational;
     }
 
     /**
@@ -110,6 +114,7 @@ public class MediaSessionEventDocument extends MongoBaseDocument {
             .pauseTime(req.PauseTime())
             .eventDate(req.eventDate())
             .userId(userId)
+            .isEducational(req.isEducational())
             .build();
     }
 }

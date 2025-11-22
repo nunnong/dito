@@ -44,4 +44,12 @@ public interface ScreenTimeSnapshotRepository extends MongoRepository<ScreenTime
      * 최신 스크린타임 확인용
      */
     List<ScreenTimeSnapshot> findTop10ByUserIdOrderByRecordedAtDesc(Long userId);
+
+    List<ScreenTimeSnapshot> findByGroupIdAndUserIdAndDateBetweenOrderByRecordedAtAsc(
+            Long groupId,
+            Long userId,
+            String startDate,
+            String endDate
+    );
+
 }

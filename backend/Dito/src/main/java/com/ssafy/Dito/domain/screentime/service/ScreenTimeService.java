@@ -236,12 +236,12 @@ public class ScreenTimeService {
             }
             userTotalTime.merge(userId, totalMinutes, Integer::sum);
 
-            // youtubeMinutes 집계
-            Integer youtubeMinutes = summary.getYoutubeMinutes();
-            if (youtubeMinutes == null) {
-                youtubeMinutes = 0;
-            }
-            userYoutubeTime.merge(userId, youtubeMinutes, Integer::sum);
+//            // youtubeMinutes 집계
+//            Integer youtubeMinutes = summary.getYoutubeMinutes();
+//            if (youtubeMinutes == null) {
+//                youtubeMinutes = 0;
+//            }
+//            userYoutubeTime.merge(userId, youtubeMinutes, Integer::sum);
         }
 
         log.info("📊 집계된 사용자별 총 스크린타임: {}", userTotalTime);
@@ -257,17 +257,39 @@ public class ScreenTimeService {
         // 랭킹 계산 (YouTube 사용시간 적은 순)
         final int finalDaysElapsed = daysElapsed;
         AtomicInteger rankCounter = new AtomicInteger(1);
-        List<GroupRankingRes.ParticipantRank> rankings = participants.stream()
-            .map(participant -> {
-                Long uid = participant.getId().getUser().getId();
-                String nickname = participant.getId().getUser().getNickname();
-                Integer totalMinutes = userTotalTime.getOrDefault(uid, 0);
-                Integer youtubeMinutes = userYoutubeTime.getOrDefault(uid, 0);
-                Integer betCoins = userBetCoins.getOrDefault(uid, 0);
 
-                return Map.entry(uid, new RankingData(nickname, totalMinutes, youtubeMinutes, betCoins));
-            })
-            .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (YouTube 시간 기준)
+        List<GroupRankingRes.ParticipantRank> rankings = participants.stream()
+                .map(participant -> {
+                    Long uid = participant.getId().getUser().getId();
+                    String nickname = participant.getId().getUser().getNickname();
+
+                    // 🔥 1) snapshot 불러오기
+                    List<ScreenTimeSnapshot> snaps =
+                            snapshotRepository.findByGroupIdAndUserIdAndDateBetweenOrderByRecordedAtAsc(
+                                    groupId,
+                                    uid,
+                                    startDate.toString(),
+                                    endDate.toString()
+                            );
+
+                    // 🔥 2) snapshot 기반 유튜브 시간 계산
+                    int youtubeMinutesAccurate = calculateYoutubeFromSnapshots(snaps);
+
+                    // 기존 요약(totalMinutes)은 summary로 적절함
+                    Integer totalMinutes = userTotalTime.getOrDefault(uid, 0);
+                    Integer betCoins = userBetCoins.getOrDefault(uid, 0);
+
+                    return Map.entry(uid,
+                            new RankingData(
+                                    nickname,
+                                    totalMinutes,
+                                    youtubeMinutesAccurate,
+                                    betCoins
+                            )
+                    );
+                })
+
+                .sorted(Map.Entry.comparingByValue()) // RankingData의 Comparable 사용 (YouTube 시간 기준)
             .map(entry -> {
                 Long uid = entry.getKey();
                 RankingData data = entry.getValue();
@@ -374,4 +396,24 @@ public class ScreenTimeService {
     public List<ScreenTimeSnapshot> getUserSnapshots(Long userId, LocalDate date) {
         return snapshotRepository.findByUserIdAndDateOrderByRecordedAtDesc(userId, date);
     }
+
+    private int calculateYoutubeFromSnapshots(List<ScreenTimeSnapshot> snaps) {
+        int ytSeconds = 0;
+        int prev = -1;
+
+        for (ScreenTimeSnapshot s : snaps) {
+            int cur = s.getYoutubeMinutes();
+
+            if (prev == -1) {
+                ytSeconds += cur * 60; // 첫 스냅샷 포함
+            } else {
+                int d = cur - prev;
+                if (d > 0) ytSeconds += d * 60;
+            }
+            prev = cur;
+        }
+
+        return ytSeconds / 60;
+    }
+
 }
