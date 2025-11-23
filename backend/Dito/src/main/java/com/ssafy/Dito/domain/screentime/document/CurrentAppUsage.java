@@ -52,6 +52,15 @@ public class CurrentAppUsage extends MongoBaseDocument {
     @Field("usage_duration")
     private Long usageDuration; // in seconds
 
+    @Field("last_media_event_id")
+    private String lastMediaEventId;
+
+    @Field("last_media_timestamp")
+    private Long lastMediaTimestamp;
+
+    @Field("last_is_educational")
+    private Boolean lastIsEducational;
+
     @Field("last_updated_at")
     private LocalDateTime lastUpdatedAt;
 
@@ -62,6 +71,9 @@ public class CurrentAppUsage extends MongoBaseDocument {
         String appPackage,
         String appName,
         Long usageDuration,
+        String lastMediaEventId,
+        Long lastMediaTimestamp,
+        Boolean lastIsEducational,
         LocalDateTime lastUpdatedAt
     ) {
         this.groupId = groupId;
@@ -69,6 +81,9 @@ public class CurrentAppUsage extends MongoBaseDocument {
         this.appPackage = appPackage;
         this.appName = appName;
         this.usageDuration = usageDuration;
+        this.lastMediaEventId = lastMediaEventId;
+        this.lastMediaTimestamp = lastMediaTimestamp;
+        this.lastIsEducational = lastIsEducational;
         this.lastUpdatedAt = lastUpdatedAt;
     }
 
@@ -80,7 +95,10 @@ public class CurrentAppUsage extends MongoBaseDocument {
         Long userId,
         String appPackage,
         String appName,
-        Long usageDuration
+        Long usageDuration,
+        String mediaEventId,
+        Long mediaEventTimestamp,
+        Boolean isEducational
     ) {
         return CurrentAppUsage.builder()
             .groupId(groupId)
@@ -88,6 +106,9 @@ public class CurrentAppUsage extends MongoBaseDocument {
             .appPackage(appPackage)
             .appName(appName)
             .usageDuration(usageDuration)
+            .lastMediaEventId(mediaEventId)
+            .lastMediaTimestamp(mediaEventTimestamp)
+            .lastIsEducational(isEducational)
             .lastUpdatedAt(LocalDateTime.now())
             .build();
     }
@@ -95,10 +116,20 @@ public class CurrentAppUsage extends MongoBaseDocument {
     /**
      * 현재 앱 정보 업데이트
      */
-    public void update(String appPackage, String appName, Long usageDuration) {
+    public void update(String appPackage, String appName, Long usageDuration,
+                       String mediaEventId, Long mediaEventTimestamp, Boolean isEducational) {
         this.appPackage = appPackage;
         this.appName = appName;
         this.usageDuration = usageDuration;
+        if (mediaEventId != null) {
+            this.lastMediaEventId = mediaEventId;
+        }
+        if (mediaEventTimestamp != null) {
+            this.lastMediaTimestamp = mediaEventTimestamp;
+        }
+        if (isEducational != null) {
+            this.lastIsEducational = isEducational;
+        }
         this.lastUpdatedAt = LocalDateTime.now();
     }
 }

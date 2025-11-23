@@ -23,6 +23,15 @@ public record UpdateCurrentAppReq(
     String appName,
 
     @Schema(description = "사용 시간 (초)", example = "600", required = false)
-    Long usageDuration
+    Long usageDuration,
+
+    @Schema(description = "현재 재생 중인 미디어 이벤트 ID", example = "abc123", required = false)
+    String mediaEventId,
+
+    @Schema(description = "현재 재생 중인 영상이 교육용인지 여부", example = "true", required = false)
+    Boolean mediaEducational,
+
+    @Schema(description = "미디어 이벤트 타임스탬프 (ms)", example = "1763899932826", required = false)
+    Long mediaEventTimestamp
 ) {
 }

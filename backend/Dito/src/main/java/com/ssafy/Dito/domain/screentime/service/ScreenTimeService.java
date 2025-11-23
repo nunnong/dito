@@ -7,9 +7,6 @@ import com.ssafy.Dito.domain.groups.exception.GroupNotFoundException;
 import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.item.entity.Type;
-import com.ssafy.Dito.domain.log.mediaSessionEvent.document.MediaSessionEventDocument;
-import com.ssafy.Dito.domain.log.mediaSessionEvent.entity.EventType;
-import com.ssafy.Dito.domain.log.mediaSessionEvent.repository.MediaSessionLogRepository;
 import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeSnapshot;
@@ -45,7 +42,6 @@ public class ScreenTimeService {
     private final GroupParticipantRepository groupParticipantRepository;
     private final UserItemQueryRepository userItemQueryRepository;
     private final CostumeUrlUtil costumeUrlUtil;
-    private final MediaSessionLogRepository mediaSessionLogRepository;   // ⭐ 추가됨
 
     private static final int MAX_PARTICIPANTS = 6;
 
@@ -142,17 +138,30 @@ public class ScreenTimeService {
         CurrentAppUsage existing =
                 currentAppUsageRepository.findByGroupIdAndUserId(request.groupId(), userId).orElse(null);
 
+        String mediaEventId = request.mediaEventId();
+        Long mediaEventTimestamp = request.mediaEventTimestamp();
+        Boolean mediaEducational = request.mediaEducational();
+
         if (existing == null) {
             currentAppUsageRepository.save(CurrentAppUsage.create(
                     request.groupId(),
                     userId,
                     request.appPackage(),
                     request.appName(),
-                    request.usageDuration()
-
+                    request.usageDuration(),
+                    mediaEventId,
+                    mediaEventTimestamp,
+                    mediaEducational
             ));
         } else {
-            existing.update(request.appPackage(), request.appName(), request.usageDuration());
+            existing.update(
+                    request.appPackage(),
+                    request.appName(),
+                    request.usageDuration(),
+                    mediaEventId,
+                    mediaEventTimestamp,
+                    mediaEducational
+            );
             currentAppUsageRepository.save(existing);
         }
     }
@@ -222,38 +231,13 @@ public class ScreenTimeService {
                             .mapToInt(s -> s.getYoutubeMinutes() != null ? s.getYoutubeMinutes() : 0)
                             .sum();
 
-                    // ⭐ 최근 교육 콘텐츠 여부 확인 (MediaSessionEvent 사용)
-                    List<MediaSessionEventDocument> recentEvents =
-                            mediaSessionLogRepository.findByUserIdAndEventDateBetween(
-                                    uid,
-                                    startDate,
-                                    endDate != null ? endDate.plusDays(1) : null
-                            );
-
                     CurrentAppUsage currentApp = currentAppMap.get(uid);
-                    boolean watchingYoutube = currentApp != null &&
-                            currentApp.getAppPackage() != null &&
-                            currentApp.getAppPackage().contains("youtube");
+                    boolean watchingYoutube = currentApp != null
+                            && currentApp.getAppPackage() != null
+                            && currentApp.getAppPackage().contains("youtube");
 
-                    MediaSessionEventDocument latestEducationalStart = recentEvents.stream()
-                            .filter(e -> e.getEventType() == EventType.VIDEO_START)
-                            .filter(e -> e.getPackageName() != null &&
-                                    e.getPackageName().contains("youtube"))
-                            .max(Comparator.comparingLong(MediaSessionEventDocument::getEventTimestamp))
-                            .orElse(null);
-
-                    MediaSessionEventDocument fallbackLatestYoutubeEvent = recentEvents.stream()
-                            .filter(e -> e.getPackageName() != null &&
-                                    e.getPackageName().contains("youtube"))
-                            .max(Comparator.comparingLong(MediaSessionEventDocument::getEventTimestamp))
-                            .orElse(null);
-
-                    MediaSessionEventDocument targetEvent =
-                            latestEducationalStart != null ? latestEducationalStart : fallbackLatestYoutubeEvent;
-
-                    boolean latestIsEducational = watchingYoutube &&
-                            targetEvent != null &&
-                            Boolean.TRUE.equals(targetEvent.getIsEducational());
+                    Boolean currentEducationalFlag = currentApp != null ? currentApp.getLastIsEducational() : null;
+                    boolean latestIsEducational = watchingYoutube && Boolean.TRUE.equals(currentEducationalFlag);
 
                     Integer betCoins = participant.getBetCoins();
 
