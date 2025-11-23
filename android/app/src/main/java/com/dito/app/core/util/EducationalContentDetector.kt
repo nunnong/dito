@@ -26,7 +26,9 @@ object EducationalContentDetector {
     private val EDUCATIONAL_CHANNELS = listOf(
         "조코딩 JoCoding",
         "조코딩",
-        "JoCoding"
+        "JoCoding",
+        "삼성청년SW·AI아카데미 Youtube채널 HELLOSSAFY ",
+
     )
 
     // 데모용 교육 키워드 (제목에 포함되면 교육으로 판단)
@@ -44,7 +46,10 @@ object EducationalContentDetector {
         "lecture",
         "tutorial",
         "programming",
-        "coding"
+        "coding",
+        "SSAFY",
+        "삼성",
+        "AI"
     )
 
     /**

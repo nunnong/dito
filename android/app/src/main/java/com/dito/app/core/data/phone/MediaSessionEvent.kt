@@ -67,7 +67,8 @@ fun MediaSessionEvent.toDto(): MediaSessionEventDto {
         video_duration = if (this.videoDuration > 0) this.videoDuration else null,
         watch_time = if (this.watchTime > 0) this.watchTime else null,
         pause_time = if (this.pauseTime > 0) this.pauseTime else null,
-        event_date = this.date.ifBlank { getTodayDateString() }
+        event_date = this.date.ifBlank { getTodayDateString() },
+        is_educational = this.isEducational
     )
 }
 
