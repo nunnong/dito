@@ -31,6 +31,7 @@ class ReportState(TypedDict):
         report_overview: 리포트 개요
         advice: 조언
         mission_success_rate: 미션 성공률
+        strategy: 전략 변경 내역 리스트
 
     Optional fields (워크플로우 중 생성):
         status: 리포트 상태
@@ -44,6 +45,7 @@ class ReportState(TypedDict):
     report_overview: str
     advice: str
     mission_success_rate: int
+    strategy: list[dict]  # 전략 변경 내역 [{"time_slot": "LUNCH", "previous": "STRICT", "current": "MODERATE", "reason": "..."}]
 
     # Optional - generated during workflow
     status: NotRequired[str]
@@ -129,10 +131,12 @@ def update_report_node(state: ReportState) -> dict:
     advice = state["advice"]
     mission_success_rate = state["mission_success_rate"]
     insights = state["insights"]
+    strategy = state.get("strategy", [])
 
     print(f"     📊 Overview: {report_overview[:80]}...")
     print(f"     💡 Advice: {advice[:80]}...")
     print(f"     📈 Mission Success Rate: {mission_success_rate}%")
+    print(f"     🎯 Strategy Changes: {len(strategy)}개")
 
     # 5초 대기
     print("     ⏳ 5초 대기 중...")
@@ -150,6 +154,7 @@ def update_report_node(state: ReportState) -> dict:
             insights=insights,
             advice=advice,
             mission_success_rate=mission_success_rate,
+            strategy=strategy,
         )
 
         if not update_success:

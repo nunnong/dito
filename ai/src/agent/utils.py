@@ -872,15 +872,17 @@ def update_report(
     insights: list[dict],
     advice: str,
     mission_success_rate: int,
+    strategy: list[dict] = [],
 ) -> bool:
     """리포트 업데이트 API 호출 (PATCH)
 
     Args:
         report_id: 리포트 ID
         report_overview: 리포트 개요
-        insights: 인사이트 리스트 [{"type": "POSITIVE/NEGATIVE", "description": "..."}]
+        insights: 인사이트 리스트 [{"type": "POSITIVE/NEGATIVE", "description": "...", "score": {"before": 20, "after": 60}}]
         advice: 조언
         mission_success_rate: 미션 성공률
+        strategy: 전략 변경 내역 리스트 [{"time_slot": "LUNCH", "previous": "STRICT", "current": "MODERATE", "reason": "..."}]
 
     Returns:
         True if successful, False if failed
@@ -901,6 +903,7 @@ def update_report(
         "insights": insights,
         "advice": advice,
         "mission_success_rate": mission_success_rate,
+        "strategy": strategy,
         "status": "COMPLETED",
     }
 
