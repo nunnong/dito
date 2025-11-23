@@ -12,6 +12,22 @@ import java.util.Locale
  * 미디어 세션 이벤트 (유튜브 영상 시청 기록)
  */
 class MediaSessionEvent : RealmObject {
+    companion object {
+        // Track Types
+        const val TRACK_TYPE_DEFAULT = "TRACK_2"
+
+        // Event Types
+        const val EVENT_TYPE_VIDEO_START = "VIDEO_START"
+        const val EVENT_TYPE_VIDEO_PAUSE = "VIDEO_PAUSE"
+        const val EVENT_TYPE_VIDEO_END = "VIDEO_END"
+        const val EVENT_TYPE_PLAYING_CHECK = "PLAYING_CHECK"
+        const val EVENT_TYPE_APP_EXPLORATION = "APP_EXPLORATION"
+
+        // Detection Methods
+        const val METHOD_RESOURCE_ID = "resource-id"
+        const val METHOD_MEDIA_SESSION = "media-session"
+        const val METHOD_PLAYBACK_TIMER = "playback-timer"
+    }
     @PrimaryKey
     var _id: ObjectId = ObjectId()
 
@@ -24,6 +40,7 @@ class MediaSessionEvent : RealmObject {
     var title: String = ""                  // 영상 제목
     var channel: String = ""                // 채널명
     var appPackage: String = ""             // com.google.android.youtube
+    var thumbnailUri: String = ""           // 썸네일 이미지 URI
 
     // 시간 정보
     var timestamp: Long = 0L                // 이벤트 발생 시각
