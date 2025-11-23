@@ -74,7 +74,7 @@ enum class BreathingPhase {
 fun BreathingScreen() {
     var isActive by remember { mutableStateOf(false) }
     var currentPhase by remember { mutableStateOf(BreathingPhase.INHALE) }
-    var countdown by remember { mutableIntStateOf(60) } // 1분 = 60초
+    var countdown by remember { mutableIntStateOf(20) } // 20초
     val context = LocalContext.current
 
     // AudioManager 초기화
@@ -227,7 +227,7 @@ fun BreathingScreen() {
             audioManager.abandonAudioFocusRequest(audioFocusRequest)
 
             isActive = false
-            countdown = 60
+            countdown = 20
         } else {
             // 중지 버튼을 눌렀을 때도 음악 정지 및 AudioFocus 해제
             mediaPlayer?.let { player ->
@@ -282,7 +282,7 @@ fun BreathingScreen() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "1분 동안\n편안하게 호흡하세요",
+                    text = "20초 동안\n편안하게 호흡하세요",
                     style = MaterialTheme.typography.body2,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
@@ -379,7 +379,7 @@ fun BreathingScreen() {
                             Chip(
                                 onClick = {
                                     isActive = false
-                                    countdown = 60
+                                    countdown = 20
                                 },
                                 label = {
                                     Text(

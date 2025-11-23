@@ -27,6 +27,12 @@ import com.dito.app.core.util.ScreenTimeCollector
 import com.dito.app.core.di.ServiceLocator
 import com.dito.app.core.storage.GroupPreferenceManager
 import com.dito.app.core.data.screentime.UpdateCurrentAppRequest
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.PowerManager
+
 
 @AndroidEntryPoint
 class AppMonitoringService : AccessibilityService() {
@@ -62,6 +68,23 @@ class AppMonitoringService : AccessibilityService() {
     }
 
     private var youtubePeriodicSyncJob: Job? = null
+    private var usageHeartbeatJob: Job? = null // Usage Heartbeat Job
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    Log.d(TAG, "📱 화면 켜짐 -> Heartbeat 시작")
+                    startUsageHeartbeat()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    Log.d(TAG, "📱 화면 꺼짐 -> Heartbeat 중지")
+                    stopUsageHeartbeat()
+                }
+            }
+        }
+    }
+
 
     @Inject
     lateinit var aiAgent: AIAgent
@@ -91,6 +114,21 @@ class AppMonitoringService : AccessibilityService() {
         instance = this
         sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker, apiService, authTokenManager)
         Log.d(TAG, "✅ AccessibilityService 연결됨")
+
+        // 화면 상태 리시버 등록
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        registerReceiver(screenReceiver, filter)
+
+        // 초기 화면 상태 체크
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        if (powerManager.isInteractive) {
+            startUsageHeartbeat()
+        } else {
+            Log.d(TAG, "서비스 시작 시 화면 꺼짐 상태 -> Heartbeat 대기")
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -584,7 +622,13 @@ class AppMonitoringService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        try {
+            unregisterReceiver(screenReceiver)
+        } catch (e: Exception) {
+            Log.e(TAG, "리시버 해제 실패", e)
+        }
         stopYoutubePeriodicSync()
+        stopUsageHeartbeat()
 
         // 마지막 세션 저장
         if (currentApp.isNotEmpty() && currentAppStartTime > 0) {
@@ -600,5 +644,68 @@ class AppMonitoringService : AccessibilityService() {
         instance = null
 
         Log.d(TAG, "🛑 AppMonitoringService 종료")
+    }
+
+    // ============================================================================================
+    // Usage Heartbeat Logic
+    // ============================================================================================
+
+    private fun startUsageHeartbeat() {
+        usageHeartbeatJob?.cancel()
+        usageHeartbeatJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                try {
+                    if (currentApp.isNotEmpty()) {
+                        sendUsageHeartbeat()
+                    }
+                    delay(5000L) // 5초 주기
+                } catch (e: Exception) {
+                    Log.e(TAG, "Usage Heartbeat Error", e)
+                    delay(5000L)
+                }
+            }
+        }
+        Log.d(TAG, "💓 Usage Heartbeat 시작 (5초 주기)")
+    }
+
+    private fun stopUsageHeartbeat() {
+        usageHeartbeatJob?.cancel()
+        usageHeartbeatJob = null
+        Log.d(TAG, "💔 Usage Heartbeat 중지")
+    }
+
+    private suspend fun sendUsageHeartbeat() {
+        try {
+            val activeGroupId = GroupPreferenceManager.getActiveGroupId(this@AppMonitoringService)
+            val prefs = applicationContext.getSharedPreferences("user_prefs", android.content.Context.MODE_PRIVATE)
+            val token = prefs.getString("access_token", null)
+
+            if (activeGroupId == null || token.isNullOrEmpty()) {
+                return
+            }
+
+            val appName = getAppName(currentApp)
+            val request = com.dito.app.core.data.report.HeartbeatRequest(
+                timestamp = System.currentTimeMillis(),
+                mediaSession = null, // 일반 앱 사용 시에는 미디어 세션 없음
+                currentApp = com.dito.app.core.data.report.HeartbeatRequest.CurrentAppInfo(
+                    packageName = currentApp,
+                    appName = appName
+                )
+            )
+
+            val response = ServiceLocator.apiService.updateHeartbeat(
+                token = "Bearer $token",
+                request = request
+            )
+
+            if (response.isSuccessful) {
+                Log.v(TAG, "💓 Usage Heartbeat 전송: $appName ($currentApp)")
+            } else {
+                Log.w(TAG, "⚠️ Usage Heartbeat 실패: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Usage Heartbeat 예외", e)
+        }
     }
 }
