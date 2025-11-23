@@ -43,9 +43,9 @@ public class Report extends IdentifiableEntity {
     private List<InsightDto> insights;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "strategy", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "strategy", columnDefinition = "jsonb")
     @Comment("전략 변경 이력 목록 (JSONB)")
-    private List<StrategyChangeDto> strategy = new ArrayList<>();
+    private List<StrategyChangeDto> strategy;
 
     @Column(name = "advice", columnDefinition = "TEXT")
     @Comment("AI 조언(Advice)")
