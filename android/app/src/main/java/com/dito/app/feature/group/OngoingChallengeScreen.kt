@@ -111,7 +111,7 @@ fun StatisticsCard(
             )
 
             Text(
-                text = "오늘의 현황",
+                text = "하루 유튜브 1시간 보기",
                 style = DitoTypography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 color = Color.Black
             )
@@ -145,7 +145,7 @@ fun StatisticsCard(
                     color = Color.Black
                 )
                 Text(
-                    text = "- 일",  // TODO: 백엔드 데이터
+                    text = "1일",  // TODO: 백엔드 데이터
                     style = DitoTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color(0xFF4CAF50)
                 )
@@ -163,7 +163,7 @@ fun StatisticsCard(
                     color = Color.Black
                 )
                 Text(
-                    text = "- 일",  // TODO: 백엔드 데이터
+                    text = "1일",  // TODO: 백엔드 데이터
                     style = DitoTypography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color(0xFFFF5252)
                 )
@@ -200,11 +200,10 @@ fun StatisticsCard(
                 }
             }
 
-            // 오늘 남은 여유
+            // 오늘 남은 여유 (오늘 하루 사용량 기준)
             if (uiState.goalMinutes > 0 && myRanking != null) {
-                val mySeconds = uiState.realTimeScreenTimes[myRanking.userId] ?: 0
-                val myMinutes = mySeconds / 60
-                val remaining = uiState.goalMinutes - myMinutes
+                val myTodayMinutes = uiState.myTodayYoutubeMinutes
+                val remaining = uiState.goalMinutes - myTodayMinutes
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -239,10 +238,8 @@ fun StatisticsCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 youtubeUsers.forEach { user ->
-                    val seconds = uiState.realTimeScreenTimes[user.userId] ?: 0
-                    val timeStr = formatSecondsToTime(seconds)
                     Text(
-                        text = "🔥 ${user.nickname} - ${timeStr}",
+                        text = "🔥 ${user.nickname} - ${user.totalScreenTimeFormatted}",
                         style = DitoTypography.bodyMedium,
                         color = Color(0xFFFF5252)
                     )
@@ -265,9 +262,12 @@ fun ProgressHUD(
     goalMinutes: Int,
     modifier: Modifier = Modifier
 ) {
+    android.util.Log.d("ProgressHUD", "📊 현재 시간 체크: currentMinutes=$currentMinutes, goalMinutes=$goalMinutes")
+
     if (goalMinutes <= 0) return
 
     val progress = (currentMinutes.toFloat() / goalMinutes.toFloat()).coerceAtMost(1.5f)
+    android.util.Log.d("ProgressHUD", "📊 진행률: ${(progress * 100).toInt()}% (${currentMinutes}분/${goalMinutes}분)")
 
     // 진행률에 따른 색상 (0-70% 녹색, 70-100% 노란색, 100%+ 빨간색)
     val progressColor = when {
@@ -588,6 +588,17 @@ fun OngoingChallengeScreen(
                                 key(rankingItem.userId) {
                                     val currentSeconds = uiState.realTimeScreenTimes[rankingItem.userId] ?: 0
                                     val currentMinutes = currentSeconds / 60
+
+                                    // 내 캐릭터는 오늘 하루 시간, 다른 사람은 서버 데이터
+                                    val displayMinutes = if (rankingItem.isMe) {
+                                        uiState.myTodayYoutubeMinutes
+                                    } else {
+                                        currentMinutes
+                                    }
+
+                                    if (rankingItem.isMe) {
+                                        android.util.Log.d("OngoingChallenge", "🎯 내 캐릭터 렌더링: 오늘 하루=${uiState.myTodayYoutubeMinutes}분, goalMinutes=${uiState.goalMinutes}")
+                                    }
                                     CharacterView(
                                         costumeItemId = rankingItem.costumeItemId,
                                         rank = rankingItem.rank,
@@ -595,8 +606,9 @@ fun OngoingChallengeScreen(
                                         currentAppPackage = rankingItem.currentAppPackage,
                                         isMe = rankingItem.isMe,
                                         showPokeBubble = uiState.pokedUserIds.contains(rankingItem.userId),
-                                        currentMinutes = currentMinutes,
+                                        currentMinutes = displayMinutes,
                                         goalMinutes = uiState.goalMinutes,
+                                        isEducational = rankingItem.isEducational,
                                         onClick = {
                                             if (!rankingItem.isMe) {
                                                 viewModel.pokeMember(rankingItem.userId)
@@ -646,12 +658,10 @@ fun OngoingChallengeScreen(
                     if (index < displayOrder.size) {
                         val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
-                        val realTimeSeconds = uiState.realTimeScreenTimes[userId] ?: 0
-                        val formattedTime = formatSecondsToTime(realTimeSeconds)
                         UserInfoCard(
                             nickname = rankingItem?.nickname ?: "",
                             profileImage = rankingItem?.profileImage,
-                            screenTime = formattedTime,
+                            screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
                             isEmpty = rankingItem == null,
                             isMe = rankingItem?.isMe ?: false,
                             modifier = Modifier.weight(1f)
@@ -953,7 +963,7 @@ fun UserInfoCard(
                     StrokeText(
                         text = screenTime,
                         style = DitoTypography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        fillColor = Color(0xFFFFD700),  // 골드색
+                        fillColor = Color.White,
                         strokeColor = Color.Black,
                         strokeWidth = 2.dp,
                         textAlign = TextAlign.Center,
@@ -1000,17 +1010,6 @@ fun getCharacterNameFromItemId(itemId: Int?): String {
         else -> "lemon"
     }
 }
-
-/**
- * 초 단위를 mm:ss (분:초) 형식으로 변환
- */
-fun formatSecondsToTime(totalSeconds: Int): String {
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-
-    return String.format("%02d:%02d", minutes, seconds)
-}
-
 fun getAppIconFromPackage(packageName: String?): Int {
     return when {
         packageName == null -> R.drawable.dito
@@ -1193,10 +1192,21 @@ fun CharacterView(
                     contentScale = ContentScale.Crop
                 )
 
-                // 현재 사용 중인 앱 아이콘 (교육용이면 edu.png 표시)
+                // 현재 사용 중인 앱 아이콘 (1. Dito 앱 우선, 2. 교육용, 3. 일반 앱)
                 Image(
-                    painter = painterResource(id = if (isEducational) R.drawable.edu else getAppIconFromPackage(currentAppPackage)),
-                    contentDescription = if (isEducational) "Educational content" else if (currentAppPackage != null) "Current app: $currentAppPackage" else "No app running",
+                    painter = painterResource(
+                        id = when {
+                            currentAppPackage?.contains("dito", ignoreCase = true) == true -> R.drawable.dito
+                            isEducational -> R.drawable.edu
+                            else -> getAppIconFromPackage(currentAppPackage)
+                        }
+                    ),
+                    contentDescription = when {
+                        currentAppPackage?.contains("dito", ignoreCase = true) == true -> "Dito app"
+                        isEducational -> "Educational content"
+                        currentAppPackage != null -> "Current app: $currentAppPackage"
+                        else -> "No app running"
+                    },
                     modifier = Modifier
                         .size(54.dp)
                         .align(Alignment.BottomCenter)
