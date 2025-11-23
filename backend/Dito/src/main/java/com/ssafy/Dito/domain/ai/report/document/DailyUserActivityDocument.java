@@ -107,18 +107,25 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
 
     /**
      * Media session information (YouTube, Netflix, etc.)
+     * Linked with PostgreSQL youtube_video table via youtube_video_id
      */
     @Getter
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     public static class MediaSession {
+        @Field("youtube_video_id")
+        private Long youtubeVideoId;  // Reference to PostgreSQL youtube_video.id
+
         @Field("platform")
-        private String platform;
+        private String platform;  // Deprecated: use youtube_video table
 
         @Field("title")
-        private String title;
+        private String title;  // Deprecated: use youtube_video table
 
         @Field("channel")
-        private String channel;
+        private String channel;  // Deprecated: use youtube_video table
+
+        @Field("thumbnail_uri")
+        private String thumbnailUri;  // Deprecated: use youtube_video table
 
         @Field("timestamp")
         private Long timestamp;  // Unix timestamp in milliseconds
@@ -133,11 +140,13 @@ public class DailyUserActivityDocument extends MongoBaseDocument {
         private List<String> keywords;
 
         @Builder(toBuilder = true)
-        public MediaSession(String platform, String title, String channel, Long timestamp,
-                          Long watchTime, String videoType, List<String> keywords) {
+        public MediaSession(Long youtubeVideoId, String platform, String title, String channel, String thumbnailUri,
+                          Long timestamp, Long watchTime, String videoType, List<String> keywords) {
+            this.youtubeVideoId = youtubeVideoId;
             this.platform = platform;
             this.title = title;
             this.channel = channel;
+            this.thumbnailUri = thumbnailUri;
             this.timestamp = timestamp;
             this.watchTime = watchTime;
             this.videoType = videoType;

@@ -3,6 +3,8 @@ package com.ssafy.Dito.domain.ai.report.service;
 import com.ssafy.Dito.domain.ai.report.document.UserRealtimeStatusDocument;
 import com.ssafy.Dito.domain.ai.report.dto.HeartbeatReq;
 import com.ssafy.Dito.domain.ai.report.repository.UserRealtimeStatusRepository;
+import com.ssafy.Dito.domain.youtube.entity.YoutubeVideo;
+import com.ssafy.Dito.domain.youtube.repository.YoutubeVideoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ public class RealtimeActivityService {
 
     private final UserRealtimeStatusRepository userRealtimeStatusRepository;
     private final DailyUserActivityRepository dailyUserActivityRepository;
+    private final YoutubeVideoRepository youtubeVideoRepository;
 
     private static final long MAX_ELAPSED_SECONDS = 10; // 최대 10초까지만 인정
 
@@ -57,9 +60,12 @@ public class RealtimeActivityService {
         updateRealtimeStatus(userId, req, lastStatus);
 
         // 3. 일일 활동 집계 (첫 heartbeat가 아닐 때만)
+        // TODO: 테스트를 위해 임시 주석처리 - 수동으로 데이터 insert 후 조회 테스트용
+        /*
         if (elapsedSeconds > 0) {
             aggregateDailyActivity(userId, req, elapsedSeconds);
         }
+        */
     }
 
     /**
@@ -161,26 +167,34 @@ public class RealtimeActivityService {
         List<DailyUserActivityDocument.MediaSession> sessions = dailyDoc.getMediaSessions();
         if (sessions == null) sessions = new ArrayList<>();
 
-        // 동일 영상 찾기 (제목 + 채널로 식별)
+        // PostgreSQL에 영상 정보 캐싱 및 ID 가져오기
+        String platform = extractPlatform(mediaInfo.appPackage());
+        Long youtubeVideoId = cacheYoutubeVideoToPostgres(mediaInfo, platform);
+
+        // 동일 영상 찾기 (youtube_video_id로 식별)
         Optional<DailyUserActivityDocument.MediaSession> existingSession = sessions.stream()
-            .filter(s -> mediaInfo.title().equals(s.getTitle()) && mediaInfo.channel().equals(s.getChannel()))
+            .filter(s -> s.getYoutubeVideoId() != null && youtubeVideoId != null
+                && s.getYoutubeVideoId().equals(youtubeVideoId))
             .findFirst();
 
         List<DailyUserActivityDocument.MediaSession> newSessions = new ArrayList<>(sessions);
 
         if (existingSession.isPresent()) {
-            // 기존 세션 시청 시간 증가
+            // 기존 세션: 시청 시간만 증가
             DailyUserActivityDocument.MediaSession oldSession = existingSession.get();
             newSessions.remove(oldSession);
             newSessions.add(oldSession.toBuilder()
                 .watchTime(oldSession.getWatchTime() + elapsedSeconds)
+                .youtubeVideoId(youtubeVideoId != null ? youtubeVideoId : oldSession.getYoutubeVideoId())
                 .build());
         } else {
-            // 새 세션 추가
+            // 새 세션: youtube_video_id 포함하여 생성
             newSessions.add(DailyUserActivityDocument.MediaSession.builder()
-                .platform(extractPlatform(mediaInfo.appPackage()))
-                .title(mediaInfo.title())
-                .channel(mediaInfo.channel())
+                .youtubeVideoId(youtubeVideoId)  // PostgreSQL youtube_video.id
+                .platform(platform)              // Deprecated (호환성 유지)
+                .title(mediaInfo.title())        // Deprecated (호환성 유지)
+                .channel(mediaInfo.channel())    // Deprecated (호환성 유지)
+                .thumbnailUri(null)              // 더 이상 저장하지 않음
                 .timestamp(System.currentTimeMillis())
                 .watchTime(elapsedSeconds)
                 .videoType("VIDEO")
@@ -307,5 +321,56 @@ public class RealtimeActivityService {
         if (appPackage.contains("spotify")) return "Spotify";
 
         return appPackage;
+    }
+
+    /**
+     * YouTube 영상 정보를 PostgreSQL에 캐싱
+     * - channel + title로 중복 체크
+     * - 존재하지 않으면 새로 저장, 존재하면 기존 ID 반환
+     * @return YouTube video ID (null if failed)
+     */
+    private Long cacheYoutubeVideoToPostgres(HeartbeatReq.MediaSessionInfo mediaInfo, String platform) {
+        try {
+            // Null 체크
+            if (mediaInfo.title() == null || mediaInfo.channel() == null) {
+                log.debug("Skipping PostgreSQL cache: title or channel is null");
+                return null;
+            }
+
+            // 중복 체크: channel + title 조합으로 이미 저장되어 있는지 확인
+            Optional<YoutubeVideo> existingVideo = youtubeVideoRepository.findByChannelAndTitle(
+                mediaInfo.channel(),
+                mediaInfo.title()
+            );
+
+            if (existingVideo.isPresent()) {
+                log.debug("Video already cached in PostgreSQL: channel={}, title={}, id={}",
+                    mediaInfo.channel(), mediaInfo.title(), existingVideo.get().getId());
+                return existingVideo.get().getId();
+            }
+
+            // 새 영상 정보 저장
+            YoutubeVideo video = YoutubeVideo.of(
+                mediaInfo.title(),
+                mediaInfo.channel(),
+                mediaInfo.thumbnailUri(), // Base64 썸네일
+                mediaInfo.appPackage(),
+                platform,
+                "VIDEO", // videoType (기본값)
+                null     // keywords (나중에 확장)
+            );
+
+            YoutubeVideo savedVideo = youtubeVideoRepository.save(video);
+            log.info("Cached new video to PostgreSQL: channel={}, title={}, id={}",
+                mediaInfo.channel(), mediaInfo.title(), savedVideo.getId());
+
+            return savedVideo.getId();
+
+        } catch (Exception e) {
+            // PostgreSQL 캐싱 실패해도 MongoDB 저장에는 영향 없도록 예외 처리
+            log.error("Failed to cache video to PostgreSQL: channel={}, title={}",
+                mediaInfo.channel(), mediaInfo.title(), e);
+            return null;
+        }
     }
 }

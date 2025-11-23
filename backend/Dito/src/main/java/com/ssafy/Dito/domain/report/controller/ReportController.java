@@ -1,8 +1,10 @@
 package com.ssafy.Dito.domain.report.controller;
 
 import com.ssafy.Dito.domain.report.dto.response.ReportRes;
+import com.ssafy.Dito.domain.report.dto.response.VideoFeedbackItem;
 import com.ssafy.Dito.domain.report.service.ReportService;
 import com.ssafy.Dito.global.dto.ApiResponse;
+import com.ssafy.Dito.global.dto.ListResult;
 import com.ssafy.Dito.global.dto.SingleResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -12,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,5 +34,16 @@ public class ReportController {
     public ResponseEntity<SingleResult<ReportRes>> getLatestReport() {
         ReportRes res = reportService.getLatestReport();
         return ApiResponse.ok(res);
+    }
+
+    @Operation(summary = "피드백 영상 조회", description = "사용자의 피드백이 필요한 영상 목록을 반환합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "피드백 영상 조회 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 토큰이 유효하지 않습니다.")
+    })
+    @GetMapping("/feedback-videos")
+    public ResponseEntity<ListResult<VideoFeedbackItem>> getVideosForFeedback() {
+        List<VideoFeedbackItem> videos = reportService.getVideosForFeedback();
+        return ApiResponse.of(org.springframework.http.HttpStatus.OK, "피드백 영상 조회 성공", videos);
     }
 }
