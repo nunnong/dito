@@ -87,5 +87,8 @@ data class ParticipantRank(
 data class UpdateCurrentAppRequest(
     val groupId: Long,
     val appPackage: String,
-    val appName: String
+    val appName: String,
+    val mediaEventId: String? = null,
+    val mediaEducational: Boolean? = null,
+    val mediaEventTimestamp: Long? = null
 )
