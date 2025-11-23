@@ -55,6 +55,11 @@ class OngoingChallengeViewModel @Inject constructor(
     private var coachMessageJob: Job? = null
 
     init {
+        // 저장된 초기 사용자 순서 복원
+        val savedOrder = groupManager.getInitialUserOrder()
+        if (savedOrder.isNotEmpty()) {
+            _uiState.value = _uiState.value.copy(initialUserOrder = savedOrder)
+        }
         refreshGroupDetails()
     }
 
@@ -185,7 +190,10 @@ class OngoingChallengeViewModel @Inject constructor(
 
                     // 처음 랭킹을 받았을 때만 초기 순서 저장
                     val initialOrder = if (currentOrder.isEmpty()) {
-                        response.rankings.take(4).map { it.userId }
+                        val newOrder = response.rankings.take(4).map { it.userId }
+                        // GroupManager에 영구 저장
+                        groupManager.saveInitialUserOrder(newOrder)
+                        newOrder
                     } else {
                         currentOrder
                     }
