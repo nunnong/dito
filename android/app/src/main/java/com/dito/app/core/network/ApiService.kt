@@ -225,6 +225,11 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<ApiResponse<DailyReportResponse>>
 
+    @GET("/user/report/feedback-videos")
+    suspend fun getVideosForFeedback(
+        @Header("Authorization") token: String
+    ): Response<ApiResponse<List<com.dito.app.core.data.report.VideoFeedbackItem>>>
+
     // 콕콕 찌르기
     @POST("/challenges/groups/{group_id}/poke")
     suspend fun pokeMember(
@@ -233,5 +238,11 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<Unit>
 
+    // ========== Realtime Activity ==========
+    @POST("/ai/activity/heartbeat")
+    suspend fun updateHeartbeat(
+        @Header("Authorization") token: String,
+        @Body request: com.dito.app.core.data.report.HeartbeatRequest
+    ): Response<com.dito.app.core.data.ApiResponse<String>>
 
 }
