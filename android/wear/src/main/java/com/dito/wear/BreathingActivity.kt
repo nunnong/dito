@@ -154,10 +154,10 @@ fun BreathingScreen() {
         },
         animationSpec = tween(
             durationMillis = when (currentPhase) {
-                BreathingPhase.INHALE -> 5000  // 5초
-                BreathingPhase.HOLD -> 5000    // 5초
-                BreathingPhase.EXHALE -> 5000  // 5초
-                BreathingPhase.REST -> 5000    // 5초
+                BreathingPhase.INHALE -> 4000  // 4초
+                BreathingPhase.HOLD -> 4000    // 4초
+                BreathingPhase.EXHALE -> 4000  // 4초
+                BreathingPhase.REST -> 4000    // 4초
             },
             easing = LinearEasing
         ),
@@ -191,21 +191,23 @@ fun BreathingScreen() {
                 android.util.Log.e("BreathingActivity", "AudioFocus 요청 실패")
             }
 
-            // 각 페이즈 전환 (5초씩, 총 20초)
-            currentPhase = BreathingPhase.INHALE
-            delay(5000)
+            while (countdown > 0 && isActive) {
+                // 각 페이즈 전환 (4초씩)
+                currentPhase = BreathingPhase.INHALE
+                delay(4000)
 
-            if (!isActive || countdown <= 0) return@LaunchedEffect
-            currentPhase = BreathingPhase.HOLD
-            delay(5000)
+                if (!isActive) break
+                currentPhase = BreathingPhase.HOLD
+                delay(4000)
 
-            if (!isActive || countdown <= 0) return@LaunchedEffect
-            currentPhase = BreathingPhase.EXHALE
-            delay(5000)
+                if (!isActive) break
+                currentPhase = BreathingPhase.EXHALE
+                delay(4000)
 
-            if (!isActive || countdown <= 0) return@LaunchedEffect
-            currentPhase = BreathingPhase.REST
-            delay(5000)
+                if (!isActive) break
+                currentPhase = BreathingPhase.REST
+                delay(4000)
+            }
 
             // 종료 진동
             vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 200, 100, 200), -1))
@@ -445,28 +447,29 @@ fun BackgroundVideo(isPlaying: Boolean) {
         }
     }
 
-    // PlayerView를 AndroidView로 래핑 - 밀림 현상 방지
+    // PlayerView를 AndroidView로 래핑
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
-                    useController = false
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT // FIT으로 변경하여 밀림 방지
+                    useController = false // 컨트롤러 숨기기
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // 비율 유지하며 화면 꽉 채우기
+                    // 워치 화면 크기 강제 설정
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    setBackgroundColor(android.graphics.Color.BLACK)
                 }
             },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(1.15f), // Compose의 scale modifier 사용 - 115% 확대
             update = { playerView ->
+                // 레이아웃이 준비되면 강제 갱신
                 playerView.post {
                     playerView.requestLayout()
                 }
