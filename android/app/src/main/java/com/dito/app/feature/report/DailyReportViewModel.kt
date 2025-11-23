@@ -2,21 +2,31 @@ package com.dito.app.feature.report
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dito.app.core.data.RealmConfig
+import com.dito.app.core.data.phone.MediaSessionEvent
 import com.dito.app.core.data.report.ComparisonItem
 import com.dito.app.core.data.report.ComparisonType
 import com.dito.app.core.data.report.DailyReportData
+import com.dito.app.core.data.report.DiaryUiState
 import com.dito.app.core.data.report.RadarChartData
 import com.dito.app.core.data.report.StatusDescription
+import com.dito.app.core.data.report.VideoFeedback
+import com.dito.app.core.data.report.VideoFeedbackItem
+import android.util.Base64
 import com.dito.app.core.network.ApiService
 import com.dito.app.core.repository.HomeRepository
 import com.dito.app.core.storage.AuthTokenManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.realm.kotlin.ext.query
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 sealed class DailyReportUiState {
@@ -25,11 +35,19 @@ sealed class DailyReportUiState {
     data class Error(val message: String) : DailyReportUiState()
 }
 
+enum class DebugFilter {
+    ALL,        // 전체
+    TODAY,      // 오늘
+    UNSYNCED,   // 미동기화
+    YOUTUBE     // YouTube만
+}
+
 @HiltViewModel
 class DailyReportViewModel @Inject constructor(
     private val apiService: ApiService,
     private val authTokenManager: AuthTokenManager,
-    private val homeRepository: HomeRepository
+    private val homeRepository: HomeRepository,
+    private val reportRepository: com.dito.app.core.repository.ReportRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DailyReportUiState>(DailyReportUiState.Loading)
@@ -39,6 +57,25 @@ class DailyReportViewModel @Inject constructor(
     val isPolling: StateFlow<Boolean> = _isPolling.asStateFlow()
 
     private var reportPollingJob: Job? = null
+
+    // Debug 상태
+    private val _showDebugTab = MutableStateFlow(false)
+    val showDebugTab: StateFlow<Boolean> = _showDebugTab.asStateFlow()
+
+    private val _mediaSessionEvents = MutableStateFlow<List<MediaSessionEvent>>(emptyList())
+    val mediaSessionEvents: StateFlow<List<MediaSessionEvent>> = _mediaSessionEvents.asStateFlow()
+
+    private val _debugFilter = MutableStateFlow(DebugFilter.ALL)
+    val debugFilter: StateFlow<DebugFilter> = _debugFilter.asStateFlow()
+
+    // 디토일지 상태
+    private val _diaryUiState = MutableStateFlow<DiaryUiState>(DiaryUiState.LoadingVideos)
+    val diaryUiState: StateFlow<DiaryUiState> = _diaryUiState.asStateFlow()
+
+    init {
+        // 앱 시작 시 피드백 영상 로드
+        loadVideosForFeedback()
+    }
 
     fun loadDailyReport() {
         viewModelScope.launch {
@@ -116,7 +153,8 @@ class DailyReportViewModel @Inject constructor(
                                     predictions = predictions,
                                     comparisons = comparisons,
                                     radarChartData = radarData,
-                                    advice = reportData.advice
+                                    advice = reportData.advice,
+                                    strategyChanges = reportData.strategy ?: emptyList()
                                 )
                                 _uiState.value = DailyReportUiState.Success(uiData)
                                 stopReportPolling()
@@ -167,5 +205,162 @@ class DailyReportViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopReportPolling()
+    }
+
+    // Debug 기능
+    fun toggleDebugTab() {
+        _showDebugTab.value = !_showDebugTab.value
+        if (_showDebugTab.value) {
+            loadMediaSessionEvents()
+        }
+    }
+
+    fun setDebugFilter(filter: DebugFilter) {
+        _debugFilter.value = filter
+        loadMediaSessionEvents()
+    }
+
+    fun loadMediaSessionEvents() {
+        viewModelScope.launch {
+            try {
+                val realm = RealmConfig.getInstance()
+                val events = when (_debugFilter.value) {
+                    DebugFilter.ALL -> {
+                        realm.query<MediaSessionEvent>().find()
+                    }
+                    DebugFilter.TODAY -> {
+                        val today = getToday()
+                        realm.query<MediaSessionEvent>("date == $0", today).find()
+                    }
+                    DebugFilter.UNSYNCED -> {
+                        realm.query<MediaSessionEvent>("synced == false").find()
+                    }
+                    DebugFilter.YOUTUBE -> {
+                        realm.query<MediaSessionEvent>(
+                            "appPackage == $0",
+                            "com.google.android.youtube"
+                        ).find()
+                    }
+                }
+                _mediaSessionEvents.value = events.sortedByDescending { it.timestamp }
+            } catch (e: Exception) {
+                _mediaSessionEvents.value = emptyList()
+            }
+        }
+    }
+
+    fun refreshDebugData() {
+        loadMediaSessionEvents()
+    }
+
+    private fun getToday(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(Date())
+    }
+
+    // ========== 디토일지 관련 함수들 ==========
+
+
+    /**
+     * 피드백 업데이트
+     */
+    fun updateFeedback(videoId: String, isHelpful: Boolean?, selectedReasons: Set<String> = emptySet()) {
+        val currentState = _diaryUiState.value
+        if (currentState is DiaryUiState.FeedbackCollection) {
+            val updatedFeedbacks = currentState.feedbacks.toMutableMap()
+            updatedFeedbacks[videoId] = VideoFeedback(
+                videoId = videoId,
+                isHelpful = isHelpful,
+                selectedReasons = selectedReasons
+            )
+            _diaryUiState.value = currentState.copy(feedbacks = updatedFeedbacks)
+        }
+    }
+
+    /**
+     * 디토일지 생성
+     */
+    fun generateDiary() {
+        viewModelScope.launch {
+            // 로딩 상태로 전환
+            _diaryUiState.value = DiaryUiState.GeneratingDiary
+
+            try {
+                // 스피너 표시를 위한 최소 대기 시간
+                delay(2000L)
+
+                // 기존 리포트 로드 로직 실행
+                loadDailyReport()
+
+                // 리포트 로드 완료 대기
+                delay(500L)
+
+                // 현재 uiState를 기반으로 DiaryGenerated 상태로 전환
+                val currentUiState = _uiState.value
+                if (currentUiState is DailyReportUiState.Success) {
+                    _diaryUiState.value = DiaryUiState.DiaryGenerated(
+                        reportData = currentUiState.data
+                    )
+                } else {
+                    // 실패 시 에러 상태
+                    _diaryUiState.value = DiaryUiState.Error("디토일지 생성에 실패했습니다")
+                }
+            } catch (e: Exception) {
+                _diaryUiState.value = DiaryUiState.Error(
+                    e.message ?: "알 수 없는 오류가 발생했습니다"
+                )
+            }
+        }
+    }
+
+    /**
+     * 디토일지 상태 초기화 (피드백 수집 화면으로 복귀)
+     */
+    /**
+     * 피드백 영상 목록 로드 (API 호출)
+     */
+    fun loadVideosForFeedback() {
+        viewModelScope.launch {
+            _diaryUiState.value = DiaryUiState.LoadingVideos
+
+            try {
+                val result = reportRepository.getVideosForFeedback()
+
+                result.onSuccess { videos ->
+                    if (videos.isNotEmpty()) {
+                        _diaryUiState.value = DiaryUiState.FeedbackCollection(
+                            videos = videos,
+                            feedbacks = emptyMap()
+                        )
+                    } else {
+                        // 영상이 없는 경우
+                        _diaryUiState.value = DiaryUiState.Error(
+                            message = "피드백 대상 영상이 없습니다",
+                            canRetry = true
+                        )
+                    }
+                }.onFailure { exception ->
+                    // API 실패시 에러 표시
+                    android.util.Log.e("DailyReportViewModel", "영상 로드 실패: ${exception.message}")
+                    _diaryUiState.value = DiaryUiState.Error(
+                        message = exception.message ?: "영상을 불러오는데 실패했습니다",
+                        canRetry = true
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("DailyReportViewModel", "영상 로드 중 예외 발생", e)
+                _diaryUiState.value = DiaryUiState.Error(
+                    message = "영상을 불러오는데 실패했습니다",
+                    canRetry = true
+                )
+            }
+        }
+    }
+
+    /**
+     * 디토일지 상태 초기화
+     */
+    fun resetDiaryState() {
+        loadVideosForFeedback()
     }
 }
