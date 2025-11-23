@@ -33,6 +33,7 @@ class GroupManager @Inject constructor(
         private const val KEY_START_DATE = "start_date"
         private const val KEY_END_DATE = "end_date"
         private const val KEY_IS_LEADER = "is_leader"
+        private const val KEY_INITIAL_USER_ORDER = "initial_user_order"
 
         // 프론트엔드 전용 상태 (그룹에 참여하지 않음)
         const val STATUS_NO_CHALLENGE = "NO_CHALLENGE"
@@ -183,7 +184,9 @@ class GroupManager @Inject constructor(
      * 챌린지 종료 (모든 정보 삭제)
      */
     fun endChallenge() {
-        prefs.edit { clear() }
+        prefs.edit {
+            clear()
+        }
     }
 
     /**
@@ -226,5 +229,32 @@ class GroupManager @Inject constructor(
      */
     fun isLeader(): Boolean {
         return prefs.getBoolean(KEY_IS_LEADER, false)
+    }
+
+    /**
+     * 초기 사용자 순서 저장 (캐릭터 위치 고정용)
+     */
+    fun saveInitialUserOrder(userIds: List<Long>) {
+        val orderString = userIds.joinToString(",")
+        prefs.edit { putString(KEY_INITIAL_USER_ORDER, orderString) }
+    }
+
+    /**
+     * 초기 사용자 순서 조회
+     */
+    fun getInitialUserOrder(): List<Long> {
+        val orderString = prefs.getString(KEY_INITIAL_USER_ORDER, "") ?: ""
+        return if (orderString.isBlank()) {
+            emptyList()
+        } else {
+            orderString.split(",").mapNotNull { it.toLongOrNull() }
+        }
+    }
+
+    /**
+     * 초기 사용자 순서 초기화 (챌린지 종료 시)
+     */
+    fun clearInitialUserOrder() {
+        prefs.edit { remove(KEY_INITIAL_USER_ORDER) }
     }
 }
