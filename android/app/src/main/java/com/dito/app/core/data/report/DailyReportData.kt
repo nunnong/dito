@@ -17,7 +17,8 @@ data class DailyReportResponse(
     @SerialName("missionSuccessRate")
     val missionSuccessRate: Int? = null,
     @SerialName("createdAt")
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val strategy: List<StrategyChange>? = null
 )
 
 @Serializable
@@ -45,7 +46,8 @@ data class DailyReportData(
     val predictions: List<String>,
     val comparisons: List<ComparisonItem>,
     val radarChartData: RadarChartData? = null,
-    val advice: String
+    val advice: String,
+    val strategyChanges: List<StrategyChange> = emptyList()
 )
 
 /**

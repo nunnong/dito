@@ -1,0 +1,18 @@
+{
+  "videos": [
+    {
+      "id": "video_1",
+      "title": "\"그때 썼던 그 지원서, 지금도 통할까?\" 15기 온라인 모집설명회!!",
+      "channel": "삼성청년SW·AI아카데미 Youtube채널 HELLOSSAFY",
+      "thumbnailResName": "thumb1",
+      "watchTimeMinutes": 45
+    },
+    {
+      "id": "video_2",
+      "title": "'진격의 거인(Attack on Titan)' 4기 Part 3 감상회",
+      "channel": "침착맨",
+      "thumbnailResName": "thumb2",
+      "watchTimeMinutes": 23
+    }
+  ]
+}
