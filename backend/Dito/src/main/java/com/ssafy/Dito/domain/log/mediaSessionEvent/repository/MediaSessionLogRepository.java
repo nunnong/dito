@@ -1,12 +1,14 @@
 package com.ssafy.Dito.domain.log.mediaSessionEvent.repository;
 
 import com.ssafy.Dito.domain.log.mediaSessionEvent.document.MediaSessionEventDocument;
+import com.ssafy.Dito.domain.log.mediaSessionEvent.entity.EventType;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * MongoDB repository for media session event logs
@@ -56,5 +58,9 @@ public interface MediaSessionLogRepository extends MongoRepository<MediaSessionE
      */
     List<MediaSessionEventDocument> findByUserIdAndEventDateBetweenAndWatchTimeNotNull(
         Long userId, LocalDate startDate, LocalDate endDate
+    );
+
+    Optional<MediaSessionEventDocument> findFirstByUserIdAndTitleAndEventDateAndEventTypeOrderByEventTimestampDesc(
+        Long userId, String title, LocalDate eventDate, EventType eventType
     );
 }

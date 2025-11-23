@@ -117,4 +117,9 @@ public class MediaSessionEventDocument extends MongoBaseDocument {
             .isEducational(req.isEducational())
             .build();
     }
+
+    public void updateWatchTime(Long watchTime, Long eventTimestamp) {
+        this.watchTime = watchTime;
+        this.eventTimestamp = eventTimestamp;
+    }
 }
