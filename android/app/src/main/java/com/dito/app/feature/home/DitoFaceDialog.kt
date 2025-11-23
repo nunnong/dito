@@ -84,63 +84,6 @@ fun DitoFaceDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                // 첫 번째 섹션: AI 판단 안내
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 13.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "디토 AI의 판단으로\n세 가지 스탯이 변화합니다!",
-                        style = DitoCustomTextStyles.titleDMedium,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                // 구분선
-                HorizontalDivider(
-                    modifier = Modifier.fillMaxWidth(),
-                    thickness = 1.dp,
-                    color = Color.Black
-                )
-
-                // 두 번째 섹션: 스탯 설명
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 0.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(0.dp))
-
-                    // 자기관리
-                    StatItem(
-                        label = "자기관리",
-                        description = "AI 알림에 반응해 미션을 수행했을 때",
-                        backgroundColor = Primary
-                    )
-
-                    // 집중력
-                    StatItem(
-                        label = "집중력",
-                        description = "앱 간 전환이 잦지 않을 때",
-                        backgroundColor = Secondary
-                    )
-
-                    // 수면
-                    StatItem(
-                        label = "수면",
-                        description = "취침 전 휴대폰을 사용하지 않을 때",
-                        backgroundColor = Tertiary
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-
 
                 // 세 번째 섹션: 표정 변화 안내
                 Column(
@@ -223,6 +166,65 @@ fun DitoFaceDialog(
                         textAlign = TextAlign.Center
                     )
                 }
+                // 첫 번째 섹션: AI 판단 안내
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 13.dp, vertical = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "디토 AI의 판단으로\n세 가지 스탯이 변화합니다!",
+                        style = DitoCustomTextStyles.titleDMedium,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // 구분선
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth(),
+                    thickness = 1.dp,
+                    color = Color.Black
+                )
+
+                // 두 번째 섹션: 스탯 설명
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 0.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+                    Spacer(modifier = Modifier.height(0.dp))
+
+                    // 자기관리
+                    StatItem(
+                        label = "자기관리",
+                        description = "AI 알림에 반응해 미션을 수행했을 때",
+                        backgroundColor = Primary
+                    )
+
+                    // 집중력
+                    StatItem(
+                        label = "집중력",
+                        description = "앱 간 전환이 잦지 않을 때",
+                        backgroundColor = Secondary
+                    )
+
+                    // 수면
+                    StatItem(
+                        label = "수면",
+                        description = "취침 전 휴대폰을 사용하지 않을 때",
+                        backgroundColor = Tertiary
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+
+
             }
         }
     }
