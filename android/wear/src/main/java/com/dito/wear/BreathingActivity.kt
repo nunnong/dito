@@ -74,7 +74,7 @@ enum class BreathingPhase {
 fun BreathingScreen() {
     var isActive by remember { mutableStateOf(false) }
     var currentPhase by remember { mutableStateOf(BreathingPhase.INHALE) }
-    var countdown by remember { mutableIntStateOf(60) } // 1분 = 60초
+    var countdown by remember { mutableIntStateOf(20) } // 20초
     val context = LocalContext.current
 
     // AudioManager 초기화
@@ -154,10 +154,10 @@ fun BreathingScreen() {
         },
         animationSpec = tween(
             durationMillis = when (currentPhase) {
-                BreathingPhase.INHALE -> 4000  // 4초
-                BreathingPhase.HOLD -> 4000    // 4초
-                BreathingPhase.EXHALE -> 4000  // 4초
-                BreathingPhase.REST -> 4000    // 4초
+                BreathingPhase.INHALE -> 5000  // 5초
+                BreathingPhase.HOLD -> 5000    // 5초
+                BreathingPhase.EXHALE -> 5000  // 5초
+                BreathingPhase.REST -> 5000    // 5초
             },
             easing = LinearEasing
         ),
@@ -191,23 +191,21 @@ fun BreathingScreen() {
                 android.util.Log.e("BreathingActivity", "AudioFocus 요청 실패")
             }
 
-            while (countdown > 0 && isActive) {
-                // 각 페이즈 전환 (4초씩)
-                currentPhase = BreathingPhase.INHALE
-                delay(4000)
+            // 각 페이즈 전환 (5초씩, 총 20초)
+            currentPhase = BreathingPhase.INHALE
+            delay(5000)
 
-                if (!isActive) break
-                currentPhase = BreathingPhase.HOLD
-                delay(4000)
+            if (!isActive || countdown <= 0) return@LaunchedEffect
+            currentPhase = BreathingPhase.HOLD
+            delay(5000)
 
-                if (!isActive) break
-                currentPhase = BreathingPhase.EXHALE
-                delay(4000)
+            if (!isActive || countdown <= 0) return@LaunchedEffect
+            currentPhase = BreathingPhase.EXHALE
+            delay(5000)
 
-                if (!isActive) break
-                currentPhase = BreathingPhase.REST
-                delay(4000)
-            }
+            if (!isActive || countdown <= 0) return@LaunchedEffect
+            currentPhase = BreathingPhase.REST
+            delay(5000)
 
             // 종료 진동
             vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 200, 100, 200), -1))
@@ -227,7 +225,7 @@ fun BreathingScreen() {
             audioManager.abandonAudioFocusRequest(audioFocusRequest)
 
             isActive = false
-            countdown = 60
+            countdown = 20
         } else {
             // 중지 버튼을 눌렀을 때도 음악 정지 및 AudioFocus 해제
             mediaPlayer?.let { player ->
@@ -282,7 +280,7 @@ fun BreathingScreen() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "1분 동안\n편안하게 호흡하세요",
+                    text = "20초 동안\n편안하게 호흡하세요",
                     style = MaterialTheme.typography.body2,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
@@ -379,7 +377,7 @@ fun BreathingScreen() {
                             Chip(
                                 onClick = {
                                     isActive = false
-                                    countdown = 60
+                                    countdown = 20
                                 },
                                 label = {
                                     Text(
@@ -447,29 +445,28 @@ fun BackgroundVideo(isPlaying: Boolean) {
         }
     }
 
-    // PlayerView를 AndroidView로 래핑
+    // PlayerView를 AndroidView로 래핑 - 밀림 현상 방지
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
-                    useController = false // 컨트롤러 숨기기
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // 비율 유지하며 화면 꽉 채우기
-                    // 워치 화면 크기 강제 설정
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT // FIT으로 변경하여 밀림 방지
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                    setBackgroundColor(android.graphics.Color.BLACK)
                 }
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(1.15f), // Compose의 scale modifier 사용 - 115% 확대
+            modifier = Modifier.fillMaxSize(),
             update = { playerView ->
-                // 레이아웃이 준비되면 강제 갱신
                 playerView.post {
                     playerView.requestLayout()
                 }
