@@ -9,6 +9,11 @@ import android.os.Looper
 import android.util.Log
 import com.dito.app.core.data.RealmConfig
 import com.dito.app.core.data.phone.MediaSessionEvent
+import io.realm.kotlin.query.Sort
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.dito.app.core.background.EventSyncWorker
 import com.dito.app.core.network.AppMetadata
 import com.dito.app.core.network.BehaviorLog
 import com.dito.app.core.service.AIAgent
@@ -18,7 +23,6 @@ import com.dito.app.core.util.EducationalContentDetector
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -101,6 +105,56 @@ class SessionStateManager(
             val session = instance?.currentSession ?: return false
             return session.appPackage == PKG_YOUTUBE
         }
+
+        /**
+         * 현재 재생 중인 세션의 미디어 정보 반환
+         * @return Triple<eventId, isEducational, timestamp> 또는 null
+         */
+        fun getCurrentMediaInfo(): Triple<String?, Boolean, Long>? {
+            val session = instance?.currentSession ?: return null
+
+            // YouTube가 아니면 null 반환
+            if (session.appPackage != PKG_YOUTUBE) return null
+
+            val finalChannel = when {
+                session.bestChannel.isNotBlank() -> session.bestChannel
+                session.channel.isNotBlank() && session.channel != "알 수 없음" -> session.channel
+                else -> ""
+            }
+
+            // 교육 콘텐츠 여부 판단
+            val isEducational = EducationalContentDetector.isEducationalContent(
+                session.title,
+                finalChannel
+            )
+
+            // Realm에서 가장 최근 저장된 이벤트 ID 조회
+            val eventId = try {
+                val realm = RealmConfig.getInstance()
+                val today = formatDate(System.currentTimeMillis())
+                val latestEvent = realm.query(MediaSessionEvent::class,
+                    "date == $0 AND title == $1 AND appPackage == $2",
+                    today, session.title, PKG_YOUTUBE
+                )
+                    .sort("timestamp", Sort.DESCENDING)
+                    .first()
+                    .find()
+
+                latestEvent?._id?.toHexString()
+            } catch (e: Exception) {
+                Log.e(TAG, "최신 미디어 이벤트 조회 실패", e)
+                null
+            }
+
+            val timestamp = System.currentTimeMillis()
+
+            return Triple(eventId, isEducational, timestamp)
+        }
+
+        private fun formatDate(timestamp: Long): String {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            return sdf.format(Date(timestamp))
+        }
     }
 
     private var currentSession: ActiveSession? = null
@@ -116,6 +170,8 @@ class SessionStateManager(
     private var aiCheckRunnable: Runnable? = null // 재생 중 AI 호출 타이머
     private var explorationCheckRunnable: Runnable? = null // 탐색 중 AI 호출 타이머
     private var explorationStartTime: Long = 0L // 탐색 시작 시간
+    private var realtimeSyncRunnable: Runnable? = null // YouTube 재생 중 실시간 동기화 타이머
+    private val realtimeSyncIntervalMs = 10_000L // 10초
 
     // Heartbeat
     private var heartbeatJob: kotlinx.coroutines.Job? = null
@@ -1045,6 +1101,7 @@ class SessionStateManager(
         cancelAICheck()
         cancelExplorationCheck()
         cancelRealtimeSync()
+        stopHeartbeat()
 
         pendingSaveRunnable?.let { handler.removeCallbacks(it) }
         pendingSaveRunnable = null
@@ -1062,6 +1119,8 @@ class SessionStateManager(
     fun forceFlushCurrentSession() {
         cancelAICheck()
         cancelExplorationCheck()
+        cancelRealtimeSync()
+        stopHeartbeat()
 
         currentSession?.let { session ->
             val currentTime = System.currentTimeMillis()

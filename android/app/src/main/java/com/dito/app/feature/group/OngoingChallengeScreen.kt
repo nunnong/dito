@@ -589,16 +589,8 @@ fun OngoingChallengeScreen(
                                     val currentSeconds = uiState.realTimeScreenTimes[rankingItem.userId] ?: 0
                                     val currentMinutes = currentSeconds / 60
 
-                                    // 내 캐릭터는 오늘 하루 시간, 다른 사람은 서버 데이터
-                                    val displayMinutes = if (rankingItem.isMe) {
-                                        uiState.myTodayYoutubeMinutes
-                                    } else {
-                                        currentMinutes
-                                    }
-
-                                    if (rankingItem.isMe) {
-                                        android.util.Log.d("OngoingChallenge", "🎯 내 캐릭터 렌더링: 오늘 하루=${uiState.myTodayYoutubeMinutes}분, goalMinutes=${uiState.goalMinutes}")
-                                    }
+                                    // 모든 캐릭터 서버 데이터 사용 (정확한 시간)
+                                    val displayMinutes = currentMinutes
                                     CharacterView(
                                         costumeItemId = rankingItem.costumeItemId,
                                         rank = rankingItem.rank,
