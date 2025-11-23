@@ -8,6 +8,7 @@ import com.ssafy.Dito.domain.groups.repository.GroupChallengeRepository;
 import com.ssafy.Dito.domain.groups.repository.GroupParticipantRepository;
 import com.ssafy.Dito.domain.item.entity.Type;
 import com.ssafy.Dito.domain.log.mediaSessionEvent.document.MediaSessionEventDocument;
+import com.ssafy.Dito.domain.log.mediaSessionEvent.entity.EventType;
 import com.ssafy.Dito.domain.log.mediaSessionEvent.repository.MediaSessionLogRepository;
 import com.ssafy.Dito.domain.screentime.document.CurrentAppUsage;
 import com.ssafy.Dito.domain.screentime.document.ScreenTimeDailySummary;
@@ -229,15 +230,30 @@ public class ScreenTimeService {
                                     endDate != null ? endDate.plusDays(1) : null
                             );
 
-                    MediaSessionEventDocument latestYoutubeEvent = recentEvents.stream()
+                    CurrentAppUsage currentApp = currentAppMap.get(uid);
+                    boolean watchingYoutube = currentApp != null &&
+                            currentApp.getAppPackage() != null &&
+                            currentApp.getAppPackage().contains("youtube");
+
+                    MediaSessionEventDocument latestEducationalStart = recentEvents.stream()
+                            .filter(e -> e.getEventType() == EventType.VIDEO_START)
                             .filter(e -> e.getPackageName() != null &&
                                     e.getPackageName().contains("youtube"))
                             .max(Comparator.comparingLong(MediaSessionEventDocument::getEventTimestamp))
                             .orElse(null);
 
-                    boolean latestIsEducational =
-                            latestYoutubeEvent != null &&
-                                    Boolean.TRUE.equals(latestYoutubeEvent.getIsEducational());
+                    MediaSessionEventDocument fallbackLatestYoutubeEvent = recentEvents.stream()
+                            .filter(e -> e.getPackageName() != null &&
+                                    e.getPackageName().contains("youtube"))
+                            .max(Comparator.comparingLong(MediaSessionEventDocument::getEventTimestamp))
+                            .orElse(null);
+
+                    MediaSessionEventDocument targetEvent =
+                            latestEducationalStart != null ? latestEducationalStart : fallbackLatestYoutubeEvent;
+
+                    boolean latestIsEducational = watchingYoutube &&
+                            targetEvent != null &&
+                            Boolean.TRUE.equals(targetEvent.getIsEducational());
 
                     Integer betCoins = participant.getBetCoins();
 
