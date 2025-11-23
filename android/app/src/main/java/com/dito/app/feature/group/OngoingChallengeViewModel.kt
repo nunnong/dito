@@ -7,6 +7,7 @@ import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
+import com.dito.app.core.service.phone.UsageStatsHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -34,7 +35,8 @@ data class OngoingChallengeUiState(
     val realTimeScreenTimes: Map<Long, Int> = emptyMap(),  // userId -> 초 단위 스크린타임
     val coachMessage: String = "",  // AI 코치 말풍선 메시지 (1줄)
     val showCoachBubble: Boolean = false,  // 말풍선 표시 여부
-    val goalMinutes: Int = 0  // 오늘 목표 시간 (분)
+    val goalMinutes: Int = 0,  // 오늘 목표 시간 (분)
+    val myTodayYoutubeMinutes: Int = 0  // 내 오늘 하루 유튜브 사용 시간 (분)
 )
 
 @HiltViewModel
@@ -114,12 +116,11 @@ class OngoingChallengeViewModel @Inject constructor(
         stopAutoRefresh()
         autoRefreshJob = viewModelScope.launch {
             while (true) {
-                // 자신의 YouTube 시간을 서버에 즉시 업로드
-                ScreenTimeSyncWorker.triggerImmediateSync(context)
-                // 약간의 딜레이 후 랭킹 조회 (서버가 업데이트할 시간)
-                delay(500L)
+                // SessionStateManager가 10초마다 자동으로 데이터를 보내므로
+                // 여기서는 랭킹만 조회
                 loadRanking()
-                delay(9_500L) // 총 10초 주기
+                updateMyTodayYoutubeTime()
+                delay(10_000L) // 10초 주기
             }
         }
         startRealTimeTicker()
@@ -146,13 +147,37 @@ class OngoingChallengeViewModel @Inject constructor(
         // 10초마다 서버에서 최신 랭킹을 받아와서 표시
     }
 
+    private fun updateMyTodayYoutubeTime() {
+        viewModelScope.launch {
+            try {
+                // 오늘 하루 YouTube 사용 시간 (밀리초)
+                val todayYoutubeMs = UsageStatsHelper.getAppUsageToday(context, "com.google.android.youtube")
+                val todayYoutubeMinutes = (todayYoutubeMs / 1000 / 60).toInt()
+
+                android.util.Log.d("OngoingChallenge", "📱 오늘 하루 YouTube 사용: ${todayYoutubeMinutes}분 (${todayYoutubeMs}ms)")
+
+                _uiState.value = _uiState.value.copy(
+                    myTodayYoutubeMinutes = todayYoutubeMinutes
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("OngoingChallenge", "오늘 YouTube 시간 가져오기 실패", e)
+            }
+        }
+    }
+
     fun loadRanking() {
         val groupId = groupManager.getGroupId()
         if (groupId == 0L) return
 
+        android.util.Log.d("OngoingChallenge", "loadRanking 호출: ${System.currentTimeMillis()}")
+
         viewModelScope.launch {
             groupRepository.getRanking(groupId).fold(
                 onSuccess = { response ->
+                    android.util.Log.d("OngoingChallenge", "랭킹 응답 받음: ${response.rankings.firstOrNull()?.totalScreenTimeFormatted}")
+                    response.rankings.forEach { ranking ->
+                        android.util.Log.d("OngoingChallenge", "userId=${ranking.userId}, isEducational=${ranking.isEducational}, currentApp=${ranking.currentAppPackage}")
+                    }
                     val currentOrder = _uiState.value.initialUserOrder
 
                     // 처음 랭킹을 받았을 때만 초기 순서 저장
@@ -162,11 +187,12 @@ class OngoingChallengeViewModel @Inject constructor(
                         currentOrder
                     }
 
-                    // 서버에서 받은 스크린타임을 초 단위
+                    // 서버에서 받은 스크린타임을 초 단위로 변환
                     val serverTimes = mutableMapOf<Long, Int>()
                     response.rankings.forEach { ranking ->
-                        val serverSeconds = ranking.totalSeconds
+                        val serverSeconds = parseFormattedTimeToSeconds(ranking.totalScreenTimeFormatted)
                         serverTimes[ranking.userId] = serverSeconds
+                        android.util.Log.d("OngoingChallenge", "⏱️ 시간 파싱: ${ranking.nickname} - ${ranking.totalScreenTimeFormatted} → ${serverSeconds}초 (${serverSeconds/60}분)")
                     }
 
                     _uiState.value = _uiState.value.copy(
@@ -275,6 +301,7 @@ class OngoingChallengeViewModel @Inject constructor(
             ?: return "오늘도 나랑 가볍게 시작해볼까? 🍋"
 
         val times = state.realTimeScreenTimes
+        // 코치 메시지는 순위 비교이므로 전체 누적 시간 사용
         val mySeconds = times[my.userId] ?: 0
         val myMinutes = mySeconds / 60
 
@@ -342,10 +369,11 @@ class OngoingChallengeViewModel @Inject constructor(
             }
         }
 
-        // 4) 나의 진행률 & 목표 대비 차이
+        // 4) 나의 진행률 & 목표 대비 차이 (오늘 하루 목표 vs 오늘 하루 사용량)
         if (goalMinutes > 0) {
-            val remaining = goalMinutes - myMinutes
-            val usedPercent = (myMinutes * 100 / goalMinutes).coerceIn(0, 300)
+            val myTodayMinutes = state.myTodayYoutubeMinutes
+            val remaining = goalMinutes - myTodayMinutes
+            val usedPercent = (myTodayMinutes * 100 / goalMinutes).coerceIn(0, 300)
 
             val goalMessage = when {
                 remaining > 30 -> "오늘 목표의 ${usedPercent}%만 썼어. 아직 여유있어!\n지금 페이스 유지해봐 😎"
@@ -400,5 +428,25 @@ class OngoingChallengeViewModel @Inject constructor(
         }
 
         return totalMinutes
+    }
+
+    private fun parseFormattedTimeToSeconds(formattedTime: String): Int {
+        // "10h 30m" 형식을 초 단위로 변환
+        val hourRegex = """(\d+)h""".toRegex()
+        val minuteRegex = """(\d+)m""".toRegex()
+
+        var totalSeconds = 0
+
+        hourRegex.find(formattedTime)?.let { match ->
+            val hours = match.groupValues[1].toIntOrNull() ?: 0
+            totalSeconds += hours * 3600
+        }
+
+        minuteRegex.find(formattedTime)?.let { match ->
+            val minutes = match.groupValues[1].toIntOrNull() ?: 0
+            totalSeconds += minutes * 60
+        }
+
+        return totalSeconds
     }
 }

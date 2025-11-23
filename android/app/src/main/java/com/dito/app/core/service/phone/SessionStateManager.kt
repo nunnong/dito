@@ -189,15 +189,18 @@ class SessionStateManager(
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 saveSession(session)
 
+                val newStartTime = System.currentTimeMillis()
                 currentSession = ActiveSession(
                     title = title,
                     channel = channel,
                     bestChannel = if (isValidChannel) channel else "",
                     appPackage = appPackage,
                     duration = duration,
-                    startTime = System.currentTimeMillis()
+                    startTime = newStartTime
                 )
-                Log.d(TAG, "새 세션 생성 (다른 영상)")
+                Log.d(TAG, "🆕 새 세션 생성 (다른 영상)")
+                Log.d(TAG, "  제목: $title")
+                Log.d(TAG, "  시작 시간: ${formatTime(newStartTime)}")
                 Log.d(TAG, "  초기 channel: $channel")
                 Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) channel else ""}")
 
@@ -211,6 +214,7 @@ class SessionStateManager(
                 Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
                 saveSession(session)
 
+                val newStartTime = System.currentTimeMillis()
                 currentSession = ActiveSession(
                     title = title,
                     // 표시용 현재 채널: 유효하면 최신값을 우선, 아니면 기존 값 유지
@@ -223,9 +227,11 @@ class SessionStateManager(
                     },
                     appPackage = appPackage,
                     duration = duration,
-                    startTime = System.currentTimeMillis()
+                    startTime = newStartTime
                 )
-                Log.d(TAG, "새 세션 생성 (재시작)")
+                Log.d(TAG, "🆕 새 세션 생성 (재시작)")
+                Log.d(TAG, "  제목: $title")
+                Log.d(TAG, "  시작 시간: ${formatTime(newStartTime)}")
                 Log.d(TAG, "  channel: ${currentSession?.channel}")
                 Log.d(TAG, "  bestChannel: ${currentSession?.bestChannel}")
 
@@ -258,15 +264,18 @@ class SessionStateManager(
                 return
             }
         } ?: run {
+            val newStartTime = System.currentTimeMillis()
             currentSession = ActiveSession(
                 title = title,
                 channel = channel,
                 bestChannel = if (isValidChannel) channel else "",
                 appPackage = appPackage,
                 duration = duration,
-                startTime = System.currentTimeMillis()
+                startTime = newStartTime
             )
-            Log.d(TAG, "새 세션 생성 (첫 재생)")
+            Log.d(TAG, "🆕 새 세션 생성 (첫 재생)")
+            Log.d(TAG, "  제목: $title")
+            Log.d(TAG, "  시작 시간: ${formatTime(newStartTime)}")
             Log.d(TAG, "  초기 channel: $channel")
             Log.d(TAG, "  초기 bestChannel: ${if (isValidChannel) channel else ""}")
         }
@@ -457,8 +466,17 @@ class SessionStateManager(
 
                 val currentTime = System.currentTimeMillis()
                 val watchTime = currentTime - session.startTime - session.totalPauseTime
+                val elapsedTime = currentTime - session.startTime
 
-                Log.d(TAG, "⏰ [10초마다] 재생 중 데이터 전송 (${watchTime / 1000}초 시청)")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
+                Log.d(TAG, "⏰ [10초마다] 재생 중 데이터 전송")
+                Log.d(TAG, "   제목: ${session.title}")
+                Log.d(TAG, "   시작 시간: ${formatTime(session.startTime)}")
+                Log.d(TAG, "   현재 시간: ${formatTime(currentTime)}")
+                Log.d(TAG, "   경과 시간: ${elapsedTime / 1000}초")
+                Log.d(TAG, "   일시정지: ${session.totalPauseTime / 1000}초")
+                Log.d(TAG, "   ★ 시청 시간: ${watchTime / 1000}초 (${watchTime / 1000 / 60}분)")
+                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
 
                 val finalChannel = when {
                     session.bestChannel.isNotBlank() -> session.bestChannel
@@ -587,8 +605,10 @@ class SessionStateManager(
 
             Log.d(TAG, "🔍 YouTube 탐색 감지 (앱 내에서 비재생 20초 경과)")
 
-            // 테스트용: 30분 사용시간으로 설정
-            val duration = 30 * 60 * 1000L // 30분 (밀리초)
+            // 탐색 시간 계산 (실제 탐색 시간)
+            val explorationDuration = System.currentTimeMillis() - explorationStartTime
+
+            Log.d(TAG, "   탐색 시간: ${explorationDuration / 1000}초")
 
             // Realm 저장
             val eventIds = mutableListOf<String>()
@@ -601,7 +621,7 @@ class SessionStateManager(
                         this.packageName = PKG_YOUTUBE
                         this.appName = "YouTube"
                         this.timestamp = System.currentTimeMillis()
-                        this.duration = duration
+                        this.duration = explorationDuration
                         this.date = formatDate(System.currentTimeMillis())
                         this.synced = false
                         this.aiCalled = true
@@ -619,7 +639,7 @@ class SessionStateManager(
             aiAgent.requestIntervention(
                 behaviorLog = BehaviorLog(
                     appName = "YouTube",
-                    durationSeconds = (duration / 1000).toInt(),
+                    durationSeconds = (explorationDuration / 1000).toInt(),
                     usageTimestamp = Checker.formatTimestamp(System.currentTimeMillis()),
                     recentAppSwitches = null,
                     appMetadata = null
@@ -723,18 +743,11 @@ class SessionStateManager(
             true // 다른 앱은 별도 로직
         }
 
-        // 테스트용: YouTube 재생 시간을 30분으로 강제 설정
-        val adjustedWatchTime = if (session.appPackage == PKG_YOUTUBE) {
-            30 * 60 * 1000L
-        } else {
-            watchTime
-        }
-
         val checkPoint = if (canCallAI) {
             Checker.checkMediaSession(
                 title = session.title,
                 channel = finalChannel,
-                watchTime = adjustedWatchTime,
+                watchTime = watchTime,
                 timestamp = endTime,
                 appPackage = session.appPackage
             )
