@@ -2,6 +2,7 @@ package com.ssafy.Dito.domain.report.entity;
 
 import com.ssafy.Dito.domain._common.IdentifiableEntity;
 import com.ssafy.Dito.domain.report.dto.InsightDto;
+import com.ssafy.Dito.domain.report.dto.StrategyChangeDto;
 import com.ssafy.Dito.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -40,6 +42,11 @@ public class Report extends IdentifiableEntity {
     @Comment("인사이트 목록 (JSONB)")
     private List<InsightDto> insights;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "strategy", columnDefinition = "jsonb", nullable = false)
+    @Comment("전략 변경 이력 목록 (JSONB)")
+    private List<StrategyChangeDto> strategy = new ArrayList<>();
+
     @Column(name = "advice", columnDefinition = "TEXT")
     @Comment("AI 조언(Advice)")
     private String advice;
@@ -61,10 +68,12 @@ public class Report extends IdentifiableEntity {
     private Instant createdAt;
 
     private Report(User user, String reportOverview, List<InsightDto> insights,
-                   String advice, Integer missionSuccessRate, LocalDate reportDate, String status) {
+                   List<StrategyChangeDto> strategy, String advice, Integer missionSuccessRate,
+                   LocalDate reportDate, String status) {
         this.user = user;
         this.reportOverview = reportOverview;
         this.insights = insights;
+        this.strategy = strategy != null ? strategy : new ArrayList<>();
         this.advice = advice;
         this.missionSuccessRate = missionSuccessRate;
         this.reportDate = reportDate != null ? reportDate : LocalDate.now();
@@ -73,8 +82,9 @@ public class Report extends IdentifiableEntity {
     }
 
     public static Report of(User user, String reportOverview, List<InsightDto> insights,
-                            String advice, Integer missionSuccessRate, LocalDate reportDate, String status) {
-        return new Report(user, reportOverview, insights, advice, missionSuccessRate, reportDate, status);
+                            List<StrategyChangeDto> strategy, String advice, Integer missionSuccessRate,
+                            LocalDate reportDate, String status) {
+        return new Report(user, reportOverview, insights, strategy, advice, missionSuccessRate, reportDate, status);
     }
 
     /**
@@ -83,17 +93,22 @@ public class Report extends IdentifiableEntity {
      *
      * @param reportOverview New report overview (optional)
      * @param insights New insights list (optional)
+     * @param strategy New strategy changes list (optional)
      * @param advice New advice (optional)
      * @param missionSuccessRate New mission success rate (optional)
      * @param status New status (optional)
      */
     public void update(String reportOverview, List<InsightDto> insights,
-                       String advice, Integer missionSuccessRate, String status) {
+                       List<StrategyChangeDto> strategy, String advice,
+                       Integer missionSuccessRate, String status) {
         if (reportOverview != null) {
             this.reportOverview = reportOverview;
         }
         if (insights != null) {
             this.insights = insights;
+        }
+        if (strategy != null) {
+            this.strategy = strategy;
         }
         if (advice != null) {
             this.advice = advice;

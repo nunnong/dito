@@ -2,6 +2,7 @@ package com.ssafy.Dito.domain.report.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.Dito.domain.report.dto.InsightDto;
+import com.ssafy.Dito.domain.report.dto.StrategyChangeDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -21,6 +22,10 @@ public record ReportUpdateReq(
     @Valid
     @Schema(description = "인사이트 목록 (선택)")
     List<InsightDto> insights,
+
+    @Valid
+    @Schema(description = "전략 변경 이력 목록 (선택)")
+    List<StrategyChangeDto> strategy,
 
     @Schema(description = "AI 조언 (선택)", example = "화면 사용 시간을 줄이기 위해...")
     String advice,

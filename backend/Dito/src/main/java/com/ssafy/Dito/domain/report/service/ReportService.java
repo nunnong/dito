@@ -46,6 +46,7 @@ public class ReportService {
             user,
             req.reportOverview(),
             req.insights(),
+            req.strategy(),
             req.advice(),
             req.missionSuccessRate(),
             req.reportDate(),
@@ -72,6 +73,7 @@ public class ReportService {
         report.update(
             req.reportOverview(),
             req.insights(),
+            req.strategy(),
             req.advice(),
             req.missionSuccessRate(),
             req.status()

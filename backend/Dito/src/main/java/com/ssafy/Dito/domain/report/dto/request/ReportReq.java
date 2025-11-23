@@ -2,6 +2,7 @@ package com.ssafy.Dito.domain.report.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ssafy.Dito.domain.report.dto.InsightDto;
+import com.ssafy.Dito.domain.report.dto.StrategyChangeDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -19,6 +20,9 @@ public record ReportReq(
 
     @Valid
     List<InsightDto> insights,
+
+    @Valid
+    List<StrategyChangeDto> strategy,
 
     String advice,
 

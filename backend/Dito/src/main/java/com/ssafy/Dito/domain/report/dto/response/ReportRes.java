@@ -1,6 +1,7 @@
 package com.ssafy.Dito.domain.report.dto.response;
 
 import com.ssafy.Dito.domain.report.dto.InsightDto;
+import com.ssafy.Dito.domain.report.dto.StrategyChangeDto;
 import com.ssafy.Dito.domain.report.entity.Report;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ public record ReportRes(
     Long id,
     String reportOverview,
     List<InsightDto> insights,
+    List<StrategyChangeDto> strategy,
     String advice,
     Integer missionSuccessRate,
     LocalDate reportDate,
@@ -21,6 +23,7 @@ public record ReportRes(
             report.getId(),
             report.getReportOverview(),
             report.getInsights(),
+            report.getStrategy(),
             report.getAdvice(),
             report.getMissionSuccessRate(),
             report.getReportDate(),
