@@ -170,12 +170,21 @@ class MediaSessionListenerService : NotificationListenerService() {
                 return
             }
 
+            // 썸네일 정보 확인
+            val artUri = metadata.getString(MediaMetadata.METADATA_KEY_ART_URI)
+                ?: metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ART_URI)
+                ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI)
+            val artBitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
+                ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
             Log.d(TAG, "앱: ${controller.packageName}")
             Log.d(TAG, "제목: ${metadata.getString(MediaMetadata.METADATA_KEY_TITLE)}")
             Log.d(TAG, "채널: ${metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)}")
             Log.d(TAG, "길이: ${metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)}ms")
             Log.d(TAG, "상태: ${getStateString(playbackState?.state)}")
+            Log.d(TAG, "썸네일 URL: ${artUri ?: "없음"}")
+            Log.d(TAG, "썸네일 Bitmap: ${if (artBitmap != null) "있음 (${artBitmap.width}x${artBitmap.height})" else "없음"}")
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━")
         } catch (e: Exception) {
             Log.e(TAG, "❌ 미디어 정보 로깅 실패", e)
