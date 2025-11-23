@@ -277,7 +277,7 @@ private fun MissionNotificationHeader(
             colorFilter = ColorFilter.tint(Color.White)
         )
         Text(
-            text = "알림",
+            text = "미션",
             style = DitoTypography.headlineMedium,
             color = Color.White,
             textAlign = TextAlign.Center
