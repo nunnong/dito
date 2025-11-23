@@ -31,7 +31,7 @@ data class MediaSessionEventDto(
     @SerialName("watchTime")
     val watch_time: Long?,
 
-    @SerialName("pauseTime")
+    @SerialName("PauseTime")
     val pause_time: Long?,
 
     @SerialName("eventDate")

@@ -92,12 +92,6 @@ class AppMonitoringService : AccessibilityService() {
     @Inject
     lateinit var missionTracker: MissionTracker
 
-    @Inject
-    lateinit var apiService: com.dito.app.core.network.ApiService
-
-    @Inject
-    lateinit var authTokenManager: com.dito.app.core.storage.AuthTokenManager
-
     private lateinit var sessionManager: SessionStateManager
 
     @Volatile
@@ -112,7 +106,7 @@ class AppMonitoringService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker, apiService, authTokenManager)
+        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
         Log.d(TAG, "✅ AccessibilityService 연결됨")
 
         // 화면 상태 리시버 등록
@@ -368,11 +362,24 @@ class AppMonitoringService : AccessibilityService() {
                     return@launch
                 }
 
+                // YouTube 재생 중이면 미디어 세션 정보 가져오기
+                val mediaInfo = SessionStateManager.getCurrentMediaInfo()
+                val (mediaEventId, mediaEducational, mediaEventTimestamp) = if (mediaInfo != null) {
+                    Triple(mediaInfo.first, mediaInfo.second, mediaInfo.third)
+                } else {
+                    Triple(null, null, null)
+                }
+
                 val request = UpdateCurrentAppRequest(
                     groupId = activeGroupId.toLong(),
                     appPackage = packageName,
-                    appName = appName
+                    appName = appName,
+                    mediaEventId = mediaEventId,
+                    mediaEducational = mediaEducational,
+                    mediaEventTimestamp = mediaEventTimestamp
                 )
+
+                Log.d(TAG, "📤 현재 앱 전송: $appName (미디어: eventId=$mediaEventId, edu=$mediaEducational)")
 
                 val response = ServiceLocator.apiService.updateCurrentApp(
                     token = "Bearer $token",
@@ -380,13 +387,13 @@ class AppMonitoringService : AccessibilityService() {
                 )
 
                 if (response.isSuccessful) {
-                    Log.d(TAG, "현재 앱 전송 성공: $appName ($packageName)")
+                    Log.d(TAG, "✅ 현재 앱 전송 성공: $appName ($packageName)")
                 } else {
-                    Log.w(TAG, "현재 앱 전송 실패: ${response.code()}")
+                    Log.w(TAG, "⚠️ 현재 앱 전송 실패: ${response.code()}")
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "현재 앱 전송 예외: ${e.message}", e)
+                Log.e(TAG, "❌ 현재 앱 전송 예외: ${e.message}", e)
             }
         }
     }

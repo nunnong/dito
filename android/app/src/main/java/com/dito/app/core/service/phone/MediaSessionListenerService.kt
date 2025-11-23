@@ -28,18 +28,12 @@ class MediaSessionListenerService : NotificationListenerService() {
     @Inject
     lateinit var missionTracker: MissionTracker
 
-    @Inject
-    lateinit var apiService: com.dito.app.core.network.ApiService
-
-    @Inject
-    lateinit var authTokenManager: com.dito.app.core.storage.AuthTokenManager
-
     private lateinit var sessionManager: SessionStateManager
     private val activeControllers = mutableMapOf<String, MediaController>()
 
     override fun onCreate() {
         super.onCreate()
-        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker, apiService, authTokenManager)
+        sessionManager = SessionStateManager(applicationContext, aiAgent, missionTracker)
         SessionStateManager.setInstance(sessionManager)
         Log.d(TAG, "SessionStateManager 초기화 완료")
     }

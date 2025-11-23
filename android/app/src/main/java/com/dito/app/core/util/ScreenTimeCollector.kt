@@ -54,10 +54,11 @@ class ScreenTimeCollector(private val context: Context) {
                 "com.google.android.youtube"
             ).find()
 
-            // 교육 콘텐츠가 아닌 세션만 합산
+            // 교육 콘텐츠가 아닌 세션만 처리
+            // VIDEO_END 이벤트만 사용 (VIDEO_START는 10초마다 누적되므로 중복됨)
             val savedWatchTimeMillis = sessions
-                .filter { !it.isEducational }
-                .sumOf { it.watchTime }
+                .filter { !it.isEducational && it.eventType == "VIDEO_END" }
+                .sumOf { it.watchTime }  // VIDEO_END의 watchTime만 합산
 
             val educationalCount = sessions.count { it.isEducational }
             val nonEducationalCount = sessions.size - educationalCount

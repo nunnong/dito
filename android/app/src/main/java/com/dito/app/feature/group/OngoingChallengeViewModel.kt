@@ -7,7 +7,7 @@ import com.dito.app.core.background.ScreenTimeSyncWorker
 import com.dito.app.core.data.group.RankingItem
 import com.dito.app.core.repository.GroupRepository
 import com.dito.app.core.storage.GroupManager
-import com.dito.app.core.service.phone.UsageStatsHelper
+import com.dito.app.core.util.ScreenTimeCollector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -148,13 +148,16 @@ class OngoingChallengeViewModel @Inject constructor(
     }
 
     private fun updateMyTodayYoutubeTime() {
+        val groupId = groupManager.getGroupId()
+        if (groupId == 0L) return  // 그룹이 없으면 체크 안 함
+
         viewModelScope.launch {
             try {
-                // 오늘 하루 YouTube 사용 시간 (밀리초)
-                val todayYoutubeMs = UsageStatsHelper.getAppUsageToday(context, "com.google.android.youtube")
-                val todayYoutubeMinutes = (todayYoutubeMs / 1000 / 60).toInt()
+                // 오늘 하루 YouTube 사용 시간 (분) - 교육 콘텐츠 제외
+                val collector = ScreenTimeCollector(context)
+                val todayYoutubeMinutes = collector.getYouTubeUsageMinutes()
 
-                android.util.Log.d("OngoingChallenge", "📱 오늘 하루 YouTube 사용: ${todayYoutubeMinutes}분 (${todayYoutubeMs}ms)")
+                android.util.Log.d("OngoingChallenge", "📱 오늘 하루 YouTube 사용 (교육 제외): ${todayYoutubeMinutes}분")
 
                 _uiState.value = _uiState.value.copy(
                     myTodayYoutubeMinutes = todayYoutubeMinutes
