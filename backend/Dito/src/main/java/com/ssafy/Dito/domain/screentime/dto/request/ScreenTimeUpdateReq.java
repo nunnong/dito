@@ -28,7 +28,6 @@ public record ScreenTimeUpdateReq(
 
 
     @Schema(description = "해당 날짜의 총 유튜브 스크린타임 (분)", example = "120")
-//    @NotNull(message = "스크린타임은 필수입니다")
     @Min(value = 0, message = "스크린타임은 0 이상이어야 합니다")
     Integer youtubeMinutes
 ) {

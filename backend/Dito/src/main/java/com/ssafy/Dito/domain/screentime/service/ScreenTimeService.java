@@ -66,17 +66,30 @@ public class ScreenTimeService {
                 .orElse(null);
 
         String status;
+        int reportedTotalMinutes = request.totalMinutes() != null ? request.totalMinutes() : 0;
+        int reportedYoutubeMinutes = resolveReportedYoutubeMinutes(summary, request);
+
         if (summary == null) {
             summary = ScreenTimeDailySummary.create(
                     request.groupId(),
                     userId,
                     request.date(),
-                    request.totalMinutes(),
-                    request.youtubeMinutes()
+                    reportedTotalMinutes,
+                    reportedYoutubeMinutes
             );
             status = "created";
         } else {
-            summary.updateScreenTime(request.totalMinutes(), request.youtubeMinutes());
+            int previousTotalReport = summary.getLastReportedTotalMinutes() != null
+                    ? summary.getLastReportedTotalMinutes()
+                    : reportedTotalMinutes;
+            int previousYoutubeReport = summary.getLastReportedYoutubeMinutes() != null
+                    ? summary.getLastReportedYoutubeMinutes()
+                    : reportedYoutubeMinutes;
+
+            int deltaTotalMinutes = Math.max(0, reportedTotalMinutes - previousTotalReport);
+            int deltaYoutubeMinutes = Math.max(0, reportedYoutubeMinutes - previousYoutubeReport);
+
+            summary.updateScreenTime(deltaTotalMinutes, deltaYoutubeMinutes, reportedTotalMinutes, reportedYoutubeMinutes);
             status = "updated";
         }
         summaryRepository.save(summary);
@@ -87,8 +100,8 @@ public class ScreenTimeService {
                         request.groupId(),
                         userId,
                         request.date(),
-                        request.totalMinutes(),
-                        request.youtubeMinutes()
+                        summary.getTotalMinutes(),
+                        summary.getYoutubeMinutes()
                 )
         );
 
@@ -96,10 +109,25 @@ public class ScreenTimeService {
                 request.groupId(),
                 userId,
                 request.date(),
-                request.totalMinutes(),
-                request.youtubeMinutes(),
+                summary.getTotalMinutes(),
+                summary.getYoutubeMinutes(),
                 status
         );
+    }
+
+    private int resolveReportedYoutubeMinutes(ScreenTimeDailySummary summary, ScreenTimeUpdateReq request) {
+        if (request.youtubeMinutes() != null) {
+            return request.youtubeMinutes();
+        }
+        if (summary != null) {
+            if (summary.getLastReportedYoutubeMinutes() != null) {
+                return summary.getLastReportedYoutubeMinutes();
+            }
+            if (summary.getInitialYoutubeMinutes() != null) {
+                return summary.getInitialYoutubeMinutes();
+            }
+        }
+        return 0;
     }
 
     /**

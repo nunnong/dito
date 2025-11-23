@@ -53,17 +53,36 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
     @Field("youtube_minutes")
     private Integer youtubeMinutes;
 
+    @Field("initial_total_minutes")
+    private Integer initialTotalMinutes;
+
+    @Field("initial_youtube_minutes")
+    private Integer initialYoutubeMinutes;
+
+    @Field("last_reported_total_minutes")
+    private Integer lastReportedTotalMinutes;
+
+    @Field("last_reported_youtube_minutes")
+    private Integer lastReportedYoutubeMinutes;
+
     @Field("last_updated_at")
     private LocalDateTime lastUpdatedAt;
 
     @Builder
     private ScreenTimeDailySummary(Long groupId, Long userId, LocalDate date,
-        Integer totalMinutes, Integer youtubeMinutes,LocalDateTime lastUpdatedAt) {
+        Integer totalMinutes, Integer youtubeMinutes,
+        Integer initialTotalMinutes, Integer initialYoutubeMinutes,
+        Integer lastReportedTotalMinutes, Integer lastReportedYoutubeMinutes,
+        LocalDateTime lastUpdatedAt) {
         this.groupId = groupId;
         this.userId = userId;
         this.date = date.toString();  // LocalDate를 "yyyy-MM-dd" String으로 변환
-        this.totalMinutes = totalMinutes;
+        this.totalMinutes = totalMinutes != null ? totalMinutes : 0;
         this.youtubeMinutes = youtubeMinutes != null ? youtubeMinutes : 0;
+        this.initialTotalMinutes = initialTotalMinutes != null ? initialTotalMinutes : 0;
+        this.initialYoutubeMinutes = initialYoutubeMinutes != null ? initialYoutubeMinutes : 0;
+        this.lastReportedTotalMinutes = lastReportedTotalMinutes;
+        this.lastReportedYoutubeMinutes = lastReportedYoutubeMinutes;
         this.lastUpdatedAt = lastUpdatedAt;
     }
 
@@ -71,12 +90,19 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
      * 새로운 일별 Summary 생성
      */
     public static ScreenTimeDailySummary create(Long groupId, Long userId,
-        LocalDate date,Integer totalMinutes, Integer youtubeMinutes) {
+        LocalDate date,Integer reportedTotalMinutes, Integer reportedYoutubeMinutes) {
+        int safeTotal = reportedTotalMinutes != null ? reportedTotalMinutes : 0;
+        int safeYoutube = reportedYoutubeMinutes != null ? reportedYoutubeMinutes : 0;
         return ScreenTimeDailySummary.builder()
             .groupId(groupId)
             .userId(userId)
             .date(date)
-            .totalMinutes(totalMinutes).youtubeMinutes(youtubeMinutes)
+            .totalMinutes(0)
+            .youtubeMinutes(0)
+            .initialTotalMinutes(safeTotal)
+            .initialYoutubeMinutes(safeYoutube)
+            .lastReportedTotalMinutes(safeTotal)
+            .lastReportedYoutubeMinutes(safeYoutube)
             .lastUpdatedAt(LocalDateTime.now())
             .build();
     }
@@ -84,9 +110,16 @@ public class ScreenTimeDailySummary extends MongoBaseDocument {
     /**
      * 스크린타임 갱신
      */
-    public void updateScreenTime(Integer newTotalMinutes, Integer newYoutubeMinutes) {
-        this.totalMinutes = newTotalMinutes;
-        this.youtubeMinutes = newYoutubeMinutes != null ? newYoutubeMinutes : 0;
+    public void updateScreenTime(Integer additionalTotalMinutes, Integer additionalYoutubeMinutes,
+                                 Integer reportedTotalMinutes, Integer reportedYoutubeMinutes) {
+        if (additionalTotalMinutes != null) {
+            this.totalMinutes = (this.totalMinutes != null ? this.totalMinutes : 0) + additionalTotalMinutes;
+        }
+        if (additionalYoutubeMinutes != null) {
+            this.youtubeMinutes = (this.youtubeMinutes != null ? this.youtubeMinutes : 0) + additionalYoutubeMinutes;
+        }
+        this.lastReportedTotalMinutes = reportedTotalMinutes != null ? reportedTotalMinutes : this.lastReportedTotalMinutes;
+        this.lastReportedYoutubeMinutes = reportedYoutubeMinutes != null ? reportedYoutubeMinutes : this.lastReportedYoutubeMinutes;
         this.lastUpdatedAt = LocalDateTime.now();
     }
 
