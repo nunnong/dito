@@ -27,7 +27,7 @@ object EducationalContentDetector {
         "조코딩 JoCoding",
         "조코딩",
         "JoCoding",
-        "삼성청년SW·AI아카데미 Youtube채널 HELLOSSAFY ",
+        "삼성청년SW·AI아카데미 Youtube채널 HELLOSSAFY",
 
     )
 
@@ -49,7 +49,10 @@ object EducationalContentDetector {
         "coding",
         "SSAFY",
         "삼성",
-        "AI"
+        "AI",
+        "싸피",
+        "개발",
+        "사무국"
     )
 
     /**

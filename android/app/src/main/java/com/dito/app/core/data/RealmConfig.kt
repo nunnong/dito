@@ -26,7 +26,7 @@ object RealmConfig {
                 )
             )
                 .name("dito.realm")                     // 파일명
-                .schemaVersion(1)                       // 스키마 버전
+                .schemaVersion(2)                       // 스키마 버전 (thumbnailUri 필드 추가)
                 // .deleteRealmIfMigrationNeeded()      // 제거: 데이터 보존을 위해
                 // 스키마 변경 시 schemaVersion을 올리고, 필요하면 migration 블록 추가
                 .build()
