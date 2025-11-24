@@ -49,10 +49,14 @@ class OngoingChallengeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(OngoingChallengeUiState())
     val uiState: StateFlow<OngoingChallengeUiState> = _uiState.asStateFlow()
 
+    private val _currentSecond = MutableStateFlow(0)
+    val currentSecond: StateFlow<Int> = _currentSecond.asStateFlow()
+
     private var autoRefreshJob: Job? = null
     private var realTimeTickerJob: Job? = null
     private val pokeBubbleJobs = mutableMapOf<Long, Job>()
     private var coachMessageJob: Job? = null
+    private var secondTickerJob: Job? = null
 
     init {
         // 저장된 초기 사용자 순서 복원
@@ -61,6 +65,7 @@ class OngoingChallengeViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(initialUserOrder = savedOrder)
         }
         refreshGroupDetails()
+        startSecondTicker()
     }
 
     override fun onCleared() {
@@ -68,6 +73,7 @@ class OngoingChallengeViewModel @Inject constructor(
         stopAutoRefresh()
         stopRealTimeTicker()
         stopCoachMessageRotation()
+        stopSecondTicker()
     }
 
     private fun refreshGroupDetails() {
@@ -459,5 +465,52 @@ class OngoingChallengeViewModel @Inject constructor(
         }
 
         return totalSeconds
+    }
+
+    private fun startSecondTicker() {
+        stopSecondTicker()
+        secondTickerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000L) // 1초마다
+                _currentSecond.value = (_currentSecond.value + 1) % 60
+            }
+        }
+    }
+
+    private fun stopSecondTicker() {
+        secondTickerJob?.cancel()
+        secondTickerJob = null
+    }
+
+    fun getStartSecond(userId: Long): Int {
+        // userId 기반으로 0~30 범위의 시작 초 생성
+        return (userId % 31).toInt()
+    }
+
+    fun parseFormattedTimeToMinutes(formattedTime: String): Int {
+        // "10h 30m" 형식을 분 단위로 변환
+        val hourRegex = """(\d+)h""".toRegex()
+        val minuteRegex = """(\d+)m""".toRegex()
+
+        var totalMinutes = 0
+
+        hourRegex.find(formattedTime)?.let { match ->
+            val hours = match.groupValues[1].toIntOrNull() ?: 0
+            totalMinutes += hours * 60
+        }
+
+        minuteRegex.find(formattedTime)?.let { match ->
+            val minutes = match.groupValues[1].toIntOrNull() ?: 0
+            totalMinutes += minutes
+        }
+
+        return totalMinutes
+    }
+
+    fun formatTimeWithSeconds(formattedTime: String, userId: Long, currentSecond: Int): String {
+        // "10h 30m" → "10h 30m 15s" (기존 포맷 유지 + 초 추가)
+        val startSecond = getStartSecond(userId)
+        val displaySecond = (startSecond + currentSecond) % 60
+        return "${formattedTime} ${displaySecond}s"
     }
 }

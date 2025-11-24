@@ -86,6 +86,8 @@ import com.dito.app.core.ui.designsystem.Primary
 @Composable
 fun StatisticsCard(
     uiState: OngoingChallengeUiState,
+    viewModel: OngoingChallengeViewModel,
+    currentSecond: Int,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -238,8 +240,13 @@ fun StatisticsCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 youtubeUsers.forEach { user ->
+                    val formattedTime = viewModel.formatTimeWithSeconds(
+                        user.totalScreenTimeFormatted,
+                        user.userId,
+                        currentSecond
+                    )
                     Text(
-                        text = "🔥 ${user.nickname} - ${user.totalScreenTimeFormatted}",
+                        text = "🔥 ${user.nickname} - ${formattedTime}",
                         style = DitoTypography.bodyMedium,
                         color = Color(0xFFFF5252)
                     )
@@ -440,6 +447,7 @@ fun OngoingChallengeScreen(
     viewModel: OngoingChallengeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentSecond by viewModel.currentSecond.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     var isInfoPanelVisible by remember { mutableStateOf(false) }
     var isChallengeGuideVisible by remember { mutableStateOf(false) }
@@ -632,6 +640,8 @@ fun OngoingChallengeScreen(
             // Bottom Statistics Card
             StatisticsCard(
                 uiState = uiState,
+                viewModel = viewModel,
+                currentSecond = currentSecond,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 5.dp)
@@ -650,10 +660,17 @@ fun OngoingChallengeScreen(
                     if (index < displayOrder.size) {
                         val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
+                        val formattedTime = rankingItem?.let {
+                            viewModel.formatTimeWithSeconds(
+                                it.totalScreenTimeFormatted,
+                                it.userId,
+                                currentSecond
+                            )
+                        } ?: ""
                         UserInfoCard(
                             nickname = rankingItem?.nickname ?: "",
                             profileImage = rankingItem?.profileImage,
-                            screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
+                            screenTime = formattedTime,
                             isEmpty = rankingItem == null,
                             isMe = rankingItem?.isMe ?: false,
                             modifier = Modifier.weight(1f)
