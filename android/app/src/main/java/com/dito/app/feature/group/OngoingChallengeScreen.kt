@@ -662,10 +662,23 @@ fun OngoingChallengeScreen(
                     if (index < displayOrder.size) {
                         val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
+                        val screenTime = rankingItem?.let { item ->
+                            val isWatchingNonEducationalYoutube =
+                                item.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true &&
+                                item.isEducational == false
+
+                            if (isWatchingNonEducationalYoutube) {
+                                // YouTube 비교육 영상 시청 중 → 초 있음
+                                viewModel.formatTimeWithSeconds(item.totalScreenTimeFormatted, item.userId, currentSecond)
+                            } else {
+                                // 그 외 → 초 없음
+                                item.totalScreenTimeFormatted
+                            }
+                        } ?: ""
                         UserInfoCard(
                             nickname = rankingItem?.nickname ?: "",
                             profileImage = rankingItem?.profileImage,
-                            screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
+                            screenTime = screenTime,
                             isEmpty = rankingItem == null,
                             isMe = rankingItem?.isMe ?: false,
                             modifier = Modifier.weight(1f)
