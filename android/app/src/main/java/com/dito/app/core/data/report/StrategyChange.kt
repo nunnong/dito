@@ -58,7 +58,7 @@ enum class StrategyMode {
 
     fun toDisplayName(): String = when(this) {
         STRICT -> "엄격"
-        MODERATE -> "절제"
+        MODERATE -> "맞춤형"
         RELAXED -> "자유"
         FOCUS -> "집중"
     }
