@@ -229,7 +229,9 @@ fun StatisticsCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             val youtubeUsers = uiState.rankings.filter {
-                !it.isMe && it.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true
+                !it.isMe &&
+                it.currentAppPackage?.contains("com.google.android.youtube", ignoreCase = true) == true &&
+                it.isEducational == false  // 교육 영상 제외
             }
 
             if (youtubeUsers.isNotEmpty()) {
@@ -660,17 +662,10 @@ fun OngoingChallengeScreen(
                     if (index < displayOrder.size) {
                         val userId = displayOrder[index]
                         val rankingItem = rankings.find { it.userId == userId }
-                        val formattedTime = rankingItem?.let {
-                            viewModel.formatTimeWithSeconds(
-                                it.totalScreenTimeFormatted,
-                                it.userId,
-                                currentSecond
-                            )
-                        } ?: ""
                         UserInfoCard(
                             nickname = rankingItem?.nickname ?: "",
                             profileImage = rankingItem?.profileImage,
-                            screenTime = formattedTime,
+                            screenTime = rankingItem?.totalScreenTimeFormatted ?: "",
                             isEmpty = rankingItem == null,
                             isMe = rankingItem?.isMe ?: false,
                             modifier = Modifier.weight(1f)
