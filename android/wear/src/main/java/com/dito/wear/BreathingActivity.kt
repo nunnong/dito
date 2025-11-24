@@ -82,48 +82,8 @@ fun BreathingScreen() {
         context.getSystemService(AudioManager::class.java)
     }
 
-    // MediaPlayer 초기화 (배경음악용)
-    val mediaPlayer = remember {
-        try {
-            val resourceId = context.resources.getIdentifier(
-                "breathing_music",
-                "raw",
-                context.packageName
-            )
-            android.util.Log.d("BreathingActivity", "음악 리소스 ID: $resourceId")
-
-            if (resourceId != 0) {
-                MediaPlayer().apply {
-                    // AudioAttributes 설정
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build()
-                    )
-
-                    val afd = context.resources.openRawResourceFd(resourceId)
-                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-                    afd.close()
-                    prepare()
-                    isLooping = true
-                    setVolume(1.0f, 1.0f)
-
-                    // 현재 미디어 볼륨 로그
-                    val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                    val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                    android.util.Log.d("BreathingActivity", "MediaPlayer 초기화 성공, 미디어 볼륨: $currentVolume/$maxVolume")
-                }
-            } else {
-                android.util.Log.e("BreathingActivity", "음악 리소스를 찾을 수 없음")
-                null
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("BreathingActivity", "MediaPlayer 초기화 실패: ${e.message}")
-            e.printStackTrace()
-            null
-        }
-    }
+    // MediaPlayer 상태 (배경음악용) - isActive에 따라 재생성됨
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
     // AudioFocusRequest 생성
     val audioFocusRequest = remember {
@@ -137,10 +97,54 @@ fun BreathingScreen() {
             .build()
     }
 
-    // MediaPlayer cleanup
-    DisposableEffect(Unit) {
+    // MediaPlayer 라이프사이클 관리 - isActive가 true가 될 때마다 새로 생성
+    DisposableEffect(isActive) {
+        if (isActive) {
+            try {
+                val resourceId = context.resources.getIdentifier(
+                    "breathing_music",
+                    "raw",
+                    context.packageName
+                )
+                android.util.Log.d("BreathingActivity", "음악 리소스 ID: $resourceId")
+
+                if (resourceId != 0) {
+                    mediaPlayer = MediaPlayer().apply {
+                        // AudioAttributes 설정
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .build()
+                        )
+
+                        val afd = context.resources.openRawResourceFd(resourceId)
+                        setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                        afd.close()
+                        prepare()
+                        isLooping = true
+                        setVolume(1.0f, 1.0f)
+
+                        // 현재 미디어 볼륨 로그
+                        val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        android.util.Log.d("BreathingActivity", "MediaPlayer 생성 성공, 미디어 볼륨: $currentVolume/$maxVolume")
+                    }
+                } else {
+                    android.util.Log.e("BreathingActivity", "음악 리소스를 찾을 수 없음")
+                    mediaPlayer = null
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("BreathingActivity", "MediaPlayer 생성 실패: ${e.message}")
+                e.printStackTrace()
+                mediaPlayer = null
+            }
+        }
+
         onDispose {
+            android.util.Log.d("BreathingActivity", "MediaPlayer 해제")
             mediaPlayer?.release()
+            mediaPlayer = null
         }
     }
 
