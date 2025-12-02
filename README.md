@@ -1,4 +1,4 @@
-# DITO (Digital Detox)
+# Dito (Digital Detox Together)
 
 삼성 청년 SW아카데미(SSAFY) 13th 자율 프로젝트
 
@@ -832,3 +832,4 @@ Nginx로 정적 파일 서빙, 리버스 프록시, SSL 설정을 직접 처리�
 **© 2025 DITO Team. All rights reserved.**
 
 *삼성 청년 SW아카데미(SSAFY) 13기 자율 프로젝트*
+
